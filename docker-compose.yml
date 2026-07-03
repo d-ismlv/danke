@@ -5,8 +5,7 @@ networks:
 
 services:
   danke:
-    build: .
-    image: danke:latest
+    image: ghcr.io/d-ismlv/danke:latest
     container_name: danke
     restart: unless-stopped
     networks:
