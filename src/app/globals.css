@@ -47,10 +47,19 @@
   --radius-xl: var(--radius);
 }
 
+html {
+  /* Always reserve the scrollbar gutter so the centered layout doesn't shift
+     horizontally between short pages (no scrollbar) and tall ones. */
+  scrollbar-gutter: stable;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+  /* Guard against stray horizontal overflow. `clip` (not `hidden`) keeps the
+     sticky header working, since it doesn't create a scroll container. */
+  overflow-x: clip;
 }
 
 /* --- Markdown rendering ---------------------------------------------------- */

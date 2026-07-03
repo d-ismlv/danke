@@ -29,8 +29,8 @@ export default async function DeckPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+        <div className="min-w-0 sm:flex-1">
           <Link href="/" className="text-sm text-muted hover:text-foreground">
             ← Decks
           </Link>
@@ -39,7 +39,7 @@ export default async function DeckPage({
             <input
               name="name"
               defaultValue={deck.name}
-              className="max-w-full rounded-lg border border-transparent bg-transparent px-1 text-2xl font-semibold outline-none hover:border-border focus:border-accent"
+              className="w-full rounded-lg border border-transparent bg-transparent px-1 text-2xl font-semibold outline-none hover:border-border focus:border-accent"
             />
           </form>
           <p className="mt-1 px-1 text-sm text-muted">
@@ -47,7 +47,7 @@ export default async function DeckPage({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {dueCount > 0 && (
             <Link
               href={`/decks/${deck.id}/review`}
