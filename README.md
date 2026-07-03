@@ -28,7 +28,7 @@ Anki's engine is great but its app gets in the way.
 - ✍️ **Markdown cards** — GFM, code, and math (KaTeX), with a live-preview editor
 - 🗂️ **Decks & sub-decks** to organize by topic
 - 🧠 **FSRS scheduling** — Again / Hard / Good / Easy, with interval previews
-- 📥 **Bulk import** — paste delimited text (Anki-style)
+- 📥 **Bulk import** — paste delimited text, or [generate cards from any URL](docs/flashcard-prompt.md)
 - 📈 **Progress** — due counts, streak, and an activity heatmap
 - 🔒 **Password login** for the whole app
 - 📱 **Responsive** light/dark UI
