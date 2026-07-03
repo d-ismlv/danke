@@ -1,0 +1,148 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { eq } from "drizzle-orm";
+import { nanoid } from "nanoid";
+import { db } from "@/db";
+import { decks, cards, reviewState } from "@/db/schema";
+import { emptyState, fsrsCardToRow } from "@/lib/fsrs";
+import { parseCards, type SeparatorKey } from "@/lib/import";
+import { grantSession, clearSession } from "@/lib/auth";
+
+// ---- Auth ------------------------------------------------------------------
+
+export type LoginState = { error: string | null };
+
+export async function login(
+  _prev: LoginState,
+  formData: FormData,
+): Promise<LoginState> {
+  const password = String(formData.get("password") ?? "");
+  if (!process.env.AUTH_PASSWORD || password !== process.env.AUTH_PASSWORD) {
+    return { error: "Incorrect password" };
+  }
+  await grantSession();
+  redirect("/");
+}
+
+export async function logout() {
+  await clearSession();
+  redirect("/login");
+}
+
+// ---- Decks -----------------------------------------------------------------
+
+export async function createDeck(formData: FormData) {
+  const name = String(formData.get("name") ?? "").trim();
+  const parentId = (formData.get("parentId") as string) || null;
+  if (!name) return;
+  await db.insert(decks).values({
+    id: nanoid(),
+    name,
+    parentId,
+    createdAt: Date.now(),
+  });
+  revalidatePath("/");
+}
+
+export async function renameDeck(formData: FormData) {
+  const id = String(formData.get("id"));
+  const name = String(formData.get("name") ?? "").trim();
+  if (!id || !name) return;
+  await db.update(decks).set({ name }).where(eq(decks.id, id));
+  revalidatePath("/");
+  revalidatePath(`/decks/${id}`);
+}
+
+export async function deleteDeck(formData: FormData) {
+  const id = String(formData.get("id"));
+  if (!id) return;
+  // Cascades to child decks' cards via FK; re-parent child decks to root first
+  // so they aren't orphaned (child decks have no cascade on parent_id).
+  await db.update(decks).set({ parentId: null }).where(eq(decks.parentId, id));
+  await db.delete(decks).where(eq(decks.id, id));
+  revalidatePath("/");
+  redirect("/");
+}
+
+// ---- Cards -----------------------------------------------------------------
+
+export async function createCard(formData: FormData) {
+  const deckId = String(formData.get("deckId"));
+  const front = String(formData.get("front") ?? "");
+  const back = String(formData.get("back") ?? "");
+  const again = formData.get("addAnother") === "1";
+  if (!deckId || (!front.trim() && !back.trim())) return;
+
+  const id = nanoid();
+  const now = Date.now();
+  await db.transaction((tx) => {
+    tx.insert(cards)
+      .values({ id, deckId, front, back, createdAt: now, updatedAt: now })
+      .run();
+    tx.insert(reviewState)
+      .values({ cardId: id, ...fsrsCardToRow(emptyState(new Date(now))) })
+      .run();
+  });
+
+  revalidatePath(`/decks/${deckId}`);
+  revalidatePath("/");
+  if (again) redirect(`/decks/${deckId}/cards/new`);
+  redirect(`/decks/${deckId}`);
+}
+
+export async function updateCard(formData: FormData) {
+  const id = String(formData.get("id"));
+  const deckId = String(formData.get("deckId"));
+  const front = String(formData.get("front") ?? "");
+  const back = String(formData.get("back") ?? "");
+  if (!id) return;
+  await db
+    .update(cards)
+    .set({ front, back, updatedAt: Date.now() })
+    .where(eq(cards.id, id));
+  revalidatePath(`/decks/${deckId}`);
+  redirect(`/decks/${deckId}`);
+}
+
+export async function deleteCard(formData: FormData) {
+  const id = String(formData.get("id"));
+  const deckId = String(formData.get("deckId"));
+  if (!id) return;
+  await db.delete(cards).where(eq(cards.id, id));
+  revalidatePath(`/decks/${deckId}`);
+  revalidatePath("/");
+}
+
+/** Bulk-create cards from pasted delimited text, each with fresh FSRS state. */
+export async function importCards(formData: FormData) {
+  const deckId = String(formData.get("deckId"));
+  const text = String(formData.get("text") ?? "");
+  const separator = String(formData.get("separator") ?? "tab") as SeparatorKey;
+  if (!deckId) return;
+
+  const parsed = parseCards(text, separator);
+  if (parsed.length === 0) return;
+
+  const now = Date.now();
+  db.transaction((tx) => {
+    for (const { front, back } of parsed) {
+      const id = nanoid();
+      tx.insert(cards)
+        .values({ id, deckId, front, back, createdAt: now, updatedAt: now })
+        .run();
+      tx.insert(reviewState)
+        .values({ cardId: id, ...fsrsCardToRow(emptyState(new Date(now))) })
+        .run();
+    }
+  });
+
+  revalidatePath(`/decks/${deckId}`);
+  revalidatePath("/");
+  redirect(`/decks/${deckId}`);
+}
+
+// Review grading lives in a route handler (src/app/api/review) rather than a
+// Server Action, so it doesn't refresh the review route mid-session. See
+// src/lib/review.ts.

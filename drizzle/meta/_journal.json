@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1783101235708,
+      "tag": "0000_sharp_doctor_doom",
+      "breakpoints": true
+    }
+  ]
+}
