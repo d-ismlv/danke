@@ -35,13 +35,18 @@ COPY --from=builder /app/public ./public
 COPY package.json next.config.ts ./
 COPY drizzle ./drizzle
 COPY scripts ./scripts
+COPY --chmod=0755 docker-entrypoint.sh ./docker-entrypoint.sh
 
 # The data dir is normally a mounted volume; create it and hand /app to the
-# unprivileged `node` user (uid 1000, which matches the host `ismlv` user).
+# unprivileged `node` user (uid 1000). A named volume inherits this ownership,
+# so it's writable out of the box.
 RUN mkdir -p /app/data && chown -R node:node /app
 USER node
 
 EXPOSE 32323
 
-# Apply migrations, then serve. `exec` so Next receives signals for clean stops.
-CMD ["sh", "-c", "node scripts/migrate.mjs && exec node_modules/.bin/next start -p 32323 -H 0.0.0.0"]
+HEALTHCHECK --start-period=40s --interval=30s --timeout=5s CMD \
+  node -e "fetch('http://localhost:'+(process.env.PORT||32323)+'/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+# Provisions the session secret, applies migrations, then serves.
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

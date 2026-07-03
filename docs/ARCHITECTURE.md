@@ -52,5 +52,6 @@ embedded straight in Markdown (base64, or a path served from the data volume).
 ## Deployment
 
 The image is published to `ghcr.io/d-ismlv/danke` by a GitHub Actions workflow on
-every push to `main`. On boot the container applies pending migrations
-(`scripts/migrate.mjs`) and then serves on port `32323` as an unprivileged user.
+every push to `main`. On boot the container (`docker-entrypoint.sh`) provisions a
+session secret if one wasn't supplied, applies pending migrations
+(`scripts/migrate.mjs`), then serves on port `32323` as an unprivileged user.

@@ -44,20 +44,24 @@ services:
   danke:
     image: ghcr.io/d-ismlv/danke:latest
     ports: ["32323:32323"]
-    volumes: ["./data:/app/data"]
     environment:
       - AUTH_PASSWORD=change-me
-      - AUTH_SESSION_TOKEN=change-me-random-hex
+    volumes:
+      - danke-data:/app/data
     restart: unless-stopped
+
+volumes:
+  danke-data:
 ```
 
 ```bash
 docker compose up -d          # then open http://localhost:32323
 ```
 
-Put it behind a TLS-terminating reverse proxy (nginx-proxy-manager, Caddy, …)
-pointed at port `32323`. Everything lives in the mounted `./data` — back that up
-and you've backed up the whole app.
+Set a password, that's it — the session secret is generated on first run. Put it
+behind a TLS-terminating reverse proxy (nginx-proxy-manager, Caddy, …) pointed at
+port `32323`. All state lives in the `danke-data` volume — back that up and
+you've backed up the whole app.
 
 ### Local
 
@@ -67,18 +71,12 @@ npm run migrate   # create the local SQLite database
 npm run dev       # http://localhost:3000
 ```
 
-Generate a session token for either method:
-
-```bash
-node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"
-```
-
 ## Configuration
 
 | Variable | Purpose |
 |---|---|
 | `AUTH_PASSWORD` | Login password |
-| `AUTH_SESSION_TOKEN` | Random secret for the session cookie |
+| `AUTH_SESSION_TOKEN` | Session cookie secret — auto-generated if unset |
 | `DANKE_DATA_DIR` | Database location (default `/app/data`) |
 | `TZ` | Timezone (optional) |
 

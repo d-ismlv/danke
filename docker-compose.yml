@@ -1,35 +1,15 @@
-networks:
-  npm_proxy:
-    external: true
-    name: npm_default
-
 services:
   danke:
     image: ghcr.io/d-ismlv/danke:latest
-    container_name: danke
-    restart: unless-stopped
-    networks:
-      - npm_proxy
     ports:
       - "32323:32323"
     environment:
-      - NODE_ENV=production
-      - DANKE_DATA_DIR=/app/data
-      - AUTH_PASSWORD=${DANKE_AUTH_PASSWORD}
-      - AUTH_SESSION_TOKEN=${DANKE_AUTH_SESSION_TOKEN}
-      - TZ=${TZ:-UTC}
+      - AUTH_PASSWORD=change-me
+      # AUTH_SESSION_TOKEN is generated automatically on first run.
+      # Set it explicitly only if you want to pin the value.
     volumes:
-      - /home/ismlv/docker/data/danke:/app/data
-    labels:
-      komodo.stack: "danke"
-    healthcheck:
-      # Node 22 has global fetch, so no extra tools needed in the slim image.
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://localhost:32323/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
-        ]
-      start_period: 40s
-      interval: 30s
+      - danke-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  danke-data:
