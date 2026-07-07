@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { login, type LoginState } from "@/lib/actions";
+import Logo from "@/components/Logo";
 
 const initial: LoginState = { error: null };
 
@@ -14,9 +15,7 @@ export default function LoginForm() {
       className="flex w-full max-w-xs flex-col gap-3 rounded-2xl border border-border bg-surface p-6"
     >
       <div className="flex items-center gap-2 font-semibold">
-        <span className="grid size-7 place-items-center rounded-lg bg-accent text-accent-fg">
-          d
-        </span>
+        <Logo />
         danke
       </div>
       <p className="text-sm text-muted">Enter your password to continue.</p>

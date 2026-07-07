@@ -5,6 +5,7 @@ import "./globals.css";
 import "katex/dist/katex.min.css";
 import { isAuthed } from "@/lib/auth";
 import { logout } from "@/lib/actions";
+import Logo from "@/components/Logo";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -31,9 +32,7 @@ export default async function RootLayout({
         <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur">
           <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
             <Link href="/" className="flex items-center gap-2 font-semibold">
-              <span className="grid size-7 place-items-center rounded-lg bg-accent text-accent-fg">
-                d
-              </span>
+              <Logo />
               danke
             </Link>
             {authed && (
