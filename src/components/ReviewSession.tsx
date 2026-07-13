@@ -194,9 +194,17 @@ export default function ReviewSession({
           <button
             type="button"
             onClick={() => setRevealed(true)}
-            className="button-primary mx-auto mt-auto min-w-36"
+            aria-label="Show answer"
+            aria-keyshortcuts="Space"
+            className="button-primary group relative mx-auto mt-auto min-w-36"
           >
-            Show answer <span className="ml-1 text-xs">Space</span>
+            Show answer
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-foreground px-2 py-1 text-[11px] font-medium text-background opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+            >
+              (Space)
+            </span>
           </button>
         )}
       </section>
