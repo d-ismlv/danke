@@ -101,8 +101,8 @@ export async function createCard(formData: FormData) {
 
   revalidatePath(`/decks/${deckId}`);
   revalidatePath("/");
-  if (again) redirect(`/decks/${deckId}/cards/new`);
-  redirect(`/decks/${deckId}`);
+  if (again) redirect(`/decks/${deckId}/cards/new?added=1`);
+  redirect(`/decks/${deckId}?created=1`);
 }
 
 export async function updateCard(formData: FormData) {
@@ -128,7 +128,7 @@ export async function updateCard(formData: FormData) {
     );
   }
   revalidatePath(`/decks/${deckId}`);
-  redirect(`/decks/${deckId}`);
+  redirect(`/decks/${deckId}?updated=1`);
 }
 
 export async function deleteCard(formData: FormData) {

@@ -13,10 +13,13 @@ export const dynamic = "force-dynamic";
 
 export default async function DeckPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ created?: string; updated?: string }>;
 }) {
   const { id } = await params;
+  const status = await searchParams;
   const deck = await getDeck(id);
   if (!deck) notFound();
 
@@ -26,6 +29,14 @@ export default async function DeckPage({
 
   return (
     <div className="flex flex-col gap-6">
+      {(status.created === "1" || status.updated === "1") && (
+        <div
+          role="status"
+          className="rounded-xl border border-good/25 bg-good/10 px-4 py-3 text-sm font-medium text-good"
+        >
+          {status.created === "1" ? "Card added." : "Changes saved."}
+        </div>
+      )}
       <div className="flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div className="min-w-0 sm:flex-1">
           <Link href="/" className="text-sm text-muted hover:text-foreground">

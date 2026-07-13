@@ -78,12 +78,12 @@ Update it whenever a task is completed or the implementation pauses.
 ## 6. Card editor UX
 
 - [x] Create a more spacious desktop workspace
-- [ ] Add a compact Markdown toolbar
+- [x] Add a compact Markdown toolbar
 - [x] Strengthen front/back distinction
-- [ ] Add editor/preview tabs on mobile
-- [ ] Add save progress and success feedback
+- [x] Add editor/preview tabs on mobile
+- [x] Add save progress and success feedback
 - [x] Warn about unsaved changes
-- [ ] Improve the Add and new workflow
+- [x] Improve the Add and new workflow
 
 ## 7. Review UX
 

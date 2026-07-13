@@ -7,6 +7,7 @@ import {
   type ClipboardEvent,
   type DragEvent,
 } from "react";
+import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import Markdown from "./Markdown";
 import { createCard, updateCard } from "@/lib/actions";
@@ -71,18 +72,43 @@ function Field({
   name,
   value,
   onChange,
+  autoFocus = false,
 }: {
   label: string;
   name: string;
   value: string;
   onChange: (v: string) => void;
+  autoFocus?: boolean;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mobileView, setMobileView] = useState<"edit" | "preview">("edit");
   const images = embeddedImages(value);
+
+  const wrapSelection = (
+    prefix: string,
+    suffix: string,
+    placeholder: string,
+  ) => {
+    const textarea = textareaRef.current;
+    const start = textarea?.selectionStart ?? value.length;
+    const end = textarea?.selectionEnd ?? start;
+    const selection = value.slice(start, end) || placeholder;
+    const replacement = `${prefix}${selection}${suffix}`;
+    onChange(`${value.slice(0, start)}${replacement}${value.slice(end)}`);
+    setMobileView("edit");
+
+    requestAnimationFrame(() => {
+      textarea?.focus();
+      textarea?.setSelectionRange(
+        start + prefix.length,
+        start + prefix.length + selection.length,
+      );
+    });
+  };
 
   const insertImage = async (file: File) => {
     if (uploading) return;
@@ -171,7 +197,10 @@ function Field({
   return (
     <section className="flex flex-col gap-3 border-t border-border pt-5 first:border-t-0 first:pt-0">
       <div className="flex min-h-7 items-center justify-between gap-3">
-        <label className="text-xs font-medium uppercase tracking-wide text-muted">
+        <label
+          htmlFor={`card-${name}`}
+          className="text-xs font-medium uppercase tracking-wide text-muted"
+        >
           {label}
         </label>
         <div className="flex items-center gap-2">
@@ -198,11 +227,70 @@ function Field({
           </label>
         </div>
       </div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1" aria-label={`${label} formatting`}>
+          <button
+            type="button"
+            title="Bold"
+            aria-label="Bold"
+            onClick={() => wrapSelection("**", "**", "bold text")}
+            className="button-quiet min-h-8 min-w-8 px-2 font-bold"
+          >
+            B
+          </button>
+          <button
+            type="button"
+            title="Italic"
+            aria-label="Italic"
+            onClick={() => wrapSelection("_", "_", "italic text")}
+            className="button-quiet min-h-8 min-w-8 px-2 italic"
+          >
+            I
+          </button>
+          <button
+            type="button"
+            title="Inline code"
+            aria-label="Inline code"
+            onClick={() => wrapSelection("`", "`", "code")}
+            className="button-quiet min-h-8 min-w-8 px-2 font-mono"
+          >
+            &lt;/&gt;
+          </button>
+          <button
+            type="button"
+            title="Link"
+            aria-label="Link"
+            onClick={() => wrapSelection("[", "](https://)", "link text")}
+            className="button-quiet min-h-8 px-2 text-xs"
+          >
+            Link
+          </button>
+        </div>
+        <div className="flex rounded-lg bg-surface-2 p-1 md:hidden">
+          {(["edit", "preview"] as const).map((view) => (
+            <button
+              key={view}
+              type="button"
+              aria-pressed={mobileView === view}
+              onClick={() => setMobileView(view)}
+              className={`rounded-md px-3 py-1 text-xs font-semibold capitalize transition ${
+                mobileView === view
+                  ? "bg-surface text-foreground shadow-sm"
+                  : "text-muted"
+              }`}
+            >
+              {view}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="grid gap-2 md:grid-cols-2">
         <textarea
+          id={`card-${name}`}
           ref={textareaRef}
           name={name}
           value={value}
+          autoFocus={autoFocus}
           onChange={(e) => onChange(e.target.value)}
           onPaste={onPaste}
           onDragEnter={(event) => {
@@ -216,9 +304,14 @@ function Field({
           placeholder="Markdown…"
           className={`min-h-56 w-full min-w-0 resize-y rounded-[18px] border bg-surface p-4 font-mono text-sm leading-6 outline-none transition focus:border-accent ${
             dragging ? "border-accent ring-2 ring-accent/15" : "border-border"
-          }`}
+          } ${mobileView === "preview" ? "hidden md:block" : ""}`}
         />
-        <div className="min-h-56 min-w-0 overflow-auto rounded-[18px] border border-border bg-surface/70 p-4">
+        <div
+          aria-label={`${label} preview`}
+          className={`min-h-56 min-w-0 overflow-auto rounded-[18px] border border-border bg-surface/70 p-4 ${
+            mobileView === "edit" ? "hidden md:block" : ""
+          }`}
+        >
           {value.trim() ? (
             <Markdown variant="preview">{value}</Markdown>
           ) : (
@@ -287,6 +380,64 @@ function Field({
   );
 }
 
+function SubmitControls({
+  deckId,
+  dirty,
+  isEdit,
+}: {
+  deckId: string;
+  dirty: boolean;
+  isEdit: boolean;
+}) {
+  const { pending } = useFormStatus();
+  const [intent, setIntent] = useState<"save" | "another">("save");
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        type="submit"
+        disabled={pending}
+        onClick={() => setIntent("save")}
+        className="button-primary"
+      >
+        {pending && intent === "save"
+          ? isEdit
+            ? "Saving…"
+            : "Adding…"
+          : isEdit
+            ? "Save changes"
+            : "Add card"}
+      </button>
+      {!isEdit && (
+        <button
+          type="submit"
+          name="addAnother"
+          value="1"
+          disabled={pending}
+          onClick={() => setIntent("another")}
+          className="button-secondary"
+        >
+          {pending && intent === "another" ? "Adding…" : "Save & add another"}
+        </button>
+      )}
+      <Link
+        href={`/decks/${deckId}`}
+        className={`button-quiet ${pending ? "pointer-events-none opacity-50" : ""}`}
+        onClick={(event) => {
+          if (dirty && !window.confirm("Discard your unsaved changes?")) {
+            event.preventDefault();
+          }
+        }}
+      >
+        Cancel
+      </Link>
+      <span className="text-xs text-muted" aria-live="polite">
+        {pending ? "Saving locally…" : dirty ? "Unsaved changes" : ""}
+      </span>
+    </div>
+  );
+}
+
 export default function CardEditor({ deckId, card }: Props) {
   const [front, setFront] = useState(card?.front ?? "");
   const [back, setBack] = useState(card?.back ?? "");
@@ -307,38 +458,16 @@ export default function CardEditor({ deckId, card }: Props) {
       <input type="hidden" name="deckId" value={deckId} />
       {card && <input type="hidden" name="id" value={card.id} />}
 
-      <Field label="Front" name="front" value={front} onChange={setFront} />
+      <Field
+        label="Front"
+        name="front"
+        value={front}
+        onChange={setFront}
+        autoFocus={!isEdit}
+      />
       <Field label="Back" name="back" value={back} onChange={setBack} />
 
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="submit"
-          className="button-primary"
-        >
-          {isEdit ? "Save changes" : "Add card"}
-        </button>
-        {!isEdit && (
-          <button
-            type="submit"
-            name="addAnother"
-            value="1"
-            className="button-secondary"
-          >
-            Add &amp; new
-          </button>
-        )}
-        <Link
-          href={`/decks/${deckId}`}
-          className="button-quiet"
-          onClick={(event) => {
-            if (dirty && !window.confirm("Discard your unsaved changes?")) {
-              event.preventDefault();
-            }
-          }}
-        >
-          Cancel
-        </Link>
-      </div>
+      <SubmitControls deckId={deckId} dirty={dirty} isEdit={isEdit} />
     </form>
   );
 }
