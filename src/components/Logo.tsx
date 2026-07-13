@@ -1,22 +1,23 @@
-/** The danke brand mark — a brain on a violet rounded square. Matches
- * app/icon.svg (the favicon). */
+/** A friendly pair of study cards with a small recall spark. */
 export default function Logo({ className = "size-7" }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
-      <rect width="32" height="32" rx="7" fill="var(--accent)" />
-      <g
-        fill="none"
-        stroke="#ffffff"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M16 8 C 14.5 6.3 11.8 6.4 10.8 8.3 C 8.6 8.2 7 10 7.8 11.9 C 6.1 12.9 6.2 15.4 8 16.1 C 7.2 18 8.6 20.2 10.7 20 C 11 21.8 13 22.6 14.6 21.6 C 15.2 22.3 16 22.2 16 21.2 Z" />
-        <path d="M16 8 C 17.5 6.3 20.2 6.4 21.2 8.3 C 23.4 8.2 25 10 24.2 11.9 C 25.9 12.9 25.8 15.4 24 16.1 C 24.8 18 23.4 20.2 21.3 20 C 21 21.8 19 22.6 17.4 21.6 C 16.8 22.3 16 22.2 16 21.2 Z" />
-        <path d="M16 8 V21.2" />
-        <path d="M10.8 11 C 12.4 11.3 12.7 12.8 11.6 13.7" />
-        <path d="M21.2 11 C 19.6 11.3 19.3 12.8 20.4 13.7" />
-      </g>
+      <rect
+        x="3.5"
+        y="5"
+        width="19"
+        height="23"
+        rx="6"
+        fill="var(--accent)"
+        opacity="0.22"
+        transform="rotate(-8 13 16.5)"
+      />
+      <rect x="8" y="3" width="21" height="25" rx="7" fill="var(--accent)" />
+      <path
+        d="M18.5 8.5c.45 3.15 1.85 4.55 5 5-3.15.45-4.55 1.85-5 5-.45-3.15-1.85-4.55-5-5 3.15-.45 4.55-1.85 5-5Z"
+        fill="white"
+      />
+      <circle cx="14.5" cy="22.5" r="1.5" fill="white" opacity="0.75" />
     </svg>
   );
 }

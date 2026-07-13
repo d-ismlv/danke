@@ -11,7 +11,19 @@ Update it whenever a task is completed or the implementation pauses.
 - Completed: context-aware image presentation, zoom, and review interaction
 - Completed: visual foundation and the first screen-level UI/UX refresh
 - Completed: media cleanup and the first UX safeguard pass
-- In progress: final verification and optional follow-up enhancements
+- Completed: responsive visual revision, non-destructive practice, and progress reset
+- In progress: optional follow-up enhancements
+
+## Follow-up revision
+
+- [x] Replace the display serif with a smaller sans-serif hierarchy
+- [x] Replace the brain badge with a friendlier study-card mark
+- [x] Remove viewport-filling whitespace from the review stage
+- [x] Expand the shell responsively without horizontal overflow
+- [x] Allow practice for completed decks without changing scheduling
+- [x] Allow practice for one selected card
+- [x] Add confirmed per-card progress reset
+- [x] Add confirmed deck-tree progress reset
 - Last verified: lint, TypeScript, production build, isolated migration, and an
   authenticated upload/download byte-for-byte round trip
 

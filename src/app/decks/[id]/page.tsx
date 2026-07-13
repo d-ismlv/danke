@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDeck, getCardsForDeck, serverNow } from "@/lib/queries";
-import { deleteCard, deleteDeck, renameDeck } from "@/lib/actions";
+import {
+  deleteCard,
+  deleteDeck,
+  renameDeck,
+  resetCardProgress,
+  resetDeckProgress,
+} from "@/lib/actions";
 import Markdown from "@/components/Markdown";
 import { State } from "@/lib/fsrs";
 import ConfirmSubmitButton from "@/components/ConfirmSubmitButton";
@@ -29,20 +35,20 @@ export default async function DeckPage({
   const dueCount = cards.filter((c) => c.due !== null && c.due <= now).length;
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div className="min-w-0 sm:flex-1">
           <Link href="/" className="text-sm text-muted hover:text-foreground">
             ← Decks
           </Link>
-          <p className="eyebrow mt-6">Deck</p>
+          <p className="eyebrow mt-4">Deck</p>
           <form action={renameDeck} className="mt-1 flex items-center gap-2">
             <input type="hidden" name="id" value={deck.id} />
             <input
               name="name"
               defaultValue={deck.name}
               aria-label="Deck name"
-              className="display-title w-full rounded-lg border border-transparent bg-transparent py-1 text-4xl outline-none hover:border-border focus:border-accent sm:text-5xl"
+              className="display-title w-full rounded-lg border border-transparent bg-transparent py-1 text-3xl outline-none hover:border-border focus:border-accent sm:text-4xl"
             />
           </form>
           <p className="mt-2 text-sm text-muted">
@@ -57,6 +63,14 @@ export default async function DeckPage({
               className="button-primary"
             >
               Review {dueCount}
+            </Link>
+          )}
+          {cards.length > 0 && (
+            <Link
+              href={`/decks/${deck.id}/review?mode=practice`}
+              className="button-secondary"
+            >
+              Practice all
             </Link>
           )}
           <Link
@@ -75,7 +89,7 @@ export default async function DeckPage({
       </div>
 
       {cards.length === 0 ? (
-        <div className="panel px-6 py-14 text-center">
+        <div className="panel px-6 py-10 text-center">
           <h2 className="text-lg font-semibold">This deck is still empty</h2>
           <p className="mt-1 text-sm text-muted">
             Add a thought, image, definition, or question to begin.
@@ -94,7 +108,7 @@ export default async function DeckPage({
             return (
               <li
                 key={c.id}
-                className="group flex items-start gap-4 px-4 py-5 transition hover:bg-surface-2/50 sm:px-5"
+                className="group flex flex-col gap-3 px-4 py-4 transition hover:bg-surface-2/50 sm:flex-row sm:items-start sm:px-5"
               >
                 <div className="min-w-0 flex-1">
                   <div className="line-clamp-3 text-sm leading-6">
@@ -115,13 +129,29 @@ export default async function DeckPage({
                     {due && <span>due now</span>}
                   </div>
                 </div>
-                <div className="flex shrink-0 gap-1">
+                <div className="flex shrink-0 flex-wrap gap-1">
+                  <Link
+                    href={`/decks/${deck.id}/review?mode=practice&cardId=${c.id}`}
+                    className="button-secondary min-h-9 px-2.5"
+                  >
+                    Practice
+                  </Link>
                   <Link
                     href={`/decks/${deck.id}/cards/${c.id}`}
                     className="button-quiet min-h-9 px-2.5"
                   >
                     Edit
                   </Link>
+                  <form action={resetCardProgress}>
+                    <input type="hidden" name="id" value={c.id} />
+                    <input type="hidden" name="deckId" value={deck.id} />
+                    <ConfirmSubmitButton
+                      message="Reset this card to New and remove its review history?"
+                      className="button-quiet min-h-9 px-2.5"
+                    >
+                      Reset
+                    </ConfirmSubmitButton>
+                  </form>
                   <form action={deleteCard}>
                     <input type="hidden" name="id" value={c.id} />
                     <input type="hidden" name="deckId" value={deck.id} />
@@ -139,19 +169,31 @@ export default async function DeckPage({
         </ul>
       )}
 
-      <form
-        action={deleteDeck}
-        className="mt-2 flex items-center justify-between border-t border-border pt-5 text-sm text-muted"
-      >
-        <input type="hidden" name="id" value={deck.id} />
+      <div className="mt-2 flex flex-col gap-3 border-t border-border pt-4 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
         <span>Deck settings</span>
-        <ConfirmSubmitButton
-          message={`Delete “${deck.name}” and all of its cards? This cannot be undone.`}
-          className="button-danger min-h-9"
-        >
-          Delete deck
-        </ConfirmSubmitButton>
-      </form>
+        <div className="flex flex-wrap gap-2">
+          {cards.length > 0 && (
+            <form action={resetDeckProgress}>
+              <input type="hidden" name="deckId" value={deck.id} />
+              <ConfirmSubmitButton
+                message={`Reset progress for every card in “${deck.name}”? Review history will be removed.`}
+                className="button-secondary min-h-9"
+              >
+                Reset progress
+              </ConfirmSubmitButton>
+            </form>
+          )}
+          <form action={deleteDeck}>
+            <input type="hidden" name="id" value={deck.id} />
+            <ConfirmSubmitButton
+              message={`Delete “${deck.name}” and all of its cards? This cannot be undone.`}
+              className="button-danger min-h-9"
+            >
+              Delete deck
+            </ConfirmSubmitButton>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

@@ -162,6 +162,36 @@ export async function getDueCards(
   }));
 }
 
+/**
+ * A non-scheduling practice queue. It can contain every card in a deck tree or
+ * one explicitly selected card, regardless of its due date.
+ */
+export async function getPracticeCards(
+  deckId: string,
+  cardId?: string,
+  limit = 500,
+): Promise<DueCard[]> {
+  const deckIds = await getDeckAndDescendantIds(deckId);
+  const rows = await db
+    .select({ card: cards, state: reviewState })
+    .from(reviewState)
+    .innerJoin(cards, eq(cards.id, reviewState.cardId))
+    .where(
+      and(
+        inArray(cards.deckId, deckIds),
+        cardId ? eq(cards.id, cardId) : undefined,
+      ),
+    )
+    .orderBy(asc(cards.createdAt))
+    .limit(limit);
+  return rows.map((r) => ({
+    id: r.card.id,
+    front: r.card.front,
+    back: r.card.back,
+    state: r.state,
+  }));
+}
+
 export type Stats = {
   totalCards: number;
   reviewsToday: number;

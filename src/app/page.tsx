@@ -9,12 +9,12 @@ export default async function Home() {
   const totalDue = tree.reduce((n, d) => n + (d.depth === 0 ? d.due : 0), 0);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <div className="flex items-end justify-between gap-6">
         <div>
           <p className="eyebrow mb-2">Library</p>
-          <h1 className="display-title text-4xl sm:text-5xl">Your decks</h1>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-muted sm:text-base">
+          <h1 className="display-title text-3xl sm:text-4xl">Your decks</h1>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-muted">
             {totalDue > 0
               ? `${totalDue} card${totalDue === 1 ? "" : "s"} ready for a quick review.`
               : "Nothing is waiting. Enjoy the quiet moment."}
@@ -22,7 +22,7 @@ export default async function Home() {
         </div>
         {totalDue > 0 && (
           <div className="hidden text-right sm:block">
-            <div className="display-title text-4xl text-accent">{totalDue}</div>
+            <div className="display-title text-3xl text-accent">{totalDue}</div>
             <div className="text-xs font-medium uppercase tracking-[0.12em] text-muted">
               due now
             </div>
@@ -31,7 +31,7 @@ export default async function Home() {
       </div>
 
       {tree.length === 0 ? (
-        <div className="panel px-6 py-14 text-center">
+        <div className="panel px-6 py-10 text-center">
           <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-surface-2 text-xl">
             ✦
           </div>
@@ -75,15 +75,23 @@ export default async function Home() {
                   )}
 
                   <Link
-                    href={`/decks/${deck.id}/review`}
-                    aria-disabled={deck.due === 0}
+                    href={
+                      deck.total === 0
+                        ? `/decks/${deck.id}`
+                        : deck.due > 0
+                          ? `/decks/${deck.id}/review`
+                          : `/decks/${deck.id}/review?mode=practice`
+                    }
+                    aria-disabled={deck.total === 0}
                     className={
                       deck.due > 0
                         ? "button-primary min-h-9 px-3"
-                        : "button-secondary pointer-events-none min-h-9 px-3 opacity-45"
+                        : deck.total > 0
+                          ? "button-secondary min-h-9 px-3"
+                          : "button-secondary pointer-events-none min-h-9 px-3 opacity-45"
                     }
                   >
-                    Study
+                    {deck.due > 0 ? "Review" : deck.total > 0 ? "Practice" : "Empty"}
                   </Link>
                 </div>
               </li>

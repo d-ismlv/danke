@@ -2,14 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db } from "@/db";
-import { decks, cards, reviewState } from "@/db/schema";
+import { decks, cards, reviewState, reviewLogs } from "@/db/schema";
 import { emptyState, fsrsCardToRow } from "@/lib/fsrs";
 import { parseCards, type SeparatorKey } from "@/lib/import";
 import { grantSession, clearSession } from "@/lib/auth";
 import { cleanupUnreferencedMedia, extractMediaIds } from "@/lib/media-cleanup";
+import { getDeckAndDescendantIds } from "@/lib/queries";
 
 // ---- Auth ------------------------------------------------------------------
 
@@ -147,6 +148,48 @@ export async function deleteCard(formData: FormData) {
   }
   revalidatePath(`/decks/${deckId}`);
   revalidatePath("/");
+  revalidatePath("/stats");
+}
+
+export async function resetCardProgress(formData: FormData) {
+  const id = String(formData.get("id"));
+  const deckId = String(formData.get("deckId"));
+  if (!id || !deckId) return;
+  const nextState = fsrsCardToRow(emptyState(new Date()));
+  await db.transaction((tx) => {
+    tx.update(reviewState)
+      .set(nextState)
+      .where(eq(reviewState.cardId, id))
+      .run();
+    tx.delete(reviewLogs).where(eq(reviewLogs.cardId, id)).run();
+  });
+  revalidatePath(`/decks/${deckId}`);
+  revalidatePath("/");
+  revalidatePath("/stats");
+}
+
+export async function resetDeckProgress(formData: FormData) {
+  const deckId = String(formData.get("deckId"));
+  if (!deckId) return;
+  const deckIds = await getDeckAndDescendantIds(deckId);
+  const cardRows = await db
+    .select({ id: cards.id })
+    .from(cards)
+    .where(inArray(cards.deckId, deckIds));
+  const cardIds = cardRows.map((card) => card.id);
+  if (cardIds.length === 0) return;
+
+  const nextState = fsrsCardToRow(emptyState(new Date()));
+  await db.transaction((tx) => {
+    tx.update(reviewState)
+      .set(nextState)
+      .where(inArray(reviewState.cardId, cardIds))
+      .run();
+    tx.delete(reviewLogs).where(inArray(reviewLogs.cardId, cardIds)).run();
+  });
+  revalidatePath(`/decks/${deckId}`);
+  revalidatePath("/");
+  revalidatePath("/stats");
 }
 
 /** Bulk-create cards from pasted delimited text, each with fresh FSRS state. */

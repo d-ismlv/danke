@@ -34,10 +34,12 @@ export default function ReviewSession({
   deckId,
   deckName,
   initialQueue,
+  practice = false,
 }: {
   deckId: string;
   deckName: string;
   initialQueue: QueueItem[];
+  practice?: boolean;
 }) {
   const [queue, setQueue] = useState<QueueItem[]>(initialQueue);
   const [revealed, setRevealed] = useState(false);
@@ -47,6 +49,14 @@ export default function ReviewSession({
 
   const current = queue[0];
   const done = !current;
+
+  const advancePractice = useCallback(() => {
+    if (!current) return;
+    setReviewed((n) => n + 1);
+    setRevealed(false);
+    setError(null);
+    setQueue((q) => q.slice(1));
+  }, [current]);
 
   const answer = useCallback(
     async (rating: Grade) => {
@@ -81,7 +91,7 @@ export default function ReviewSession({
     [current, pending],
   );
 
-  // Keyboard: space/enter reveals; 1–4 grade.
+  // Keyboard: space/enter reveals (and advances practice); 1–4 grade reviews.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (done) return;
@@ -91,8 +101,13 @@ export default function ReviewSession({
         return;
       }
       if (revealed) {
+        if (practice && (e.key === " " || e.key === "Enter")) {
+          e.preventDefault();
+          advancePractice();
+          return;
+        }
         const b = BUTTONS.find((b) => b.key === e.key);
-        if (b) {
+        if (!practice && b) {
           e.preventDefault();
           void answer(b.rating);
         }
@@ -100,18 +115,19 @@ export default function ReviewSession({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [revealed, done, answer]);
+  }, [revealed, done, practice, answer, advancePractice]);
 
   if (done) {
     return (
-      <div className="flex flex-col items-center gap-4 py-20 text-center">
+      <div className="flex flex-col items-center gap-3 py-12 text-center">
         <div className="flex size-14 items-center justify-center rounded-full bg-good/10 text-2xl">
           ✓
         </div>
         <p className="eyebrow">Finished</p>
-        <h1 className="display-title text-4xl sm:text-5xl">Session complete</h1>
+        <h1 className="display-title text-3xl sm:text-4xl">Session complete</h1>
         <p className="text-muted">
-          You reviewed {reviewed} card{reviewed === 1 ? "" : "s"} in {deckName}.
+          You {practice ? "practiced" : "reviewed"} {reviewed} card
+          {reviewed === 1 ? "" : "s"} in {deckName}.
         </p>
         <div className="mt-2 flex gap-2">
           <Link
@@ -134,11 +150,11 @@ export default function ReviewSession({
   const remaining = queue.length;
 
   return (
-    <div className="mx-auto flex min-h-[72vh] w-full max-w-4xl flex-col gap-5">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
       {/* Progress */}
       <div className="flex items-end justify-between gap-4 text-sm text-muted">
         <div>
-          <p className="eyebrow mb-1">Review</p>
+          <p className="eyebrow mb-1">{practice ? "Practice" : "Review"}</p>
           <Link
             href={`/decks/${deckId}`}
             className="text-base font-semibold text-foreground hover:text-accent"
@@ -160,14 +176,14 @@ export default function ReviewSession({
       </div>
 
       {/* Card */}
-      <section className="panel flex flex-1 flex-col p-6 text-left sm:p-9">
-        <div className="flex-1">
+      <section className="panel flex min-h-72 flex-col p-5 text-left sm:p-6">
+        <div>
           <Markdown variant="review">{current.front || "*(empty)*"}</Markdown>
         </div>
         {revealed && (
           <>
             <hr className="my-5 border-border" />
-            <div className="flex-1">
+            <div>
               <Markdown variant="review">
                 {current.back || "*(empty)*"}
               </Markdown>
@@ -178,7 +194,7 @@ export default function ReviewSession({
           <button
             type="button"
             onClick={() => setRevealed(true)}
-            className="button-primary mx-auto mt-8 min-w-40"
+            className="button-primary mx-auto mt-auto min-w-36"
           >
             Show answer <span className="ml-1 text-xs">Space</span>
           </button>
@@ -186,7 +202,17 @@ export default function ReviewSession({
       </section>
 
       {/* Grades */}
-      {revealed && (
+      {revealed && practice && (
+        <button
+          type="button"
+          onClick={advancePractice}
+          className="button-primary ml-auto min-w-32"
+        >
+          Next <span className="ml-1 text-xs">Space</span>
+        </button>
+      )}
+
+      {revealed && !practice && (
         <div className="flex flex-col gap-2">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {BUTTONS.map((b) => (

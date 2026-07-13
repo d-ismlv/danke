@@ -1,31 +1,30 @@
 @import "tailwindcss";
 
 :root {
-  /* Warm paper neutrals with an ink-violet accent. */
-  --background: #f7f5f0;
-  --surface: #fffefa;
-  --surface-2: #efede7;
-  --foreground: #24231f;
-  --muted: #746f66;
-  --border: #ddd8ce;
-  --accent: #6555c7;
+  --background: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef0f4;
+  --foreground: #20222a;
+  --muted: #6b7080;
+  --border: #dfe2e8;
+  --accent: #6658d9;
   --accent-fg: #ffffff;
   --again: #f43f5e; /* rose-500 */
   --hard: #f59e0b; /* amber-500 */
   --good: #10b981; /* emerald-500 */
   --easy: #0ea5e9; /* sky-500 */
-  --radius: 14px;
-  --shadow-soft: 0 1px 2px rgb(39 35 28 / 0.05), 0 12px 32px rgb(39 35 28 / 0.05);
+  --radius: 12px;
+  --shadow-soft: 0 1px 2px rgb(28 32 45 / 0.04), 0 8px 24px rgb(28 32 45 / 0.04);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #11110f;
-    --surface: #1a1916;
-    --surface-2: #24221e;
-    --foreground: #f3f0e9;
-    --muted: #aaa49a;
-    --border: #34312b;
+    --background: #101116;
+    --surface: #181a21;
+    --surface-2: #22252e;
+    --foreground: #f2f3f7;
+    --muted: #a4a8b3;
+    --border: #30333d;
     --accent: #a99cec;
     --accent-fg: #171326;
     --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.2), 0 18px 42px rgb(0 0 0 / 0.18);
@@ -57,11 +56,10 @@ html {
 }
 
 body {
-  background:
-    radial-gradient(circle at 12% -8%, color-mix(in srgb, var(--accent) 9%, transparent) 0, transparent 28rem),
-    var(--background);
+  background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 15px;
   /* Guard against stray horizontal overflow. `clip` (not `hidden`) keeps the
      sticky header working, since it doesn't create a scroll container. */
   overflow-x: clip;
@@ -89,8 +87,8 @@ textarea:focus-visible {
 }
 
 .app-header {
-  background: color-mix(in srgb, var(--background) 84%, transparent);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--border) 72%, transparent);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  box-shadow: 0 1px 0 var(--border);
 }
 
 .eyebrow {
@@ -102,16 +100,16 @@ textarea:focus-visible {
 }
 
 .display-title {
-  font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif;
-  font-weight: 600;
-  letter-spacing: -0.035em;
-  line-height: 1.05;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-weight: 680;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
 }
 
 .panel {
   border: 1px solid var(--border);
-  border-radius: 20px;
-  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  border-radius: 14px;
+  background: var(--surface);
   box-shadow: var(--shadow-soft);
 }
 
@@ -120,12 +118,12 @@ textarea:focus-visible {
 .button-quiet,
 .button-danger {
   display: inline-flex;
-  min-height: 2.5rem;
+  min-height: 2.25rem;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
-  padding: 0.55rem 0.95rem;
-  font-size: 0.875rem;
+  border-radius: 8px;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.8125rem;
   font-weight: 650;
   line-height: 1;
   transition: background 150ms ease, border-color 150ms ease, color 150ms ease,
@@ -285,7 +283,7 @@ textarea:focus-visible {
   max-height: 18rem;
 }
 .markdown-review .markdown-image {
-  max-height: min(56vh, 38rem);
+  max-height: min(48vh, 32rem);
 }
 .image-lightbox {
   position: fixed;

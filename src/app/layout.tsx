@@ -31,10 +31,10 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <header className="app-header sticky top-0 z-10 backdrop-blur-xl">
-          <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3.5 sm:px-6">
+          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2.5 sm:px-6 lg:px-8">
             <Link href="/" className="flex items-center gap-2.5 font-semibold">
-              <Logo className="size-8" />
-              <span className="tracking-[-0.02em]">danke</span>
+              <Logo className="size-7" />
+              <span className="text-base tracking-[-0.025em]">danke</span>
             </Link>
             {authed && (
               <div className="flex items-center gap-1 sm:gap-2">
@@ -48,7 +48,7 @@ export default async function RootLayout({
             )}
           </div>
         </header>
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
           {children}
         </main>
       </body>

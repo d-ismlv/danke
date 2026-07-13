@@ -38,6 +38,11 @@ and spaced-repetition concerns don't entangle.
 3. Rate **Again / Hard / Good / Easy** → ts-fsrs computes the next state → persist it and append a log.
 4. (Re)learning cards re-queue within the session; graduated cards schedule out.
 
+Practice mode uses the same card presentation but never calls the grading API,
+so revisiting a completed deck or an individual card cannot change its FSRS
+schedule. Reset is a separate confirmed action: it restores fresh FSRS state and
+removes the affected review logs for either one card or the selected deck tree.
+
 Grading goes through a **route handler** (`/api/review`), not a Server Action —
 so it doesn't trigger an RSC refresh of the review page and wipe the
 client-managed session queue.

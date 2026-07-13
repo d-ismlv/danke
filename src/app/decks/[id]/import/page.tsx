@@ -15,7 +15,7 @@ export default async function ImportPage({
   if (!deck) notFound();
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <div>
         <Link
           href={`/decks/${deck.id}`}
@@ -23,8 +23,8 @@ export default async function ImportPage({
         >
           ← {deck.name}
         </Link>
-        <p className="eyebrow mt-6">Bring your notes</p>
-        <h1 className="display-title mt-1 text-4xl sm:text-5xl">Import cards</h1>
+        <p className="eyebrow mt-4">Bring your notes</p>
+        <h1 className="display-title mt-1 text-3xl sm:text-4xl">Import cards</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
           Paste tab-separated text (e.g. an Anki export) or pick another
           delimiter. Markdown works inside each field.

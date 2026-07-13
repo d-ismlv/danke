@@ -43,10 +43,10 @@ export default async function StatsPage() {
   const totalReviews = Object.values(heatmap).reduce((a, b) => a + b, 0);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <div>
         <p className="eyebrow mb-2">Your rhythm</p>
-        <h1 className="display-title text-4xl sm:text-5xl">Study activity</h1>
+        <h1 className="display-title text-3xl sm:text-4xl">Study activity</h1>
       </div>
 
       <div className="panel flex flex-wrap gap-y-5 px-3 py-5 sm:px-5">

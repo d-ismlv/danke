@@ -29,6 +29,8 @@ Anki's engine is great but its app gets in the way.
 - 🖼️ **Image uploads** — choose, drag, or paste JPEG, PNG, WebP, and GIF images into either side
 - 🗂️ **Decks & sub-decks** to organize by topic
 - 🧠 **FSRS scheduling** — Again / Hard / Good / Easy, with interval previews
+- 🔁 **Practice anytime** — revisit a completed deck or one card without changing its schedule
+- ↺ **Progress reset** — explicitly reset one card or a whole deck when you want a fresh start
 - 📥 **Bulk import** — paste delimited text, or [generate cards from any URL](docs/flashcard-prompt.md)
 - 📈 **Progress** — due counts, streak, and an activity heatmap
 - 🔒 **Password login** for the whole app
