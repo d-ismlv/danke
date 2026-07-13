@@ -71,7 +71,7 @@ Update it whenever a task is completed or the implementation pauses.
 - [x] Improve deck-tree hierarchy and due-count scanning
 - [x] Simplify deck actions
 - [x] Add image thumbnails to card rows
-- [ ] Add card search and state filters
+- [x] Add card search and state filters
 - [x] Add card and deck deletion confirmation
 - [x] Improve empty states
 
