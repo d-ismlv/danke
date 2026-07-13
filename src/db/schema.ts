@@ -35,6 +35,24 @@ export const cards = sqliteTable(
 );
 
 /**
+ * Metadata for user-uploaded images. The binary files live in
+ * `DANKE_DATA_DIR/media`; keeping them out of SQLite avoids inflating the
+ * database while still letting a backup of the data directory capture both.
+ */
+export const mediaAssets = sqliteTable(
+  "media_assets",
+  {
+    id: text("id").primaryKey(),
+    storageName: text("storage_name").notNull().unique(),
+    originalName: text("original_name").notNull(),
+    mimeType: text("mime_type").notNull(),
+    size: integer("size").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => [index("media_assets_created_idx").on(t.createdAt)],
+);
+
+/**
  * FSRS-owned scheduling state, 1:1 with a card. Fields mirror the ts-fsrs
  * `Card` interface; `Date`s are stored as epoch-ms integers.
  * `state`: 0 New, 1 Learning, 2 Review, 3 Relearning.
@@ -85,5 +103,6 @@ export const reviewLogs = sqliteTable(
 
 export type Deck = typeof decks.$inferSelect;
 export type Card = typeof cards.$inferSelect;
+export type MediaAsset = typeof mediaAssets.$inferSelect;
 export type ReviewStateRow = typeof reviewState.$inferSelect;
 export type ReviewLogRow = typeof reviewLogs.$inferSelect;
