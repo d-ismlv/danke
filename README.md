@@ -14,7 +14,7 @@
 ![Tailwind](https://img.shields.io/badge/Tailwind-06B6D4?logo=tailwindcss&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
 
-<img src="docs/screenshot.png" alt="danke" width="800" />
+<img src="docs/screenshot.png" alt="danke" width="640" />
 
 </div>
 
