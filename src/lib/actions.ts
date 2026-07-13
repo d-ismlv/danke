@@ -9,6 +9,7 @@ import { decks, cards, reviewState } from "@/db/schema";
 import { emptyState, fsrsCardToRow } from "@/lib/fsrs";
 import { parseCards, type SeparatorKey } from "@/lib/import";
 import { grantSession, clearSession } from "@/lib/auth";
+import { cleanupUnreferencedMedia, extractMediaIds } from "@/lib/media-cleanup";
 
 // ---- Auth ------------------------------------------------------------------
 
@@ -58,10 +59,21 @@ export async function renameDeck(formData: FormData) {
 export async function deleteDeck(formData: FormData) {
   const id = String(formData.get("id"));
   if (!id) return;
+  const removedCards = await db
+    .select({ front: cards.front, back: cards.back })
+    .from(cards)
+    .where(eq(cards.deckId, id));
+  const removedMedia = new Set<string>();
+  for (const card of removedCards) {
+    for (const mediaId of extractMediaIds(`${card.front}\n${card.back}`)) {
+      removedMedia.add(mediaId);
+    }
+  }
   // Cascades to child decks' cards via FK; re-parent child decks to root first
   // so they aren't orphaned (child decks have no cascade on parent_id).
   await db.update(decks).set({ parentId: null }).where(eq(decks.parentId, id));
   await db.delete(decks).where(eq(decks.id, id));
+  await cleanupUnreferencedMedia(removedMedia);
   revalidatePath("/");
   redirect("/");
 }
@@ -98,10 +110,22 @@ export async function updateCard(formData: FormData) {
   const front = String(formData.get("front") ?? "");
   const back = String(formData.get("back") ?? "");
   if (!id) return;
+  const [previous] = await db
+    .select({ front: cards.front, back: cards.back })
+    .from(cards)
+    .where(eq(cards.id, id))
+    .limit(1);
   await db
     .update(cards)
     .set({ front, back, updatedAt: Date.now() })
     .where(eq(cards.id, id));
+  if (previous) {
+    const oldMedia = extractMediaIds(`${previous.front}\n${previous.back}`);
+    const currentMedia = extractMediaIds(`${front}\n${back}`);
+    await cleanupUnreferencedMedia(
+      [...oldMedia].filter((mediaId) => !currentMedia.has(mediaId)),
+    );
+  }
   revalidatePath(`/decks/${deckId}`);
   redirect(`/decks/${deckId}`);
 }
@@ -110,7 +134,17 @@ export async function deleteCard(formData: FormData) {
   const id = String(formData.get("id"));
   const deckId = String(formData.get("deckId"));
   if (!id) return;
+  const [removed] = await db
+    .select({ front: cards.front, back: cards.back })
+    .from(cards)
+    .where(eq(cards.id, id))
+    .limit(1);
   await db.delete(cards).where(eq(cards.id, id));
+  if (removed) {
+    await cleanupUnreferencedMedia(
+      extractMediaIds(`${removed.front}\n${removed.back}`),
+    );
+  }
   revalidatePath(`/decks/${deckId}`);
   revalidatePath("/");
 }

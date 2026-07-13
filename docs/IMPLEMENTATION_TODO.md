@@ -10,7 +10,8 @@ Update it whenever a task is completed or the implementation pauses.
 - Completed: image picker, drag/drop, paste, automatic Markdown insertion
 - Completed: context-aware image presentation, zoom, and review interaction
 - Completed: visual foundation and the first screen-level UI/UX refresh
-- In progress: remaining UX safeguards and media lifecycle cleanup
+- Completed: media cleanup and the first UX safeguard pass
+- In progress: final verification and optional follow-up enhancements
 - Last verified: lint, TypeScript, production build, isolated migration, and an
   authenticated upload/download byte-for-byte round trip
 
@@ -24,7 +25,7 @@ Update it whenever a task is completed or the implementation pauses.
 - [x] Enforce an upload-size limit
 - [x] Generate collision-safe filenames
 - [x] Prevent path traversal and invalid media identifiers
-- [ ] Add orphan cleanup when removing images from cards
+- [x] Add orphan cleanup when removing images from cards
 
 ## 2. Image authoring
 
@@ -59,7 +60,7 @@ Update it whenever a task is completed or the implementation pauses.
 - [x] Simplify deck actions
 - [x] Add image thumbnails to card rows
 - [ ] Add card search and state filters
-- [ ] Add card and deck deletion confirmation
+- [x] Add card and deck deletion confirmation
 - [x] Improve empty states
 
 ## 6. Card editor UX
@@ -69,7 +70,7 @@ Update it whenever a task is completed or the implementation pauses.
 - [x] Strengthen front/back distinction
 - [ ] Add editor/preview tabs on mobile
 - [ ] Add save progress and success feedback
-- [ ] Warn about unsaved changes
+- [x] Warn about unsaved changes
 - [ ] Improve the Add and new workflow
 
 ## 7. Review UX
@@ -80,16 +81,16 @@ Update it whenever a task is completed or the implementation pauses.
 - [x] Improve grading controls on narrow screens
 - [x] Keep keyboard shortcuts discoverable
 - [x] Allow image zoom without revealing the answer
-- [ ] Handle grading failures
+- [x] Handle grading failures
 - [x] Refine progress and completion states
 
 ## 8. Verification and documentation
 
-- [ ] Test existing text-only cards
-- [ ] Test image upload, rendering, replacement, and deletion
-- [ ] Test database migration and Docker volume persistence
-- [ ] Test desktop and mobile layouts
-- [ ] Check keyboard navigation and visible focus states
-- [ ] Run lint and the production build
-- [ ] Update README and architecture documentation
-- [ ] Document media backup behavior
+- [x] Test existing text-only cards
+- [x] Test image upload, rendering, replacement, and deletion
+- [x] Test database migration and Docker volume persistence
+- [x] Test desktop and mobile layouts
+- [x] Check keyboard navigation and visible focus states
+- [x] Run lint and the production build
+- [x] Update README and architecture documentation
+- [x] Document media backup behavior

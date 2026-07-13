@@ -10,10 +10,15 @@ import {
   extensionForMime,
   safeOriginalName,
 } from "@/lib/media";
+import { cleanupStaleMedia } from "@/lib/media-cleanup";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  await cleanupStaleMedia().catch((error) =>
+    console.error("Failed to clean abandoned images", error),
+  );
+
   let formData: FormData;
   try {
     formData = await request.formData();

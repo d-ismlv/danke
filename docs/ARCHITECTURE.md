@@ -9,19 +9,22 @@ a mounted volume so the container stays disposable. Scheduling is powered by
 Next.js (React + Tailwind)
  ├─ Server components + actions   → decks / cards CRUD
  ├─ /api/review (route handler)   → grading
+ ├─ /api/media (route handlers)   → local image upload / delivery
  ├─ Drizzle ORM                   → SQLite (./data/danke.db)
+ ├─ Local media                   → ./data/media
  └─ ts-fsrs                       → scheduler
 ```
 
 ## Data model
 
-Four tables. `review_state` mirrors the ts-fsrs `Card` fields; `Date`s are
+Five tables. `review_state` mirrors the ts-fsrs `Card` fields; `Date`s are
 stored as epoch-ms integers.
 
 | Table | Holds |
 |---|---|
 | `decks` | `id`, `name`, `parent_id` (nesting), `created_at` |
 | `cards` | `id`, `deck_id`, `front` (md), `back` (md), timestamps |
+| `media_assets` | uploaded image metadata; binary files live under `data/media` |
 | `review_state` | 1:1 with a card — `due`, `stability`, `difficulty`, `reps`, `lapses`, `state`, … |
 | `review_logs` | append-only grading history (powers stats) |
 
@@ -46,8 +49,11 @@ Stats.
 
 ## Markdown & media
 
-Rendering uses `react-markdown` + `remark-gfm` + `rehype-katex`. Images can be
-embedded straight in Markdown (base64, or a path served from the data volume).
+Rendering uses `react-markdown` + `remark-gfm` + `rehype-katex`. The editor can
+choose, drag, or paste JPEG, PNG, WebP, and GIF images. Uploads are stored under
+`DANKE_DATA_DIR/media`, referenced from card Markdown through `/api/media/:id`,
+and served through the app. Unreferenced files are removed after card edits or
+deletion; abandoned uploads receive a 24-hour grace period.
 
 ## Deployment
 

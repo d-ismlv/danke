@@ -25,7 +25,8 @@ Anki's engine is great but its app gets in the way.
 
 ## Features
 
-- ✍️ **Markdown cards** — GFM, code, and math (KaTeX), with a live-preview editor
+- ✍️ **Markdown cards** — GFM, code, math (KaTeX), and local images with a live-preview editor
+- 🖼️ **Image uploads** — choose, drag, or paste JPEG, PNG, WebP, and GIF images into either side
 - 🗂️ **Decks & sub-decks** to organize by topic
 - 🧠 **FSRS scheduling** — Again / Hard / Good / Easy, with interval previews
 - 📥 **Bulk import** — paste delimited text, or [generate cards from any URL](docs/flashcard-prompt.md)
@@ -60,8 +61,8 @@ docker compose up -d          # then open http://localhost:32323
 
 Set a password, that's it — the session secret is generated on first run. Put it
 behind a TLS-terminating reverse proxy (nginx-proxy-manager, Caddy, …) pointed at
-port `32323`. All state lives in the `danke-data` volume — back that up and
-you've backed up the whole app.
+port `32323`. All state lives in the `danke-data` volume — the SQLite database
+and uploaded images are backed up together.
 
 ### Local
 

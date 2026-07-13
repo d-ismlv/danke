@@ -4,6 +4,7 @@ import { getDeck, getCardsForDeck, serverNow } from "@/lib/queries";
 import { deleteCard, deleteDeck, renameDeck } from "@/lib/actions";
 import Markdown from "@/components/Markdown";
 import { State } from "@/lib/fsrs";
+import ConfirmSubmitButton from "@/components/ConfirmSubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -124,9 +125,12 @@ export default async function DeckPage({
                   <form action={deleteCard}>
                     <input type="hidden" name="id" value={c.id} />
                     <input type="hidden" name="deckId" value={deck.id} />
-                    <button className="button-danger min-h-9 px-2.5">
+                    <ConfirmSubmitButton
+                      message="Delete this card? Its review history will also be removed."
+                      className="button-danger min-h-9 px-2.5"
+                    >
                       Delete
-                    </button>
+                    </ConfirmSubmitButton>
                   </form>
                 </div>
               </li>
@@ -141,7 +145,12 @@ export default async function DeckPage({
       >
         <input type="hidden" name="id" value={deck.id} />
         <span>Deck settings</span>
-        <button className="button-danger min-h-9">Delete deck</button>
+        <ConfirmSubmitButton
+          message={`Delete “${deck.name}” and all of its cards? This cannot be undone.`}
+          className="button-danger min-h-9"
+        >
+          Delete deck
+        </ConfirmSubmitButton>
       </form>
     </div>
   );

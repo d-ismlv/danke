@@ -2,6 +2,7 @@
 
 import {
   useRef,
+  useEffect,
   useState,
   type ClipboardEvent,
   type DragEvent,
@@ -183,6 +184,16 @@ export default function CardEditor({ deckId, card }: Props) {
   const [front, setFront] = useState(card?.front ?? "");
   const [back, setBack] = useState(card?.back ?? "");
   const isEdit = Boolean(card);
+  const dirty = front !== (card?.front ?? "") || back !== (card?.back ?? "");
+
+  useEffect(() => {
+    if (!dirty) return;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [dirty]);
 
   return (
     <form action={isEdit ? updateCard : createCard} className="flex flex-col gap-7">
@@ -212,6 +223,11 @@ export default function CardEditor({ deckId, card }: Props) {
         <Link
           href={`/decks/${deckId}`}
           className="button-quiet"
+          onClick={(event) => {
+            if (dirty && !window.confirm("Discard your unsaved changes?")) {
+              event.preventDefault();
+            }
+          }}
         >
           Cancel
         </Link>

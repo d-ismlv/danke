@@ -43,6 +43,7 @@ export default function ReviewSession({
   const [revealed, setRevealed] = useState(false);
   const [reviewed, setReviewed] = useState(0);
   const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const current = queue[0];
   const done = !current;
@@ -51,21 +52,31 @@ export default function ReviewSession({
     async (rating: Grade) => {
       if (!current || pending) return;
       setPending(true);
-      const result = await gradeCard(current.id, rating);
-      setReviewed((n) => n + 1);
-      setRevealed(false);
-      setQueue((q) => {
-        const [, ...rest] = q;
-        // Re-queue while the card is still in (re)learning — it hasn't
-        // graduated to a multi-day interval yet, so show it again this session.
-        const stillLearning =
-          result?.state === State.Learning || result?.state === State.Relearning;
-        if (result && stillLearning) {
-          return [...rest, { ...current, previews: result.previews }];
+      setError(null);
+      try {
+        const result = await gradeCard(current.id, rating);
+        if (!result) {
+          setError("Could not save that review. Your card is still here—try again.");
+          return;
         }
-        return rest;
-      });
-      setPending(false);
+        setReviewed((n) => n + 1);
+        setRevealed(false);
+        setQueue((q) => {
+          const [, ...rest] = q;
+          // Re-queue while the card is still in (re)learning — it hasn't
+          // graduated to a multi-day interval yet, so show it again this session.
+          const stillLearning =
+            result.state === State.Learning || result.state === State.Relearning;
+          if (stillLearning) {
+            return [...rest, { ...current, previews: result.previews }];
+          }
+          return rest;
+        });
+      } catch {
+        setError("Could not reach the app. Your card is still here—try again.");
+      } finally {
+        setPending(false);
+      }
     },
     [current, pending],
   );
@@ -176,21 +187,26 @@ export default function ReviewSession({
 
       {/* Grades */}
       {revealed && (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {BUTTONS.map((b) => (
-            <button
-              key={b.rating}
-              disabled={pending}
-              onClick={() => answer(b.rating)}
-              className="flex min-h-16 flex-col items-center justify-center gap-0.5 rounded-xl border border-border bg-surface py-3 text-sm font-semibold transition hover:-translate-y-0.5 hover:bg-surface-2 disabled:opacity-50"
-              style={{ borderBottomColor: b.color, borderBottomWidth: 3 }}
-            >
-              <span>{b.label}</span>
-              <span className="text-xs text-muted">
-                {current.previews[b.rating] ?? ""}
-              </span>
-            </button>
-          ))}
+        <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {BUTTONS.map((b) => (
+              <button
+                key={b.rating}
+                disabled={pending}
+                onClick={() => answer(b.rating)}
+                className="flex min-h-16 flex-col items-center justify-center gap-0.5 rounded-xl border border-border bg-surface py-3 text-sm font-semibold transition hover:-translate-y-0.5 hover:bg-surface-2 disabled:opacity-50"
+                style={{ borderBottomColor: b.color, borderBottomWidth: 3 }}
+              >
+                <span>{b.label}</span>
+                <span className="text-xs text-muted">
+                  {current.previews[b.rating] ?? ""}
+                </span>
+              </button>
+            ))}
+          </div>
+          <p aria-live="polite" className="min-h-5 text-center text-sm text-again">
+            {error}
+          </p>
         </div>
       )}
     </div>
