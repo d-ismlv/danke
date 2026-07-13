@@ -54,8 +54,8 @@ Update it whenever a task is completed or the implementation pauses.
 - [x] Constrain images without changing their aspect ratio
 - [x] Tune image sizing for editor, card browser, and review contexts
 - [x] Add click-to-zoom behavior
-- [ ] Test portrait, landscape, animated, and transparent images
-- [ ] Verify light and dark mode presentation
+- [x] Test portrait, landscape, animated, and transparent images
+- [x] Verify light and dark mode presentation
 
 ## 4. Visual foundation
 
@@ -106,3 +106,7 @@ Update it whenever a task is completed or the implementation pauses.
 - [x] Run lint and the production build
 - [x] Update README and architecture documentation
 - [x] Document media backup behavior
+
+Final verification: lint, TypeScript, production build, responsive light/dark
+browser rendering, and byte-for-byte JPEG/PNG/WebP/GIF upload round trips all
+pass on 2026-07-13.
