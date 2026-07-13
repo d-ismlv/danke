@@ -24,6 +24,30 @@ type UploadResult = {
   size: number;
 };
 
+type EmbeddedImage = {
+  alt: string;
+  url: string;
+  markdown: string;
+  start: number;
+  end: number;
+};
+
+function embeddedImages(markdown: string): EmbeddedImage[] {
+  const images: EmbeddedImage[] = [];
+  const pattern = /!\[([^\]]*)\]\((\/api\/media\/[A-Za-z0-9_-]{1,64})\)/g;
+  for (const match of markdown.matchAll(pattern)) {
+    if (match.index === undefined) continue;
+    images.push({
+      alt: match[1] || "image",
+      url: match[2],
+      markdown: match[0],
+      start: match.index,
+      end: match.index + match[0].length,
+    });
+  }
+  return images;
+}
+
 function markdownAlt(name: string): string {
   const withoutExtension = name.replace(/\.[^.]+$/, "");
   return withoutExtension.replace(/[\[\]]/g, "").trim() || "image";
@@ -58,6 +82,7 @@ function Field({
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const images = embeddedImages(value);
 
   const insertImage = async (file: File) => {
     if (uploading) return;
@@ -110,6 +135,37 @@ function Field({
       file.type.startsWith("image/"),
     );
     if (image) void insertImage(image);
+  };
+
+  const replaceImage = async (embedded: EmbeddedImage, file: File) => {
+    if (uploading) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const image = await uploadImage(file);
+      const replacement = `![${markdownAlt(image.name)}](${image.url})`;
+      onChange(
+        `${value.slice(0, embedded.start)}${replacement}${value.slice(embedded.end)}`,
+      );
+    } catch (uploadError) {
+      setError(
+        uploadError instanceof Error
+          ? uploadError.message
+          : "The image could not be replaced.",
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeImage = (embedded: EmbeddedImage) => {
+    const nextValue = `${value.slice(0, embedded.start)}${value.slice(embedded.end)}`
+      .replace(/\n{3,}/g, "\n\n")
+      .replace(/^\n+/, "")
+      .trimEnd();
+    onChange(nextValue);
+    setError(null);
+    requestAnimationFrame(() => textareaRef.current?.focus());
   };
 
   return (
@@ -170,6 +226,57 @@ function Field({
           )}
         </div>
       </div>
+      {images.length > 0 && (
+        <div className="rounded-xl border border-border bg-surface-2/55 p-2">
+          <div className="px-1 pb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">
+            Attached {images.length === 1 ? "image" : `images · ${images.length}`}
+          </div>
+          <ul className="flex flex-col gap-1.5">
+            {images.map((image) => (
+              <li
+                key={`${image.url}-${image.start}`}
+                className="flex items-center gap-2 rounded-lg bg-surface p-2"
+              >
+                {/* Stored Markdown images have runtime URLs and dimensions. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={image.url}
+                  alt=""
+                  className="size-10 shrink-0 rounded-md border border-border object-cover"
+                />
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                  {image.alt}
+                </span>
+                <label
+                  className={`button-quiet min-h-8 cursor-pointer px-2 text-xs ${
+                    uploading ? "pointer-events-none opacity-50" : ""
+                  }`}
+                >
+                  Replace
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    disabled={uploading}
+                    className="sr-only"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) void replaceImage(image, file);
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => removeImage(image)}
+                  className="button-danger min-h-8 px-2 text-xs"
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <p
         aria-live="polite"
         className={`min-h-4 text-xs ${error ? "text-again" : "text-muted"}`}

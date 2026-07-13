@@ -46,7 +46,7 @@ Update it whenever a task is completed or the implementation pauses.
 - [x] Support clipboard paste
 - [x] Show upload progress and errors
 - [x] Insert uploaded image Markdown at the cursor
-- [ ] Add explicit replace and remove actions (preview works through Markdown)
+- [x] Add explicit replace and remove actions
 - [x] Support images on both the front and back
 
 ## 3. Image presentation
