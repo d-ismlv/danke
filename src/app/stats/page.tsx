@@ -14,9 +14,11 @@ function intensity(count: number): string {
 
 function Stat({ value, label }: { value: string | number; label: string }) {
   return (
-    <div className="flex-1 rounded-xl border border-border bg-surface p-4">
-      <div className="text-2xl font-semibold">{value}</div>
-      <div className="text-sm text-muted">{label}</div>
+    <div className="min-w-36 flex-1 border-l-2 border-accent/30 px-4 py-2 first:border-l-0">
+      <div className="display-title text-3xl">{value}</div>
+      <div className="mt-1 text-xs font-medium uppercase tracking-[0.08em] text-muted">
+        {label}
+      </div>
     </div>
   );
 }
@@ -41,18 +43,21 @@ export default async function StatsPage() {
   const totalReviews = Object.values(heatmap).reduce((a, b) => a + b, 0);
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Stats</h1>
+    <div className="flex flex-col gap-8">
+      <div>
+        <p className="eyebrow mb-2">Your rhythm</p>
+        <h1 className="display-title text-4xl sm:text-5xl">Study activity</h1>
+      </div>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="panel flex flex-wrap gap-y-5 px-3 py-5 sm:px-5">
         <Stat value={totalCards} label="Cards" />
         <Stat value={reviewsToday} label="Reviews today" />
         <Stat value={`${streak}🔥`} label="Day streak" />
         <Stat value={totalReviews} label="Total reviews" />
       </div>
 
-      <div className="rounded-xl border border-border bg-surface p-4">
-        <div className="mb-3 text-sm font-medium text-muted">
+      <div className="panel p-5 sm:p-6">
+        <div className="mb-4 text-sm font-semibold">
           Review activity
         </div>
         <div className="flex gap-1 overflow-x-auto">

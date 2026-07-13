@@ -93,22 +93,25 @@ export default function ReviewSession({
 
   if (done) {
     return (
-      <div className="flex flex-col items-center gap-4 py-16 text-center">
-        <div className="text-5xl">🎉</div>
-        <h1 className="text-2xl font-semibold">Session complete</h1>
+      <div className="flex flex-col items-center gap-4 py-20 text-center">
+        <div className="flex size-14 items-center justify-center rounded-full bg-good/10 text-2xl">
+          ✓
+        </div>
+        <p className="eyebrow">Finished</p>
+        <h1 className="display-title text-4xl sm:text-5xl">Session complete</h1>
         <p className="text-muted">
           You reviewed {reviewed} card{reviewed === 1 ? "" : "s"} in {deckName}.
         </p>
         <div className="mt-2 flex gap-2">
           <Link
             href={`/decks/${deckId}`}
-            className="rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-surface-2"
+            className="button-secondary"
           >
             Back to deck
           </Link>
           <Link
             href="/"
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-fg"
+            className="button-primary"
           >
             All decks
           </Link>
@@ -120,17 +123,23 @@ export default function ReviewSession({
   const remaining = queue.length;
 
   return (
-    <div className="flex min-h-[70vh] flex-col gap-4">
+    <div className="mx-auto flex min-h-[72vh] w-full max-w-4xl flex-col gap-5">
       {/* Progress */}
-      <div className="flex items-center justify-between text-sm text-muted">
-        <Link href={`/decks/${deckId}`} className="hover:text-foreground">
-          ← {deckName}
-        </Link>
+      <div className="flex items-end justify-between gap-4 text-sm text-muted">
+        <div>
+          <p className="eyebrow mb-1">Review</p>
+          <Link
+            href={`/decks/${deckId}`}
+            className="text-base font-semibold text-foreground hover:text-accent"
+          >
+            {deckName}
+          </Link>
+        </div>
         <span>
           {reviewed} done · {remaining} left
         </span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+      <div className="h-1 overflow-hidden rounded-full bg-surface-2">
         <div
           className="h-full rounded-full bg-accent transition-all"
           style={{
@@ -140,7 +149,7 @@ export default function ReviewSession({
       </div>
 
       {/* Card */}
-      <section className="flex flex-1 flex-col rounded-2xl border border-border bg-surface p-6 text-left">
+      <section className="panel flex flex-1 flex-col p-6 text-left sm:p-9">
         <div className="flex-1">
           <Markdown variant="review">{current.front || "*(empty)*"}</Markdown>
         </div>
@@ -158,7 +167,7 @@ export default function ReviewSession({
           <button
             type="button"
             onClick={() => setRevealed(true)}
-            className="mx-auto mt-6 rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted transition hover:border-accent hover:text-foreground"
+            className="button-primary mx-auto mt-8 min-w-40"
           >
             Show answer <span className="ml-1 text-xs">Space</span>
           </button>
@@ -167,14 +176,14 @@ export default function ReviewSession({
 
       {/* Grades */}
       {revealed && (
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {BUTTONS.map((b) => (
             <button
               key={b.rating}
               disabled={pending}
               onClick={() => answer(b.rating)}
-              className="flex flex-col items-center gap-0.5 rounded-xl border border-border bg-surface py-3 text-sm font-medium transition hover:bg-surface-2 disabled:opacity-50"
-              style={{ borderTopColor: b.color, borderTopWidth: 3 }}
+              className="flex min-h-16 flex-col items-center justify-center gap-0.5 rounded-xl border border-border bg-surface py-3 text-sm font-semibold transition hover:-translate-y-0.5 hover:bg-surface-2 disabled:opacity-50"
+              style={{ borderBottomColor: b.color, borderBottomWidth: 3 }}
             >
               <span>{b.label}</span>
               <span className="text-xs text-muted">

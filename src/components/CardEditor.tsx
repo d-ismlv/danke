@@ -112,7 +112,7 @@ function Field({
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <section className="flex flex-col gap-3 border-t border-border pt-5 first:border-t-0 first:pt-0">
       <div className="flex min-h-7 items-center justify-between gap-3">
         <label className="text-xs font-medium uppercase tracking-wide text-muted">
           {label}
@@ -122,7 +122,7 @@ function Field({
             Drop or paste an image
           </span>
           <label
-            className={`cursor-pointer rounded-md border border-border px-2.5 py-1 text-xs font-medium transition hover:border-accent hover:text-accent ${
+            className={`cursor-pointer rounded-md border border-border bg-surface px-2.5 py-1 text-xs font-medium transition hover:border-accent hover:text-accent ${
               uploading ? "pointer-events-none opacity-60" : ""
             }`}
           >
@@ -155,13 +155,13 @@ function Field({
           onDragOver={(event) => event.preventDefault()}
           onDragLeave={() => setDragging(false)}
           onDrop={onDrop}
-          rows={6}
+          rows={9}
           placeholder="Markdown…"
-          className={`resize-y rounded-xl border bg-surface p-3 font-mono text-sm outline-none transition focus:border-accent ${
+          className={`min-h-56 w-full min-w-0 resize-y rounded-[18px] border bg-surface p-4 font-mono text-sm leading-6 outline-none transition focus:border-accent ${
             dragging ? "border-accent ring-2 ring-accent/15" : "border-border"
           }`}
         />
-        <div className="min-h-[9rem] overflow-auto rounded-xl border border-border bg-surface p-3">
+        <div className="min-h-56 min-w-0 overflow-auto rounded-[18px] border border-border bg-surface/70 p-4">
           {value.trim() ? (
             <Markdown variant="preview">{value}</Markdown>
           ) : (
@@ -175,7 +175,7 @@ function Field({
       >
         {error ?? (uploading ? "Saving image locally…" : "")}
       </p>
-    </div>
+    </section>
   );
 }
 
@@ -185,7 +185,7 @@ export default function CardEditor({ deckId, card }: Props) {
   const isEdit = Boolean(card);
 
   return (
-    <form action={isEdit ? updateCard : createCard} className="flex flex-col gap-5">
+    <form action={isEdit ? updateCard : createCard} className="flex flex-col gap-7">
       <input type="hidden" name="deckId" value={deckId} />
       {card && <input type="hidden" name="id" value={card.id} />}
 
@@ -195,7 +195,7 @@ export default function CardEditor({ deckId, card }: Props) {
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="submit"
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-fg"
+          className="button-primary"
         >
           {isEdit ? "Save changes" : "Add card"}
         </button>
@@ -204,14 +204,14 @@ export default function CardEditor({ deckId, card }: Props) {
             type="submit"
             name="addAnother"
             value="1"
-            className="rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-surface-2"
+            className="button-secondary"
           >
             Add &amp; new
           </button>
         )}
         <Link
           href={`/decks/${deckId}`}
-          className="rounded-lg px-3 py-2 text-sm text-muted hover:text-foreground"
+          className="button-quiet"
         >
           Cancel
         </Link>

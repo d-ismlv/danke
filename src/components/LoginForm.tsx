@@ -12,20 +12,24 @@ export default function LoginForm() {
   return (
     <form
       action={formAction}
-      className="flex w-full max-w-xs flex-col gap-3 rounded-2xl border border-border bg-surface p-6"
+      className="panel flex w-full max-w-sm flex-col gap-4 p-7"
     >
       <div className="flex items-center gap-2 font-semibold">
         <Logo />
         danke
       </div>
-      <p className="text-sm text-muted">Enter your password to continue.</p>
+      <div>
+        <p className="eyebrow mb-1">Private library</p>
+        <h1 className="display-title text-3xl">Welcome back</h1>
+        <p className="mt-2 text-sm text-muted">Enter your password to continue.</p>
+      </div>
       <input
         type="password"
         name="password"
         autoFocus
         required
         placeholder="Password"
-        className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+        className="min-h-11 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-accent"
       />
       {state.error && (
         <p className="text-sm text-again">{state.error}</p>
@@ -33,7 +37,7 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-fg disabled:opacity-60"
+        className="button-primary"
       >
         {pending ? "Checking…" : "Unlock"}
       </button>

@@ -38,7 +38,7 @@ export default function ImportForm({ deckId }: { deckId: string }) {
           onChange={(e) => setText(e.target.value)}
           rows={12}
           placeholder={PLACEHOLDER}
-          className="resize-y rounded-xl border border-border bg-surface p-3 font-mono text-sm outline-none focus:border-accent"
+          className="min-h-72 resize-y rounded-[18px] border border-border bg-surface p-4 font-mono text-sm leading-6 outline-none focus:border-accent"
         />
       </div>
 
@@ -58,7 +58,7 @@ export default function ImportForm({ deckId }: { deckId: string }) {
       </div>
 
       {parsed.length > 0 && (
-        <div className="rounded-xl border border-border bg-surface p-3">
+        <div className="panel p-4">
           <div className="mb-2 text-sm text-muted">
             Preview — {parsed.length} card{parsed.length === 1 ? "" : "s"}
           </div>
@@ -81,14 +81,14 @@ export default function ImportForm({ deckId }: { deckId: string }) {
         <button
           type="submit"
           disabled={parsed.length === 0}
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-fg disabled:opacity-50"
+          className="button-primary"
         >
           Import {parsed.length > 0 ? parsed.length : ""} card
           {parsed.length === 1 ? "" : "s"}
         </button>
         <Link
           href={`/decks/${deckId}`}
-          className="rounded-lg px-3 py-2 text-sm text-muted hover:text-foreground"
+          className="button-quiet"
         >
           Cancel
         </Link>

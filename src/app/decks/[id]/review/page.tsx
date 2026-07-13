@@ -27,13 +27,16 @@ export default async function ReviewPage({
 
   if (queue.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-4 py-16 text-center">
-        <div className="text-5xl">✅</div>
-        <h1 className="text-2xl font-semibold">Nothing due</h1>
+      <div className="flex flex-col items-center gap-4 py-20 text-center">
+        <div className="flex size-14 items-center justify-center rounded-full bg-good/10 text-2xl text-good">
+          ✓
+        </div>
+        <p className="eyebrow">All clear</p>
+        <h1 className="display-title text-4xl sm:text-5xl">Nothing due</h1>
         <p className="text-muted">No cards are due in {deck.name} right now.</p>
         <Link
           href={`/decks/${deck.id}`}
-          className="mt-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-fg"
+          className="button-primary mt-2"
         >
           Back to deck
         </Link>

@@ -15,7 +15,7 @@ export default async function NewCardPage({
   if (!deck) notFound();
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-8">
       <div>
         <Link
           href={`/decks/${deck.id}`}
@@ -23,7 +23,11 @@ export default async function NewCardPage({
         >
           ← {deck.name}
         </Link>
-        <h1 className="mt-1 text-2xl font-semibold">New card</h1>
+        <p className="eyebrow mt-6">Create</p>
+        <h1 className="display-title mt-1 text-4xl sm:text-5xl">New card</h1>
+        <p className="mt-3 text-sm text-muted">
+          Write in Markdown, or drop and paste images directly into either side.
+        </p>
       </div>
       <CardEditor deckId={deck.id} />
     </div>

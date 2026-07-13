@@ -3,7 +3,7 @@
 export default function Logo({ className = "size-7" }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
-      <rect width="32" height="32" rx="7" fill="#7c3aed" />
+      <rect width="32" height="32" rx="7" fill="var(--accent)" />
       <g
         fill="none"
         stroke="#ffffff"

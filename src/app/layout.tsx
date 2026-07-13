@@ -6,6 +6,7 @@ import "katex/dist/katex.min.css";
 import { isAuthed } from "@/lib/auth";
 import { logout } from "@/lib/actions";
 import Logo from "@/components/Logo";
+import MainNav from "@/components/MainNav";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -29,36 +30,27 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur">
-          <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-            <Link href="/" className="flex items-center gap-2 font-semibold">
-              <Logo />
-              danke
+        <header className="app-header sticky top-0 z-10 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3.5 sm:px-6">
+            <Link href="/" className="flex items-center gap-2.5 font-semibold">
+              <Logo className="size-8" />
+              <span className="tracking-[-0.02em]">danke</span>
             </Link>
             {authed && (
-              <nav className="flex items-center gap-1 text-sm">
-                <Link
-                  href="/"
-                  className="rounded-lg px-3 py-1.5 text-muted hover:bg-surface-2 hover:text-foreground"
-                >
-                  Decks
-                </Link>
-                <Link
-                  href="/stats"
-                  className="rounded-lg px-3 py-1.5 text-muted hover:bg-surface-2 hover:text-foreground"
-                >
-                  Stats
-                </Link>
+              <div className="flex items-center gap-1 sm:gap-2">
+                <MainNav />
                 <form action={logout}>
-                  <button className="rounded-lg px-3 py-1.5 text-muted hover:bg-surface-2 hover:text-foreground">
+                  <button className="button-quiet min-h-9 px-3">
                     Lock
                   </button>
                 </form>
-              </nav>
+              </div>
             )}
           </div>
         </header>
-        <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">{children}</main>
+        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
+          {children}
+        </main>
       </body>
     </html>
   );

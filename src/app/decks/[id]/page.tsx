@@ -28,21 +28,23 @@ export default async function DeckPage({
   const dueCount = cards.filter((c) => c.due !== null && c.due <= now).length;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+    <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div className="min-w-0 sm:flex-1">
           <Link href="/" className="text-sm text-muted hover:text-foreground">
             ← Decks
           </Link>
+          <p className="eyebrow mt-6">Deck</p>
           <form action={renameDeck} className="mt-1 flex items-center gap-2">
             <input type="hidden" name="id" value={deck.id} />
             <input
               name="name"
               defaultValue={deck.name}
-              className="w-full rounded-lg border border-transparent bg-transparent px-1 text-2xl font-semibold outline-none hover:border-border focus:border-accent"
+              aria-label="Deck name"
+              className="display-title w-full rounded-lg border border-transparent bg-transparent py-1 text-4xl outline-none hover:border-border focus:border-accent sm:text-5xl"
             />
           </form>
-          <p className="mt-1 px-1 text-sm text-muted">
+          <p className="mt-2 text-sm text-muted">
             {cards.length} card{cards.length === 1 ? "" : "s"} · {dueCount} due
           </p>
         </div>
@@ -51,20 +53,20 @@ export default async function DeckPage({
           {dueCount > 0 && (
             <Link
               href={`/decks/${deck.id}/review`}
-              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-fg"
+              className="button-primary"
             >
               Review {dueCount}
             </Link>
           )}
           <Link
             href={`/decks/${deck.id}/import`}
-            className="rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-surface-2"
+            className="button-secondary"
           >
             Import
           </Link>
           <Link
             href={`/decks/${deck.id}/cards/new`}
-            className="rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-surface-2"
+            className="button-secondary"
           >
             + Card
           </Link>
@@ -72,24 +74,29 @@ export default async function DeckPage({
       </div>
 
       {cards.length === 0 ? (
-        <div className="rounded-xl border border-border bg-surface p-8 text-center text-muted">
-          No cards yet.{" "}
-          <Link href={`/decks/${deck.id}/cards/new`} className="text-accent">
-            Add your first card
+        <div className="panel px-6 py-14 text-center">
+          <h2 className="text-lg font-semibold">This deck is still empty</h2>
+          <p className="mt-1 text-sm text-muted">
+            Add a thought, image, definition, or question to begin.
+          </p>
+          <Link
+            href={`/decks/${deck.id}/cards/new`}
+            className="button-primary mt-5"
+          >
+            Add the first card
           </Link>
-          .
         </div>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="panel divide-y divide-border overflow-hidden">
           {cards.map((c) => {
             const due = c.due !== null && c.due <= now;
             return (
               <li
                 key={c.id}
-                className="flex items-start gap-3 rounded-xl border border-border bg-surface p-4"
+                className="group flex items-start gap-4 px-4 py-5 transition hover:bg-surface-2/50 sm:px-5"
               >
                 <div className="min-w-0 flex-1">
-                  <div className="line-clamp-3 text-sm">
+                  <div className="line-clamp-3 text-sm leading-6">
                     <Markdown variant="compact">
                       {c.front || "*(empty front)*"}
                     </Markdown>
@@ -110,14 +117,14 @@ export default async function DeckPage({
                 <div className="flex shrink-0 gap-1">
                   <Link
                     href={`/decks/${deck.id}/cards/${c.id}`}
-                    className="rounded-lg px-2.5 py-1.5 text-sm text-muted hover:bg-surface-2 hover:text-foreground"
+                    className="button-quiet min-h-9 px-2.5"
                   >
                     Edit
                   </Link>
                   <form action={deleteCard}>
                     <input type="hidden" name="id" value={c.id} />
                     <input type="hidden" name="deckId" value={deck.id} />
-                    <button className="rounded-lg px-2.5 py-1.5 text-sm text-muted hover:bg-again/10 hover:text-again">
+                    <button className="button-danger min-h-9 px-2.5">
                       Delete
                     </button>
                   </form>
@@ -130,10 +137,11 @@ export default async function DeckPage({
 
       <form
         action={deleteDeck}
-        className="mt-4 border-t border-border pt-4 text-sm text-muted"
+        className="mt-2 flex items-center justify-between border-t border-border pt-5 text-sm text-muted"
       >
         <input type="hidden" name="id" value={deck.id} />
-        <button className="hover:text-again">Delete this deck</button>
+        <span>Deck settings</span>
+        <button className="button-danger min-h-9">Delete deck</button>
       </form>
     </div>
   );

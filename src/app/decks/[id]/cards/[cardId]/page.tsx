@@ -15,7 +15,7 @@ export default async function EditCardPage({
   if (!deck || !card || card.deckId !== deck.id) notFound();
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-8">
       <div>
         <Link
           href={`/decks/${deck.id}`}
@@ -23,7 +23,8 @@ export default async function EditCardPage({
         >
           ← {deck.name}
         </Link>
-        <h1 className="mt-1 text-2xl font-semibold">Edit card</h1>
+        <p className="eyebrow mt-6">Refine</p>
+        <h1 className="display-title mt-1 text-4xl sm:text-5xl">Edit card</h1>
       </div>
       <CardEditor
         deckId={deck.id}

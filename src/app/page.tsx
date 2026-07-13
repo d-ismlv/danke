@@ -9,63 +9,87 @@ export default async function Home() {
   const totalDue = tree.reduce((n, d) => n + (d.depth === 0 ? d.due : 0), 0);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-end justify-between">
+    <div className="flex flex-col gap-8">
+      <div className="flex items-end justify-between gap-6">
         <div>
-          <h1 className="text-2xl font-semibold">Your decks</h1>
-          <p className="text-sm text-muted">
+          <p className="eyebrow mb-2">Library</p>
+          <h1 className="display-title text-4xl sm:text-5xl">Your decks</h1>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-muted sm:text-base">
             {totalDue > 0
-              ? `${totalDue} card${totalDue === 1 ? "" : "s"} due for review`
-              : "All caught up 🎉"}
+              ? `${totalDue} card${totalDue === 1 ? "" : "s"} ready for a quick review.`
+              : "Nothing is waiting. Enjoy the quiet moment."}
           </p>
         </div>
+        {totalDue > 0 && (
+          <div className="hidden text-right sm:block">
+            <div className="display-title text-4xl text-accent">{totalDue}</div>
+            <div className="text-xs font-medium uppercase tracking-[0.12em] text-muted">
+              due now
+            </div>
+          </div>
+        )}
       </div>
 
       {tree.length === 0 ? (
-        <div className="rounded-xl border border-border bg-surface p-8 text-center text-muted">
-          No decks yet. Create your first one below.
+        <div className="panel px-6 py-14 text-center">
+          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-surface-2 text-xl">
+            ✦
+          </div>
+          <h2 className="text-lg font-semibold">Start a small collection</h2>
+          <p className="mt-1 text-sm text-muted">
+            Create a deck, then add your first idea below.
+          </p>
         </div>
       ) : (
-        <ul className="flex flex-col gap-2">
-          {tree.map((deck) => (
-            <li key={deck.id}>
-              <div
-                className="flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3"
-                style={{ marginLeft: deck.depth * 20 }}
-              >
-                <Link
-                  href={`/decks/${deck.id}`}
-                  className="flex-1 truncate font-medium hover:text-accent"
+        <div className="panel overflow-hidden">
+          <ul className="divide-y divide-border">
+            {tree.map((deck) => (
+              <li key={deck.id}>
+                <div
+                  className="group flex min-h-[4.5rem] items-center gap-3 px-4 py-3 transition hover:bg-surface-2/55 sm:px-5"
+                  style={{ paddingLeft: 20 + deck.depth * 24 }}
                 >
-                  {deck.name}
-                  <span className="ml-2 text-xs font-normal text-muted">
-                    {deck.total} card{deck.total === 1 ? "" : "s"}
-                  </span>
-                </Link>
+                  <span
+                    className={`size-2.5 shrink-0 rounded-full ${
+                      deck.due > 0 ? "bg-accent" : "bg-border"
+                    }`}
+                    aria-hidden="true"
+                  />
+                  <Link href={`/decks/${deck.id}`} className="min-w-0 flex-1">
+                    <span className="block truncate font-semibold group-hover:text-accent">
+                      {deck.name}
+                    </span>
+                    <span className="mt-0.5 block text-xs font-normal text-muted">
+                      {deck.total} card{deck.total === 1 ? "" : "s"}
+                    </span>
+                  </Link>
 
-                {deck.due > 0 ? (
-                  <span className="rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-semibold text-accent">
-                    {deck.due} due
-                  </span>
-                ) : (
-                  <span className="text-xs text-muted">done</span>
-                )}
+                  {deck.due > 0 ? (
+                    <span className="rounded-full bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent">
+                      {deck.due} due
+                    </span>
+                  ) : (
+                    <span className="hidden text-xs text-muted sm:inline">
+                      up to date
+                    </span>
+                  )}
 
-                <Link
-                  href={`/decks/${deck.id}/review`}
-                  aria-disabled={deck.due === 0}
-                  className={
-                    deck.due > 0
-                      ? "rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-accent-fg"
-                      : "pointer-events-none rounded-lg bg-surface-2 px-3 py-1.5 text-sm text-muted"
-                  }
-                >
-                  Review
-                </Link>
-              </div>
-            </li>
-          ))}
-        </ul>
+                  <Link
+                    href={`/decks/${deck.id}/review`}
+                    aria-disabled={deck.due === 0}
+                    className={
+                      deck.due > 0
+                        ? "button-primary min-h-9 px-3"
+                        : "button-secondary pointer-events-none min-h-9 px-3 opacity-45"
+                    }
+                  >
+                    Study
+                  </Link>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       <NewDeckForm decks={allDecks} />

@@ -12,9 +12,9 @@ export default function NewDeckForm({ decks }: { decks: Deck[] }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted transition hover:border-accent hover:text-foreground"
+        className="w-full rounded-[18px] border border-dashed border-border px-4 py-4 text-sm font-medium text-muted transition hover:border-accent hover:bg-surface/50 hover:text-foreground"
       >
-        + New deck
+        <span className="mr-1 text-accent">＋</span> New deck
       </button>
     );
   }
@@ -26,19 +26,19 @@ export default function NewDeckForm({ decks }: { decks: Deck[] }) {
         await createDeck(fd);
         formRef.current?.reset();
       }}
-      className="flex flex-col gap-2 rounded-xl border border-border bg-surface p-3 sm:flex-row"
+      className="panel flex flex-col gap-3 p-4 sm:flex-row"
     >
       <input
         name="name"
         autoFocus
         required
         placeholder="Deck name"
-        className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+        className="min-h-11 flex-1 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-accent"
       />
       <select
         name="parentId"
         defaultValue=""
-        className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+        className="min-h-11 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-accent"
       >
         <option value="">No parent</option>
         {decks.map((d) => (
@@ -50,14 +50,14 @@ export default function NewDeckForm({ decks }: { decks: Deck[] }) {
       <div className="flex gap-2">
         <button
           type="submit"
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-fg"
+          className="button-primary"
         >
           Add
         </button>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="rounded-lg px-3 py-2 text-sm text-muted hover:text-foreground"
+          className="button-quiet"
         >
           Cancel
         </button>

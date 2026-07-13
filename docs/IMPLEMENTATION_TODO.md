@@ -9,7 +9,8 @@ Update it whenever a task is completed or the implementation pauses.
 - Completed: local media storage, validation, migration, and delivery routes
 - Completed: image picker, drag/drop, paste, automatic Markdown insertion
 - Completed: context-aware image presentation, zoom, and review interaction
-- In progress: visual foundation and screen-level UI/UX refresh
+- Completed: visual foundation and the first screen-level UI/UX refresh
+- In progress: remaining UX safeguards and media lifecycle cleanup
 - Last verified: lint, TypeScript, production build, isolated migration, and an
   authenticated upload/download byte-for-byte round trip
 
@@ -45,27 +46,27 @@ Update it whenever a task is completed or the implementation pauses.
 
 ## 4. Visual foundation
 
-- [ ] Refine the color palette and typography
-- [ ] Define consistent spacing, radii, and control heights
-- [ ] Reduce repetitive bordered containers
-- [ ] Standardize primary, secondary, quiet, and destructive actions
-- [ ] Improve hover, focus, pending, and disabled states
+- [x] Refine the color palette and typography
+- [x] Define consistent spacing, radii, and control heights
+- [x] Reduce repetitive bordered containers
+- [x] Standardize primary, secondary, quiet, and destructive actions
+- [x] Improve hover, focus, pending, and disabled states
 
 ## 5. Navigation and deck screens
 
-- [ ] Add active navigation states
-- [ ] Improve deck-tree hierarchy and due-count scanning
-- [ ] Simplify deck actions
-- [ ] Add image thumbnails to card rows
+- [x] Add active navigation states
+- [x] Improve deck-tree hierarchy and due-count scanning
+- [x] Simplify deck actions
+- [x] Add image thumbnails to card rows
 - [ ] Add card search and state filters
 - [ ] Add card and deck deletion confirmation
-- [ ] Improve empty states
+- [x] Improve empty states
 
 ## 6. Card editor UX
 
-- [ ] Create a more spacious desktop workspace
+- [x] Create a more spacious desktop workspace
 - [ ] Add a compact Markdown toolbar
-- [ ] Strengthen front/back distinction
+- [x] Strengthen front/back distinction
 - [ ] Add editor/preview tabs on mobile
 - [ ] Add save progress and success feedback
 - [ ] Warn about unsaved changes
@@ -74,13 +75,13 @@ Update it whenever a task is completed or the implementation pauses.
 ## 7. Review UX
 
 - [x] Replace the review card's outer button with a non-interactive container
-- [ ] Create a focused review-stage layout
-- [ ] Improve front/answer separation
-- [ ] Improve grading controls on narrow screens
-- [ ] Keep keyboard shortcuts discoverable
+- [x] Create a focused review-stage layout
+- [x] Improve front/answer separation
+- [x] Improve grading controls on narrow screens
+- [x] Keep keyboard shortcuts discoverable
 - [x] Allow image zoom without revealing the answer
 - [ ] Handle grading failures
-- [ ] Refine progress and completion states
+- [x] Refine progress and completion states
 
 ## 8. Verification and documentation
 
