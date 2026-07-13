@@ -140,28 +140,30 @@ export default function ReviewSession({
       </div>
 
       {/* Card */}
-      <button
-        type="button"
-        onClick={() => !revealed && setRevealed(true)}
-        className="flex flex-1 cursor-pointer flex-col rounded-2xl border border-border bg-surface p-6 text-left"
-      >
+      <section className="flex flex-1 flex-col rounded-2xl border border-border bg-surface p-6 text-left">
         <div className="flex-1">
-          <Markdown>{current.front || "*(empty)*"}</Markdown>
+          <Markdown variant="review">{current.front || "*(empty)*"}</Markdown>
         </div>
         {revealed && (
           <>
             <hr className="my-5 border-border" />
             <div className="flex-1">
-              <Markdown>{current.back || "*(empty)*"}</Markdown>
+              <Markdown variant="review">
+                {current.back || "*(empty)*"}
+              </Markdown>
             </div>
           </>
         )}
         {!revealed && (
-          <div className="mt-6 text-center text-sm text-muted">
-            Tap or press <kbd className="font-mono">space</kbd> to reveal
-          </div>
+          <button
+            type="button"
+            onClick={() => setRevealed(true)}
+            className="mx-auto mt-6 rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted transition hover:border-accent hover:text-foreground"
+          >
+            Show answer <span className="ml-1 text-xs">Space</span>
+          </button>
         )}
-      </button>
+      </section>
 
       {/* Grades */}
       {revealed && (

@@ -8,7 +8,8 @@ Update it whenever a task is completed or the implementation pauses.
 - Branch: `dev`
 - Completed: local media storage, validation, migration, and delivery routes
 - Completed: image picker, drag/drop, paste, automatic Markdown insertion
-- In progress: image presentation and zoom behavior
+- Completed: context-aware image presentation, zoom, and review interaction
+- In progress: visual foundation and screen-level UI/UX refresh
 - Last verified: lint, TypeScript, production build, isolated migration, and an
   authenticated upload/download byte-for-byte round trip
 
@@ -36,9 +37,9 @@ Update it whenever a task is completed or the implementation pauses.
 
 ## 3. Image presentation
 
-- [ ] Constrain images without changing their aspect ratio
-- [ ] Tune image sizing for editor, card browser, and review contexts
-- [ ] Add click-to-zoom behavior
+- [x] Constrain images without changing their aspect ratio
+- [x] Tune image sizing for editor, card browser, and review contexts
+- [x] Add click-to-zoom behavior
 - [ ] Test portrait, landscape, animated, and transparent images
 - [ ] Verify light and dark mode presentation
 
@@ -72,12 +73,12 @@ Update it whenever a task is completed or the implementation pauses.
 
 ## 7. Review UX
 
-- [ ] Replace the review card's outer button with a non-interactive container
+- [x] Replace the review card's outer button with a non-interactive container
 - [ ] Create a focused review-stage layout
 - [ ] Improve front/answer separation
 - [ ] Improve grading controls on narrow screens
 - [ ] Keep keyboard shortcuts discoverable
-- [ ] Allow image zoom without revealing the answer
+- [x] Allow image zoom without revealing the answer
 - [ ] Handle grading failures
 - [ ] Refine progress and completion states
 

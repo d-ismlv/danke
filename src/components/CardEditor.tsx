@@ -163,7 +163,7 @@ function Field({
         />
         <div className="min-h-[9rem] overflow-auto rounded-xl border border-border bg-surface p-3">
           {value.trim() ? (
-            <Markdown>{value}</Markdown>
+            <Markdown variant="preview">{value}</Markdown>
           ) : (
             <span className="text-sm text-muted">Preview</span>
           )}

@@ -90,7 +90,9 @@ export default async function DeckPage({
               >
                 <div className="min-w-0 flex-1">
                   <div className="line-clamp-3 text-sm">
-                    <Markdown>{c.front || "*(empty front)*"}</Markdown>
+                    <Markdown variant="compact">
+                      {c.front || "*(empty front)*"}
+                    </Markdown>
                   </div>
                   <div className="mt-2 flex items-center gap-2 text-xs text-muted">
                     <span
