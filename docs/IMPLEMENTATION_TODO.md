@@ -7,8 +7,10 @@ Update it whenever a task is completed or the implementation pauses.
 
 - Branch: `dev`
 - Completed: local media storage, validation, migration, and delivery routes
-- In progress: image upload controls in the card editor
-- Last verified: `npm run lint`, isolated migration, and `npm run build`
+- Completed: image picker, drag/drop, paste, automatic Markdown insertion
+- In progress: image presentation and zoom behavior
+- Last verified: lint, TypeScript, production build, isolated migration, and an
+  authenticated upload/download byte-for-byte round trip
 
 ## 1. Local image storage
 
@@ -24,13 +26,13 @@ Update it whenever a task is completed or the implementation pauses.
 
 ## 2. Image authoring
 
-- [ ] Add an image picker to the card editor
-- [ ] Support drag and drop
-- [ ] Support clipboard paste
-- [ ] Show upload progress and errors
-- [ ] Insert uploaded image Markdown at the cursor
-- [ ] Add image preview, replace, and remove actions
-- [ ] Support images on both the front and back
+- [x] Add an image picker to the card editor
+- [x] Support drag and drop
+- [x] Support clipboard paste
+- [x] Show upload progress and errors
+- [x] Insert uploaded image Markdown at the cursor
+- [ ] Add explicit replace and remove actions (preview works through Markdown)
+- [x] Support images on both the front and back
 
 ## 3. Image presentation
 
