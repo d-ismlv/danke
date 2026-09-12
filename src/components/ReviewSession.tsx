@@ -79,6 +79,24 @@ export default function ReviewSession({
     [initialQueue],
   );
 
+  /**
+   * Walk the ladder again from rung 1.
+   *
+   * This was a `<Link>` to the drill's own URL, which App Router treats as a
+   * no-op navigation: the route never changes, so this component is never
+   * remounted and the `edge` that put the summary on screen is never cleared.
+   * The button did nothing. Restarting is local state, so it says so.
+   */
+  const restart = useCallback(() => {
+    setQueue(initialQueue);
+    setClimbed({});
+    setEdge(null);
+    setReviewed(0);
+    setRevealed(false);
+    setError(null);
+    setPending(false);
+  }, [initialQueue]);
+
   const advancePractice = useCallback(() => {
     if (!current) return;
     setReviewed((n) => n + 1);
@@ -218,19 +236,17 @@ export default function ReviewSession({
             <Icon name="arrowLeft" size={15} />
             {drill ? "Edge map" : "Back to deck"}
           </Link>
-          <Link href={drill ? `/drill/${conceptId}` : "/"} className="button-primary">
-            {drill ? (
-              <>
-                <Icon name="practice" size={15} />
-                Drill again
-              </>
-            ) : (
-              <>
-                <Icon name="decks" size={15} />
-                All decks
-              </>
-            )}
-          </Link>
+          {drill ? (
+            <button type="button" onClick={restart} className="button-primary">
+              <Icon name="practice" size={15} />
+              Drill again
+            </button>
+          ) : (
+            <Link href="/" className="button-primary">
+              <Icon name="decks" size={15} />
+              All decks
+            </Link>
+          )}
         </div>
       </div>
     );
