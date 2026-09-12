@@ -18,6 +18,9 @@ export default async function Home() {
   ]);
   const totalDue = tree.reduce((n, d) => n + (d.depth === 0 ? d.due : 0), 0);
   const totalCards = tree.reduce((n, d) => n + (d.depth === 0 ? d.total : 0), 0);
+  // Which decks are parents — for the leading glyph, so nesting reads as
+  // folder-vs-card rather than a colour-coded dot whose meaning wasn't obvious.
+  const parentIds = new Set(tree.map((d) => d.parentId).filter(Boolean) as string[]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -82,18 +85,19 @@ export default async function Home() {
                   style={{ paddingLeft: `calc(1.25rem + ${deck.depth * 1.5}rem)` }}
                 >
                   <span
-                    className={`size-2 shrink-0 rounded-full ${
-                      deck.due > 0 ? "bg-accent" : "bg-border-strong"
-                    }`}
+                    className={`shrink-0 ${parentIds.has(deck.id) ? "text-accent" : "text-faint"}`}
                     aria-hidden="true"
-                  />
-                  <Link href={`/decks/${deck.id}`} className="min-w-0 flex-1">
+                  >
+                    <Icon name={parentIds.has(deck.id) ? "decks" : "cards"} size={16} />
+                  </span>
+                  <Link href={`/decks/${deck.id}`} className="min-w-0 flex-1 self-stretch py-1">
                     <span className="transition-state block truncate font-semibold group-hover:text-accent">
                       {deck.name}
                     </span>
                     <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted">
-                      <Icon name="cards" size={13} />
-                      {deck.total} card{deck.total === 1 ? "" : "s"}
+                      {parentIds.has(deck.id)
+                        ? `${tree.filter((d) => d.parentId === deck.id).length} decks · ${deck.total} cards`
+                        : `${deck.total} card${deck.total === 1 ? "" : "s"}`}
                     </span>
                   </Link>
 

@@ -8,6 +8,12 @@ import { logout } from "@/lib/actions";
 import Logo from "@/components/Logo";
 import MainNav from "@/components/MainNav";
 import Icon from "@/components/Icon";
+import ThemeToggle from "@/components/ThemeToggle";
+
+/** Runs before first paint: reads the saved theme and stamps it on <html> so a
+ * forced light/dark choice doesn't flash the OS theme on load. Wrapped in
+ * try/catch because storage can throw in private modes. */
+const NO_FLASH = `try{var t=localStorage.getItem("danke-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}`;
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -46,6 +52,9 @@ export default async function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: NO_FLASH }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <header className="app-header sticky top-0 z-10 backdrop-blur-xl">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2.5 sm:px-6 lg:px-8">
@@ -56,9 +65,10 @@ export default async function RootLayout({
               <Logo className="size-7" />
               <span className="text-base tracking-[-0.025em]">danke</span>
             </Link>
-            {authed && (
-              <div className="flex items-center gap-1 sm:gap-2">
-                <MainNav />
+            <div className="flex items-center gap-1 sm:gap-2">
+              {authed && <MainNav />}
+              <ThemeToggle />
+              {authed && (
                 <form action={logout}>
                   <button
                     className="button-quiet size-12 justify-center p-0 sm:size-auto sm:min-h-9 sm:px-2.5"
@@ -69,8 +79,8 @@ export default async function RootLayout({
                     <span className="hidden sm:inline">Lock</span>
                   </button>
                 </form>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </header>
         <main className="anim-fade mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:px-6 sm:py-7 lg:px-8">

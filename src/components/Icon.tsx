@@ -31,7 +31,10 @@ export type IconName =
   | "arrowLeft"
   | "arrowRight"
   | "chevronDown"
-  | "sparkle";
+  | "sparkle"
+  | "sun"
+  | "moon"
+  | "auto";
 
 const PATHS: Record<IconName, ReactElement> = {
   // Stacked cards.
@@ -163,6 +166,19 @@ const PATHS: Record<IconName, ReactElement> = {
     <>
       <path d="M12 3.5c.8 4.6 2.6 6.5 7.2 7.3-4.6.8-6.4 2.7-7.2 7.3-.8-4.6-2.6-6.5-7.2-7.3 4.6-.8 6.4-2.7 7.2-7.3z" />
       <path d="M18.5 16.5c.3 1.8 1 2.5 2.8 2.8-1.8.3-2.5 1-2.8 2.8-.3-1.8-1-2.5-2.8-2.8 1.8-.3 2.5-1 2.8-2.8z" />
+    </>
+  ),
+  sun: (
+    <>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6" />
+    </>
+  ),
+  moon: <path d="M20 14.5A8 8 0 0 1 9.5 4a7 7 0 1 0 10.5 10.5z" />,
+  auto: (
+    <>
+      <rect x="3" y="4.5" width="18" height="12.5" rx="2.2" />
+      <path d="M8.5 20.5h7M12 17v3.5" />
     </>
   ),
 };

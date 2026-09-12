@@ -24,10 +24,17 @@ const BANDS: { label: string; rungs: string; hint: string }[] = [
 function LadderRow({ ladder }: { ladder: ConceptLadder }) {
   const byRung = new Map(ladder.rungs.map((r) => [r.rung, r]));
   return (
-    <li className="row flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 sm:px-5">
-      <div className="min-w-44 flex-1">
+    <li className="row group flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 sm:px-5">
+      {/* The whole title block starts the drill; the rung cells beside it stay
+          informational, and the Drill button repeats the action for clarity. */}
+      <Link
+        href={`/drill/${encodeURIComponent(ladder.conceptId)}`}
+        className="min-w-44 flex-1 self-stretch py-1"
+      >
         <div className="flex items-center gap-2">
-          <span className="truncate font-semibold">{ladder.conceptId}</span>
+          <span className="transition-state truncate font-semibold group-hover:text-accent">
+            {ladder.conceptId}
+          </span>
           {ladder.edge === null && (
             <span className="chip chip-good">
               <Icon name="check" size={12} />
@@ -48,7 +55,7 @@ function LadderRow({ ladder }: { ladder: ConceptLadder }) {
               ? `Not drilled yet · ${ladder.cardCount} rungs`
               : `Holds to rung ${ladder.highest} · edge at ${ladder.edge} (${RUNG_NAMES[ladder.edge] ?? ""})`}
         </p>
-      </div>
+      </Link>
 
       <ol className="flex gap-1" aria-label={`Rungs for ${ladder.conceptId}`}>
         {RUNGS.map((n) => {

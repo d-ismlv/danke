@@ -4,6 +4,7 @@ import {
   getDeck,
   getCardsForDeck,
   getDeckAndDescendantIds,
+  getDeckTree,
   serverNow,
 } from "@/lib/queries";
 import { countLadderCardsInDecks, RUNG_NAMES } from "@/lib/ladder";
@@ -40,21 +41,32 @@ export default async function DeckPage({
 }) {
   const { id } = await params;
   const status = await searchParams;
+  const now = serverNow();
   const deck = await getDeck(id);
   if (!deck) notFound();
 
-  const cards = await getCardsForDeck(id);
-  const deckIds = await getDeckAndDescendantIds(id);
+  const [cards, deckIds, tree] = await Promise.all([
+    getCardsForDeck(id),
+    getDeckAndDescendantIds(id),
+    getDeckTree(now),
+  ]);
   const ladderCards = await countLadderCardsInDecks(deckIds);
-  const now = serverNow();
-  const dueCount = cards.filter((c) => c.due !== null && c.due <= now).length;
+
+  // A deck can be a parent whose cards all live in sub-decks. Counts come from
+  // the whole subtree, so a parent never reads as empty, and review covers the
+  // tree (the review route already aggregates descendants).
+  const node = tree.find((d) => d.id === id);
+  const children = tree.filter((d) => d.parentId === id);
+  const total = node?.total ?? cards.length;
+  const due = node?.due ?? cards.filter((c) => c.due !== null && c.due <= now).length;
+
 
   return (
     <div className="flex flex-col gap-6">
       {(status.created === "1" || status.updated === "1") && (
         <div
           role="status"
-          className="anim-settle flex items-center gap-2 rounded-xl border border-good/25 bg-good-tint px-4 py-3 text-sm font-medium text-good"
+          className="anim-settle flex items-center gap-2 rounded-lg border border-good/25 bg-good-tint px-4 py-3 text-sm font-medium text-good"
         >
           <Icon name="check" size={16} />
           {status.created === "1" ? "Card added." : "Changes saved."}
@@ -83,29 +95,29 @@ export default async function DeckPage({
           <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
             <span className="flex items-center gap-1.5">
               <Icon name="cards" size={14} />
-              {cards.length} card{cards.length === 1 ? "" : "s"}
+              {total} card{total === 1 ? "" : "s"}
             </span>
             <span className="flex items-center gap-1.5">
               <Icon name="clock" size={14} />
-              {dueCount} due
+              {due} due
             </span>
-            {ladderCards > 0 && (
+            {children.length > 0 && (
               <span className="flex items-center gap-1.5">
-                <Icon name="ladder" size={14} />
-                {ladderCards} ladder card{ladderCards === 1 ? "" : "s"}
+                <Icon name="decks" size={14} />
+                {children.length} deck{children.length === 1 ? "" : "s"}
               </span>
             )}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {dueCount > 0 && (
+          {due > 0 && (
             <Link href={`/decks/${deck.id}/review`} className="button-primary">
               <Icon name="play" size={14} />
-              Review {dueCount}
+              Review {due}
             </Link>
           )}
-          {cards.length > 0 && (
+          {total > 0 && (
             <Link href={`/decks/${deck.id}/review?mode=practice`} className="button-secondary">
               <Icon name="practice" size={14} />
               Practice all
@@ -154,31 +166,81 @@ export default async function DeckPage({
         </div>
       )}
 
-      {cards.length === 0 ? (
-        <div className="panel px-6 py-10 text-center">
-          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-accent-tint text-accent">
-            <Icon name="plus" size={22} />
+      {/* Sub-decks, when this deck is a parent. */}
+      {children.length > 0 && (
+        <section className="panel overflow-hidden">
+          <div className="border-b border-border bg-surface-2/60 px-4 py-2.5 sm:px-5">
+            <span className="label">Decks</span>
           </div>
-          <h2 className="text-lg font-semibold">This deck is still empty</h2>
-          <p className="mt-1 text-pretty text-sm text-muted">
-            Add a thought, image, definition, or question to begin.
-          </p>
-          <Link href={`/decks/${deck.id}/cards/new`} className="button-primary mt-5">
-            Add the first card
-          </Link>
-        </div>
-      ) : (
+          <ul className="divide-y divide-border">
+            {children.map((child) => (
+              <li key={child.id}>
+                <div className="row group flex min-h-[3.75rem] items-center gap-3 px-4 py-3 sm:px-5">
+                  <Link href={`/decks/${child.id}`} className="min-w-0 flex-1">
+                    <span className="transition-state block truncate font-semibold group-hover:text-accent">
+                      {child.name}
+                    </span>
+                    <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted">
+                      <Icon name="cards" size={13} />
+                      {child.total} card{child.total === 1 ? "" : "s"}
+                    </span>
+                  </Link>
+                  {child.due > 0 && (
+                    <span className="chip chip-accent">
+                      <Icon name="clock" size={12} />
+                      {child.due} due
+                    </span>
+                  )}
+                  <Link
+                    href={
+                      child.due > 0
+                        ? `/decks/${child.id}/review`
+                        : child.total > 0
+                          ? `/decks/${child.id}/review?mode=practice`
+                          : `/decks/${child.id}`
+                    }
+                    className={child.due > 0 ? "button-primary min-h-9 px-3" : "button-secondary min-h-9 px-3"}
+                  >
+                    {child.due > 0 ? <Icon name="play" size={14} /> : <Icon name="practice" size={14} />}
+                    <span className="hidden sm:inline">{child.due > 0 ? "Review" : "Practice"}</span>
+                  </Link>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Direct cards. A parent with no direct cards simply omits this. */}
+      {cards.length > 0 ? (
         <CardBrowser cards={cards} deckId={deck.id} now={now} />
+      ) : (
+        children.length === 0 && (
+          <div className="panel px-6 py-10 text-center">
+            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-accent-tint text-accent">
+              <Icon name="plus" size={22} />
+            </div>
+            <h2 className="text-lg font-semibold">This deck is still empty</h2>
+            <p className="mt-1 text-pretty text-sm text-muted">
+              Add a thought, image, definition, or question to begin.
+            </p>
+            <Link href={`/decks/${deck.id}/cards/new`} className="button-primary mt-5">
+              Add the first card
+            </Link>
+          </div>
+        )
       )}
 
       <div className="mt-2 flex flex-col gap-3 border-t border-border pt-4 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
         <span>Deck settings</span>
         <div className="flex flex-wrap gap-2">
-          {cards.length > 0 && (
+          {total > 0 && (
             <form action={resetDeckProgress}>
               <input type="hidden" name="deckId" value={deck.id} />
               <ConfirmSubmitButton
-                message={`Reset progress for every card in “${deck.name}”? Review history will be removed.`}
+                message={`Reset progress for every card in “${deck.name}”${
+                  children.length > 0 ? " and its sub-decks" : ""
+                }? Review history will be removed.`}
                 className="button-secondary min-h-9"
               >
                 <Icon name="reset" size={14} />
@@ -189,7 +251,13 @@ export default async function DeckPage({
           <form action={deleteDeck}>
             <input type="hidden" name="id" value={deck.id} />
             <ConfirmSubmitButton
-              message={`Delete “${deck.name}” and all of its cards? This cannot be undone.`}
+              message={
+                children.length > 0
+                  ? `Delete “${deck.name}” and its own cards? Its ${children.length} sub-deck${
+                      children.length === 1 ? "" : "s"
+                    } will move to the top level. This cannot be undone.`
+                  : `Delete “${deck.name}” and all of its cards? This cannot be undone.`
+              }
               className="button-danger min-h-9"
             >
               <Icon name="trash" size={14} />
