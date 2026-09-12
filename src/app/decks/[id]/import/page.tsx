@@ -26,7 +26,7 @@ export default async function ImportPage({
           {deck.name}
         </Link>
         <p className="eyebrow mt-4">Bring your notes</p>
-        <h1 className="display-title mt-1 text-3xl sm:text-4xl">Import cards</h1>
+        <h1 className="display-title mt-1 text-2xl sm:text-3xl">Import cards</h1>
         <p className="mt-3 max-w-xl text-pretty text-sm leading-6 text-muted">
           Paste tab-separated text (e.g. an Anki export) or pick another
           delimiter. Markdown works in each field, but a card must fit on one line.

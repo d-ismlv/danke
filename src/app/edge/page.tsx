@@ -119,7 +119,7 @@ export default async function EdgePage({
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow mb-2">Recall</p>
-          <h1 className="display-title text-3xl sm:text-4xl">Edge map</h1>
+          <h1 className="display-title text-2xl sm:text-3xl">Edge map</h1>
           <p className="mt-2 max-w-xl text-pretty text-sm leading-6 text-muted">
             Every concept and the rung its ladder stops at, weakest first.
           </p>

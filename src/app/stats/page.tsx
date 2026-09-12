@@ -7,7 +7,7 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 const DAY_MS = 86_400_000;
-const WEEKS = 26; // ~6 months of history
+const WEEKS = 52; // a year, which is also what fills the panel at a legible cell size
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** Four steps, so a quiet day and a heavy one aren't the same square. */
@@ -57,7 +57,7 @@ export default async function StatsPage() {
     <div className="flex flex-col gap-6">
       <header>
         <p className="eyebrow mb-2">Your rhythm</p>
-        <h1 className="display-title text-3xl sm:text-4xl">Study activity</h1>
+        <h1 className="display-title text-2xl sm:text-3xl">Study activity</h1>
       </header>
 
       <div className="panel grid grid-cols-2 gap-x-6 gap-y-5 px-4 py-5 sm:grid-cols-3 sm:px-6 lg:grid-cols-5">
@@ -93,14 +93,14 @@ export default async function StatsPage() {
           <span className="text-xs text-muted">
             {totalReviews === 0
               ? "Nothing graded yet"
-              : `${totalReviews} review${totalReviews === 1 ? "" : "s"} · last ${WEEKS} weeks`}
+              : `${totalReviews} review${totalReviews === 1 ? "" : "s"} · past year`}
           </span>
         </div>
 
         <div className="flex gap-2">
           {/* Weekday gutter: Monday, Wednesday, Friday, as calendars label them. */}
           <div
-            className="grid shrink-0 grid-rows-7 gap-[3px] pt-4 text-[10px] text-faint"
+            className="grid shrink-0 grid-rows-7 gap-[2px] pt-4 text-[10px] text-faint"
             aria-hidden="true"
           >
             {["", "M", "", "W", "", "F", ""].map((d, i) => (
@@ -111,8 +111,8 @@ export default async function StatsPage() {
           </div>
           <div className="min-w-0 flex-1">
             <div
-              className="mb-[3px] grid gap-[3px] text-[10px] leading-4 text-faint"
-              style={{ gridTemplateColumns: `repeat(${WEEKS}, minmax(0, 1fr))` }}
+              className="mb-[2px] grid justify-start gap-[2px] text-[10px] leading-4 text-faint"
+              style={{ gridTemplateColumns: `repeat(${WEEKS}, minmax(0, 0.72rem))` }}
               aria-hidden="true"
             >
               {monthLabels.map((m, i) => (
@@ -123,7 +123,7 @@ export default async function StatsPage() {
             </div>
             <div
               className="heat-grid"
-              style={{ gridTemplateColumns: `repeat(${WEEKS}, minmax(0, 1fr))` }}
+              style={{ gridTemplateColumns: `repeat(${WEEKS}, minmax(0, 0.72rem))` }}
             >
               {columns.flatMap((col) =>
                 col.map(({ day, count }) => (
@@ -140,7 +140,7 @@ export default async function StatsPage() {
                 )),
               )}
             </div>
-            <div className="mt-3 flex items-center justify-end gap-1 text-xs text-muted">
+            <div className="mt-2.5 flex w-fit items-center gap-1 text-xs text-muted">
               <span>less</span>
               {[0, 4, 14, 25, 40].map((c) => (
                 <div key={c} className="heat-key" style={{ background: intensity(c) }} />

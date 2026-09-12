@@ -160,6 +160,11 @@
    ================================================================== */
 
 html {
+  /* Every length in the app is in rem, so this one number sets the density of
+     the whole interface. 14px, not the browser's 16px: at 16 the controls,
+     labels and headings all land a step larger than they need to be, and the
+     page reads as though it were zoomed. */
+  font-size: 14px;
   /* Always reserve the scrollbar gutter so the centered layout doesn't
      shift horizontally between short pages and tall ones. */
   scrollbar-gutter: stable;
@@ -170,7 +175,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
-  font-size: 15px;
+  font-size: 1rem;
   line-height: 1.5;
   /* On the 2x panels this is read on, unhinted greyscale smoothing is what
      the rest of macOS and iOS draw; subpixel rendering made the same weight
@@ -192,20 +197,6 @@ body {
 @media (min-resolution: 2dppx) {
   :root {
     --line: 0.5px;
-  }
-}
-
-/* Large desktops: the shell is measured in rem, so one step on the root
-   size grows type, padding, controls and gaps together. Laptops are left
-   alone — this is for 27" and 4K panels, where 15px sits too far away. */
-@media (min-width: 1800px) {
-  body {
-    font-size: 16px;
-  }
-}
-@media (min-width: 2400px) {
-  body {
-    font-size: 17px;
   }
 }
 
@@ -382,13 +373,13 @@ textarea {
 .button-danger,
 .button-icon {
   display: inline-flex;
-  min-height: 2.375rem;
+  min-height: 2.125rem;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
+  gap: 0.35rem;
   border: var(--line) solid transparent;
   border-radius: var(--radius-control);
-  padding: 0.5rem 0.85rem;
+  padding: 0.4rem 0.7rem;
   font-size: 0.8125rem;
   font-weight: 650;
   line-height: 1;
@@ -454,8 +445,8 @@ textarea {
 }
 
 .button-icon {
-  padding: 0.5rem;
-  min-width: 2.375rem;
+  padding: 0.4rem;
+  min-width: 2.125rem;
   color: var(--muted);
   background-color: transparent;
 }
@@ -479,13 +470,13 @@ button:disabled,
 .textarea,
 .select {
   width: 100%;
-  min-height: 2.75rem;
+  min-height: 2.25rem;
   border: var(--line) solid var(--border);
   border-radius: var(--radius-control);
   background-color: var(--surface);
   color: var(--foreground);
-  padding: 0.6rem 0.75rem;
-  font-size: 0.875rem;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.85rem;
   outline: none;
   transition:
     border-color var(--t-state) var(--ease-out),
@@ -508,9 +499,9 @@ button:disabled,
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 .textarea {
-  min-height: 8rem;
+  min-height: 7rem;
   resize: vertical;
-  line-height: 1.6;
+  line-height: 1.55;
 }
 .mono {
   font-family: var(--font-mono), ui-monospace, monospace;
@@ -526,8 +517,8 @@ button:disabled,
   align-items: center;
   gap: 0.3rem;
   border-radius: 4px;
-  padding: 0.22rem 0.5rem;
-  font-size: 0.72rem;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.7rem;
   font-weight: 650;
   white-space: nowrap;
   background-color: var(--surface-2);
@@ -577,8 +568,8 @@ button:disabled,
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 1.75rem;
-  min-width: 1.75rem;
+  height: 1.5rem;
+  min-width: 1.5rem;
   border-radius: 4px;
   border: var(--line) solid transparent;
   font-size: 0.72rem;
@@ -618,7 +609,7 @@ button:disabled,
 }
 
 .stage-question {
-  font-size: clamp(1.05rem, 0.95rem + 0.6vw, 1.45rem);
+  font-size: clamp(1rem, 0.9rem + 0.45vw, 1.25rem);
   line-height: 1.45;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -644,8 +635,8 @@ button:disabled,
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.2rem;
-  min-height: 4rem;
+  gap: 0.15rem;
+  min-height: 3.25rem;
   border-radius: var(--radius-card);
   border: var(--line) solid var(--border);
   border-bottom: 3px solid var(--grade-color);
@@ -692,15 +683,16 @@ button:disabled,
    Heatmap
    ================================================================== */
 
-/* The heatmap fills the panel it sits in: 26 flexible columns rather than 26
-   fixed 12px ones, which left half the panel empty on a desktop and clipped on
-   a phone. `aspect-ratio` keeps the cells square at any width. */
+/* The heatmap shrinks to fit a phone and stops growing at a legible cell.
+   Stretching it to fill a desktop panel gave 40px squares — a calendar drawn
+   in floor tiles. The columns are `minmax(0, 0.72rem)`: they give way on a
+   narrow screen and never exceed ten-odd pixels on a wide one. */
 .heat-grid {
   display: grid;
   grid-auto-flow: column;
   grid-template-rows: repeat(7, minmax(0, 1fr));
-  gap: 3px;
-  flex: 1;
+  gap: 2px;
+  justify-content: start;
   min-width: 0;
 }
 .heat-cell {
@@ -714,8 +706,8 @@ button:disabled,
 }
 /* The legend's own swatches aren't in the grid, so they need a size. */
 .heat-key {
-  width: 0.7rem;
-  height: 0.7rem;
+  width: 0.65rem;
+  height: 0.65rem;
   border-radius: 2px;
 }
 

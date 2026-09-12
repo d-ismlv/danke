@@ -20,7 +20,7 @@ export default async function Home() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow mb-2">Library</p>
-          <h1 className="display-title text-3xl sm:text-4xl">Your decks</h1>
+          <h1 className="display-title text-2xl sm:text-3xl">Your decks</h1>
           <p className="mt-2 max-w-xl text-pretty text-sm leading-6 text-muted">
             {totalDue > 0
               ? `${totalDue} card${totalDue === 1 ? "" : "s"} ready for a quick review.`
@@ -29,11 +29,11 @@ export default async function Home() {
         </div>
         <dl className="flex items-end gap-6">
           <div className="text-right">
-            <dd className="display-title numeral text-3xl text-accent">{totalDue}</dd>
+            <dd className="display-title numeral text-2xl text-accent">{totalDue}</dd>
             <dt className="label mt-1">Due now</dt>
           </div>
           <div className="hidden text-right sm:block">
-            <dd className="display-title numeral text-3xl">{totalCards}</dd>
+            <dd className="display-title numeral text-2xl">{totalCards}</dd>
             <dt className="label mt-1">Cards</dt>
           </div>
         </dl>

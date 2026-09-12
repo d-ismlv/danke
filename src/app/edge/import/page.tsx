@@ -19,7 +19,7 @@ export default async function LadderImportPage() {
           Edge map
         </Link>
         <p className="eyebrow mt-4">One file per concept</p>
-        <h1 className="display-title mt-1 text-3xl sm:text-4xl">Import ladders</h1>
+        <h1 className="display-title mt-1 text-2xl sm:text-3xl">Import ladders</h1>
         <p className="mt-3 max-w-xl text-pretty text-sm leading-6 text-muted">
           Front-matter names the concept and its deck; each{" "}
           <code className="mono">## rung :: question</code> heading is a card.

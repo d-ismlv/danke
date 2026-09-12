@@ -172,7 +172,7 @@ export default function ReviewSession({
           <Icon name={stopped ? "target" : "check"} size={26} />
         </div>
         <p className="eyebrow">{stopped ? "Edge found" : "Finished"}</p>
-        <h1 className="display-title text-3xl sm:text-4xl">
+        <h1 className="display-title text-2xl sm:text-3xl">
           {stopped
             ? `Rung ${edge} — ${RUNG_NAMES[edge!] ?? ""}`
             : drill
@@ -266,7 +266,7 @@ export default function ReviewSession({
       </div>
 
       {/* Card */}
-      <section key={current.id} className="stage anim-rise flex min-h-[19rem] flex-col p-5 sm:p-7">
+      <section key={current.id} className="stage anim-rise flex min-h-[15rem] flex-col p-5 sm:p-6">
         {rung !== null && (
           <div className="mb-4 flex items-center gap-3">
             <span className="chip chip-accent">

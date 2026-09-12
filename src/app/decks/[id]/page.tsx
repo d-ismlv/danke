@@ -67,7 +67,7 @@ export default async function DeckPage({
               name="name"
               defaultValue={deck.name}
               aria-label="Deck name"
-              className="display-title transition-state w-full rounded-lg border border-transparent bg-transparent py-1 text-3xl outline-none hover:border-border focus:border-accent sm:text-4xl"
+              className="display-title transition-state w-full rounded-lg border border-transparent bg-transparent py-1 text-2xl outline-none hover:border-border focus:border-accent sm:text-3xl"
             />
           </form>
           <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">

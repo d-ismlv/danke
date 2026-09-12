@@ -21,7 +21,7 @@ export default function LoginForm() {
       </div>
       <div>
         <p className="eyebrow mb-1">Private library</p>
-        <h1 className="display-title text-3xl">Welcome back</h1>
+        <h1 className="display-title text-2xl">Welcome back</h1>
         <p className="mt-2 text-sm text-muted">Enter your password to continue.</p>
       </div>
       <input

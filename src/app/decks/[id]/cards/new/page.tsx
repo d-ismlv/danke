@@ -35,7 +35,7 @@ export default async function NewCardPage({
           ← {deck.name}
         </Link>
         <p className="eyebrow mt-4">Create</p>
-        <h1 className="display-title mt-1 text-3xl sm:text-4xl">New card</h1>
+        <h1 className="display-title mt-1 text-2xl sm:text-3xl">New card</h1>
         <p className="mt-3 text-sm text-muted">
           Write in Markdown, or drop and paste images directly into either side.
         </p>

@@ -21,12 +21,12 @@ export default function StatTile({
 }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-surface-2 text-muted">
-        <Icon name={icon} size={17} />
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-surface-2 text-muted">
+        <Icon name={icon} size={16} />
       </span>
       <div className="min-w-0">
         <div
-          className={`display-title numeral text-2xl leading-none ${
+          className={`display-title numeral text-xl leading-none ${
             tone === "accent" ? "text-accent" : ""
           }`}
         >

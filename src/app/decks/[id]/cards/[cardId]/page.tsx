@@ -24,7 +24,7 @@ export default async function EditCardPage({
           ← {deck.name}
         </Link>
         <p className="eyebrow mt-4">Refine</p>
-        <h1 className="display-title mt-1 text-3xl sm:text-4xl">Edit card</h1>
+        <h1 className="display-title mt-1 text-2xl sm:text-3xl">Edit card</h1>
       </div>
       <CardEditor
         deckId={deck.id}

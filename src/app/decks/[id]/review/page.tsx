@@ -58,7 +58,7 @@ export default async function ReviewPage({
           <Icon name="check" size={26} />
         </div>
         <p className="eyebrow">{practice ? "No cards" : "All clear"}</p>
-        <h1 className="display-title text-3xl sm:text-4xl">
+        <h1 className="display-title text-2xl sm:text-3xl">
           {practice ? "Nothing to practice" : "Nothing due"}
         </h1>
         <p className="max-w-md text-pretty text-muted">
