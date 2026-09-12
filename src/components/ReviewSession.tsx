@@ -1,17 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import Markdown from "./Markdown";
+import Icon from "./Icon";
 import { Rating, State, type Grade } from "@/lib/fsrs";
+import { RUNG_NAMES } from "@/lib/import";
 import type { ReviewResult } from "@/lib/review";
 
 export type QueueItem = {
   id: string;
   front: string;
   back: string;
+  /** Ladder position, when the card belongs to a concept. */
+  rung?: number | null;
   previews: Record<number, string>;
 };
+
+/**
+ * `review` grades a due queue, `practice` never touches scheduling, and
+ * `drill` walks one concept's ladder in order and stops at the first Again —
+ * the rung where recall actually ran out.
+ */
+export type SessionMode = "review" | "practice" | "drill";
 
 async function gradeCard(cardId: string, rating: Grade): Promise<ReviewResult | null> {
   const res = await fetch("/api/review", {
@@ -23,32 +34,50 @@ async function gradeCard(cardId: string, rating: Grade): Promise<ReviewResult | 
   return res.json();
 }
 
-const BUTTONS: { rating: Grade; label: string; key: string; color: string }[] = [
-  { rating: Rating.Again, label: "Again", key: "1", color: "var(--again)" },
-  { rating: Rating.Hard, label: "Hard", key: "2", color: "var(--hard)" },
-  { rating: Rating.Good, label: "Good", key: "3", color: "var(--good)" },
-  { rating: Rating.Easy, label: "Easy", key: "4", color: "var(--easy)" },
+const BUTTONS: { rating: Grade; label: string; key: string; color: string; tint: string }[] = [
+  { rating: Rating.Again, label: "Again", key: "1", color: "var(--again)", tint: "var(--again-tint)" },
+  { rating: Rating.Hard, label: "Hard", key: "2", color: "var(--hard)", tint: "var(--hard-tint)" },
+  { rating: Rating.Good, label: "Good", key: "3", color: "var(--good)", tint: "var(--good-tint)" },
+  { rating: Rating.Easy, label: "Easy", key: "4", color: "var(--easy)", tint: "var(--easy-tint)" },
 ];
 
 export default function ReviewSession({
-  deckId,
-  deckName,
+  title,
+  subtitle,
+  backHref,
   initialQueue,
-  practice = false,
+  mode = "review",
+  conceptId,
 }: {
-  deckId: string;
-  deckName: string;
+  title: string;
+  subtitle?: string;
+  backHref: string;
   initialQueue: QueueItem[];
-  practice?: boolean;
+  mode?: SessionMode;
+  /** Drill only — the concept being climbed. */
+  conceptId?: string;
 }) {
+  const practice = mode === "practice";
+  const drill = mode === "drill";
+
   const [queue, setQueue] = useState<QueueItem[]>(initialQueue);
   const [revealed, setRevealed] = useState(false);
   const [reviewed, setReviewed] = useState(0);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Drill only: what each rung did this session. */
+  const [climbed, setClimbed] = useState<Record<number, "passed" | "edge">>({});
+  const [edge, setEdge] = useState<number | null>(null);
 
   const current = queue[0];
-  const done = !current;
+  const done = !current || edge !== null;
+  const remaining = queue.length;
+
+  /** The rungs this drill covers, for the rail down the side of the card. */
+  const rungs = useMemo(
+    () => initialQueue.map((c) => c.rung).filter((r): r is number => typeof r === "number"),
+    [initialQueue],
+  );
 
   const advancePractice = useCallback(() => {
     if (!current) return;
@@ -71,6 +100,20 @@ export default function ReviewSession({
         }
         setReviewed((n) => n + 1);
         setRevealed(false);
+
+        if (drill && typeof current.rung === "number") {
+          const failed = rating === Rating.Again;
+          setClimbed((c) => ({ ...c, [current.rung as number]: failed ? "edge" : "passed" }));
+          // The drill stops at the first rung missed: that rung is the edge,
+          // and everything above it would be answered on a shaken footing.
+          if (failed) {
+            setEdge(current.rung);
+            return;
+          }
+          setQueue((q) => q.slice(1));
+          return;
+        }
+
         setQueue((q) => {
           const [, ...rest] = q;
           // Re-queue while the card is still in (re)learning — it hasn't
@@ -88,7 +131,7 @@ export default function ReviewSession({
         setPending(false);
       }
     },
-    [current, pending],
+    [current, pending, drill],
   );
 
   // Keyboard: space/enter reveals (and advances practice); 1–4 grade reviews.
@@ -118,92 +161,153 @@ export default function ReviewSession({
   }, [revealed, done, practice, answer, advancePractice]);
 
   if (done) {
+    const stopped = edge !== null;
     return (
-      <div className="flex flex-col items-center gap-3 py-12 text-center">
-        <div className="flex size-14 items-center justify-center rounded-full bg-good/10 text-2xl">
-          ✓
+      <div className="anim-rise mx-auto flex w-full max-w-xl flex-col items-center gap-3 py-10 text-center">
+        <div
+          className={`flex size-14 items-center justify-center rounded-xl ${
+            stopped ? "bg-again-tint text-again" : "bg-good-tint text-good"
+          }`}
+        >
+          <Icon name={stopped ? "target" : "check"} size={26} />
         </div>
-        <p className="eyebrow">Finished</p>
-        <h1 className="display-title text-3xl sm:text-4xl">Session complete</h1>
-        <p className="text-muted">
-          You {practice ? "practiced" : "reviewed"} {reviewed} card
-          {reviewed === 1 ? "" : "s"} in {deckName}.
+        <p className="eyebrow">{stopped ? "Edge found" : "Finished"}</p>
+        <h1 className="display-title text-3xl sm:text-4xl">
+          {stopped
+            ? `Rung ${edge} — ${RUNG_NAMES[edge!] ?? ""}`
+            : drill
+              ? "Ladder complete"
+              : "Session complete"}
+        </h1>
+        <p className="max-w-md text-muted">
+          {stopped ? (
+            <>
+              That is the rung to re-read. It comes back on its own schedule; the
+              rungs below it stay quiet.
+            </>
+          ) : drill ? (
+            <>
+              All {reviewed} rung{reviewed === 1 ? "" : "s"} of{" "}
+              <span className="font-medium text-foreground">{conceptId}</span> answered.
+            </>
+          ) : (
+            <>
+              You {practice ? "practiced" : "reviewed"} {reviewed} card
+              {reviewed === 1 ? "" : "s"} in {title}.
+            </>
+          )}
         </p>
-        <div className="mt-2 flex gap-2">
-          <Link
-            href={`/decks/${deckId}`}
-            className="button-secondary"
-          >
-            Back to deck
+
+        {drill && rungs.length > 0 && (
+          <ol className="mt-2 flex flex-wrap justify-center gap-1.5">
+            {rungs.map((r) => (
+              <li
+                key={r}
+                className="rung-cell"
+                data-state={climbed[r] ?? "unseen"}
+                title={`Rung ${r} — ${RUNG_NAMES[r] ?? ""}`}
+              >
+                {r}
+              </li>
+            ))}
+          </ol>
+        )}
+
+        <div className="mt-3 flex flex-wrap justify-center gap-2">
+          <Link href={backHref} className="button-secondary">
+            <Icon name="arrowLeft" size={15} />
+            {drill ? "Edge map" : "Back to deck"}
           </Link>
-          <Link
-            href="/"
-            className="button-primary"
-          >
-            All decks
+          <Link href={drill ? `/drill/${conceptId}` : "/"} className="button-primary">
+            {drill ? (
+              <>
+                <Icon name="practice" size={15} />
+                Drill again
+              </>
+            ) : (
+              <>
+                <Icon name="decks" size={15} />
+                All decks
+              </>
+            )}
           </Link>
         </div>
       </div>
     );
   }
 
-  const remaining = queue.length;
+  const rung = typeof current.rung === "number" ? current.rung : null;
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
       {/* Progress */}
       <div className="flex items-end justify-between gap-4 text-sm text-muted">
-        <div>
-          <p className="eyebrow mb-1">{practice ? "Practice" : "Review"}</p>
+        <div className="min-w-0">
+          <p className="eyebrow mb-1">
+            {drill ? "Drill" : practice ? "Practice" : "Review"}
+          </p>
           <Link
-            href={`/decks/${deckId}`}
-            className="text-base font-semibold text-foreground hover:text-accent"
+            href={backHref}
+            className="transition-state block truncate text-base font-semibold text-foreground hover:text-accent"
           >
-            {deckName}
+            {title}
           </Link>
+          {subtitle && <p className="truncate text-xs">{subtitle}</p>}
         </div>
-        <span>
+        <span className="numeral shrink-0 text-xs sm:text-sm">
           {reviewed} done · {remaining} left
         </span>
       </div>
-      <div className="h-1 overflow-hidden rounded-full bg-surface-2">
+      <div className="progress-track">
         <div
-          className="h-full rounded-full bg-accent transition-all"
-          style={{
-            width: `${(reviewed / (reviewed + remaining || 1)) * 100}%`,
-          }}
+          className="progress-fill"
+          style={{ width: `${(reviewed / (reviewed + remaining || 1)) * 100}%` }}
         />
       </div>
 
       {/* Card */}
-      <section className="panel flex min-h-72 flex-col p-5 text-left sm:p-6">
-        <div>
+      <section key={current.id} className="stage anim-rise flex min-h-[19rem] flex-col p-5 sm:p-7">
+        {rung !== null && (
+          <div className="mb-4 flex items-center gap-3">
+            <span className="chip chip-accent">
+              <Icon name="ladder" size={12} />
+              Rung {rung} · {RUNG_NAMES[rung] ?? ""}
+            </span>
+            {drill && rungs.length > 0 && (
+              <ol className="flex flex-1 gap-1" aria-label="Ladder progress">
+                {rungs.map((r) => (
+                  <li
+                    key={r}
+                    className="rung-dot flex-1"
+                    data-state={climbed[r] ?? (r === rung ? "current" : "unseen")}
+                    title={`Rung ${r} — ${RUNG_NAMES[r] ?? ""}`}
+                  />
+                ))}
+              </ol>
+            )}
+          </div>
+        )}
+
+        <div className="stage-question">
           <Markdown variant="review">{current.front || "*(empty)*"}</Markdown>
         </div>
+
         {revealed && (
-          <>
-            <hr className="my-5 border-border" />
-            <div>
-              <Markdown variant="review">
-                {current.back || "*(empty)*"}
-              </Markdown>
-            </div>
-          </>
+          <div className="anim-settle mt-5 border-t border-border pt-5">
+            <Markdown variant="review">{current.back || "*(empty)*"}</Markdown>
+          </div>
         )}
+
         {!revealed && (
           <button
             type="button"
             onClick={() => setRevealed(true)}
-            aria-label="Show answer"
             aria-keyshortcuts="Space"
-            className="button-primary group relative mx-auto mt-auto min-w-36"
+            className="button-primary mx-auto mt-auto min-w-40"
           >
             Show answer
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-foreground px-2 py-1 text-[11px] font-medium text-background opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
-            >
-              (Space)
+            <span className="keycap ml-1 border-transparent bg-black/15 text-accent-fg">
+              Space
             </span>
           </button>
         )}
@@ -211,30 +315,33 @@ export default function ReviewSession({
 
       {/* Grades */}
       {revealed && practice && (
-        <button
-          type="button"
-          onClick={advancePractice}
-          className="button-primary ml-auto min-w-32"
-        >
-          Next <span className="ml-1 text-xs">Space</span>
+        <button type="button" onClick={advancePractice} className="button-primary ml-auto min-w-32">
+          Next
+          <span className="keycap ml-1 border-transparent bg-black/15 text-accent-fg">Space</span>
         </button>
       )}
 
       {revealed && !practice && (
-        <div className="flex flex-col gap-2">
+        <div className="anim-settle flex flex-col gap-2">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {BUTTONS.map((b) => (
               <button
                 key={b.rating}
                 disabled={pending}
                 onClick={() => answer(b.rating)}
-                className="flex min-h-16 flex-col items-center justify-center gap-0.5 rounded-xl border border-border bg-surface py-3 text-sm font-semibold transition hover:-translate-y-0.5 hover:bg-surface-2 disabled:opacity-50"
-                style={{ borderBottomColor: b.color, borderBottomWidth: 3 }}
+                style={
+                  {
+                    "--grade-color": b.color,
+                    "--grade-tint": b.tint,
+                  } as CSSProperties
+                }
+                className="grade"
               >
-                <span>{b.label}</span>
-                <span className="text-xs text-muted">
-                  {current.previews[b.rating] ?? ""}
+                <span className="flex items-center gap-1.5">
+                  <span className="keycap">{b.key}</span>
+                  <span className="grade-label">{b.label}</span>
                 </span>
+                <span className="grade-hint">{current.previews[b.rating] ?? ""}</span>
               </button>
             ))}
           </div>

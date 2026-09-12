@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDeck } from "@/lib/queries";
 import ImportForm from "@/components/ImportForm";
+import Icon from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -19,16 +20,26 @@ export default async function ImportPage({
       <div>
         <Link
           href={`/decks/${deck.id}`}
-          className="text-sm text-muted hover:text-foreground"
+          className="transition-state flex w-fit items-center gap-1.5 text-sm text-muted hover:text-foreground"
         >
-          ← {deck.name}
+          <Icon name="arrowLeft" size={15} />
+          {deck.name}
         </Link>
         <p className="eyebrow mt-4">Bring your notes</p>
         <h1 className="display-title mt-1 text-3xl sm:text-4xl">Import cards</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
           Paste tab-separated text (e.g. an Anki export) or pick another
-          delimiter. Markdown works inside each field.
+          delimiter. Markdown works inside each field, but a card has to fit on
+          one line.
         </p>
+        <Link
+          href="/edge/import"
+          className="transition-state mt-3 flex w-fit items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm hover:border-accent-tint-border hover:bg-accent-tint/40"
+        >
+          <Icon name="ladder" size={16} />
+          Importing a concept ladder instead?
+          <Icon name="arrowRight" size={15} />
+        </Link>
       </div>
       <ImportForm deckId={deck.id} />
     </div>

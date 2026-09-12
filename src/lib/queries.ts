@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, inArray, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { db } from "@/db";
 import { decks, cards, reviewState, reviewLogs } from "@/db/schema";
 import type { Deck, Card, ReviewStateRow } from "@/db/schema";
@@ -118,6 +118,9 @@ export async function getCardsForDeck(deckId: string): Promise<CardWithState[]> 
       back: cards.back,
       createdAt: cards.createdAt,
       updatedAt: cards.updatedAt,
+      conceptId: cards.conceptId,
+      rung: cards.rung,
+      sourceKey: cards.sourceKey,
       due: reviewState.due,
       state: reviewState.state,
     })
@@ -137,27 +140,62 @@ export type DueCard = {
   id: string;
   front: string;
   back: string;
+  /** Ladder position, when the card belongs to one. */
+  rung: number | null;
+  conceptId: string | null;
   state: ReviewStateRow;
 };
+
+/**
+ * A slice of the ladder: "rungs 1-2 across AD" is the same deck reviewed at
+ * one altitude — every concept's overview, then every concept's mechanism.
+ */
+export type RungBand = { min: number; max: number };
+
+/** `1-2`, or a single `4`. Anything else means no band. */
+export function parseRungBand(value: string | string[] | undefined): RungBand | undefined {
+  if (typeof value !== "string") return undefined;
+  const match = /^(\d)(?:-(\d))?$/.exec(value.trim());
+  if (!match) return undefined;
+  const min = Number(match[1]);
+  const max = match[2] ? Number(match[2]) : min;
+  if (min < 1 || max < min || max > 9) return undefined;
+  return { min, max };
+}
+
+function bandFilter(band?: RungBand) {
+  return band
+    ? and(gte(cards.rung, band.min), lte(cards.rung, band.max))
+    : undefined;
+}
 
 /** The review queue for a deck (and its sub-decks): cards due now, earliest first. */
 export async function getDueCards(
   deckId: string,
   now = Date.now(),
   limit = 500,
+  band?: RungBand,
 ): Promise<DueCard[]> {
   const deckIds = await getDeckAndDescendantIds(deckId);
   const rows = await db
     .select({ card: cards, state: reviewState })
     .from(reviewState)
     .innerJoin(cards, eq(cards.id, reviewState.cardId))
-    .where(and(inArray(cards.deckId, deckIds), lte(reviewState.due, now)))
-    .orderBy(asc(reviewState.due))
+    .where(
+      and(
+        inArray(cards.deckId, deckIds),
+        lte(reviewState.due, now),
+        bandFilter(band),
+      ),
+    )
+    .orderBy(asc(cards.rung), asc(reviewState.due))
     .limit(limit);
   return rows.map((r) => ({
     id: r.card.id,
     front: r.card.front,
     back: r.card.back,
+    rung: r.card.rung,
+    conceptId: r.card.conceptId,
     state: r.state,
   }));
 }
@@ -170,6 +208,7 @@ export async function getPracticeCards(
   deckId: string,
   cardId?: string,
   limit = 500,
+  band?: RungBand,
 ): Promise<DueCard[]> {
   const deckIds = await getDeckAndDescendantIds(deckId);
   const rows = await db
@@ -180,14 +219,17 @@ export async function getPracticeCards(
       and(
         inArray(cards.deckId, deckIds),
         cardId ? eq(cards.id, cardId) : undefined,
+        bandFilter(band),
       ),
     )
-    .orderBy(asc(cards.createdAt))
+    .orderBy(asc(cards.rung), asc(cards.createdAt))
     .limit(limit);
   return rows.map((r) => ({
     id: r.card.id,
     front: r.card.front,
     back: r.card.back,
+    rung: r.card.rung,
+    conceptId: r.card.conceptId,
     state: r.state,
   }));
 }

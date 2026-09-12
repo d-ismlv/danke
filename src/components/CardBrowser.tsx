@@ -6,6 +6,8 @@ import Markdown from "@/components/Markdown";
 import ConfirmSubmitButton from "@/components/ConfirmSubmitButton";
 import { deleteCard, resetCardProgress } from "@/lib/actions";
 import { State } from "@/lib/fsrs";
+import { RUNG_NAMES } from "@/lib/import";
+import Icon from "@/components/Icon";
 
 type BrowserCard = {
   id: string;
@@ -13,6 +15,8 @@ type BrowserCard = {
   back: string;
   due: number | null;
   state: number | null;
+  conceptId?: string | null;
+  rung?: number | null;
 };
 
 type Filter = "all" | "due" | "new" | "learning" | "review";
@@ -70,20 +74,15 @@ export default function CardBrowser({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <label className="relative block min-w-0 flex-1 sm:max-w-sm">
           <span className="sr-only">Search cards</span>
-          <svg
-            viewBox="0 0 20 20"
-            aria-hidden="true"
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted"
-          >
-            <circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
-            <path d="m12.5 12.5 4 4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-          </svg>
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">
+            <Icon name="search" size={16} />
+          </span>
           <input
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search cards"
-            className="h-10 w-full rounded-lg border border-border bg-surface pl-9 pr-3 text-sm outline-none focus:border-accent"
+            className="input min-h-10 pl-9"
           />
         </label>
         <div className="flex max-w-full gap-1 overflow-x-auto rounded-lg bg-surface-2 p-1">
@@ -93,9 +92,9 @@ export default function CardBrowser({
               type="button"
               onClick={() => setFilter(item.value)}
               aria-pressed={filter === item.value}
-              className={`shrink-0 rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${
+              className={`transition-state shrink-0 rounded-md px-2.5 py-1.5 text-xs font-semibold ${
                 filter === item.value
-                  ? "bg-surface text-foreground shadow-sm"
+                  ? "bg-surface text-foreground shadow-[var(--shadow-soft)]"
                   : "text-muted hover:text-foreground"
               }`}
             >
@@ -123,7 +122,7 @@ export default function CardBrowser({
             return (
               <li
                 key={card.id}
-                className="group flex flex-col gap-3 px-4 py-4 transition hover:bg-surface-2/50 sm:flex-row sm:items-start sm:px-5"
+                className="row group flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-start sm:px-5"
               >
                 <div className="min-w-0 flex-1">
                   <div className="line-clamp-3 text-sm leading-6">
@@ -131,31 +130,35 @@ export default function CardBrowser({
                       {card.front || "*(empty front)*"}
                     </Markdown>
                   </div>
-                  <div className="mt-2 flex items-center gap-2 text-xs text-muted">
-                    <span
-                      className={
-                        due
-                          ? "rounded-full bg-accent/15 px-2 py-0.5 font-medium text-accent"
-                          : "rounded-full bg-surface-2 px-2 py-0.5"
-                      }
-                    >
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                    <span className={due ? "chip chip-accent" : "chip"}>
                       {STATE_LABEL[card.state ?? State.New] ?? "New"}
                     </span>
                     {due && <span>due now</span>}
+                    {typeof card.rung === "number" && (
+                      <span className="chip" title={card.conceptId ?? undefined}>
+                        <Icon name="ladder" size={12} />
+                        {card.conceptId} · {card.rung} {RUNG_NAMES[card.rung] ?? ""}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-1">
                   <Link
                     href={`/decks/${deckId}/review?mode=practice&cardId=${card.id}`}
                     className="button-secondary min-h-9 px-2.5"
+                    title="Practice this card without changing its schedule"
                   >
-                    Practice
+                    <Icon name="practice" size={14} />
+                    <span className="sr-only sm:not-sr-only">Practice</span>
                   </Link>
                   <Link
                     href={`/decks/${deckId}/cards/${card.id}`}
                     className="button-quiet min-h-9 px-2.5"
+                    title="Edit card"
                   >
-                    Edit
+                    <Icon name="pencil" size={14} />
+                    <span className="sr-only sm:not-sr-only">Edit</span>
                   </Link>
                   <form action={resetCardProgress}>
                     <input type="hidden" name="id" value={card.id} />
@@ -164,7 +167,8 @@ export default function CardBrowser({
                       message="Reset this card to New and remove its review history?"
                       className="button-quiet min-h-9 px-2.5"
                     >
-                      Reset
+                      <Icon name="reset" size={14} />
+                      <span className="sr-only sm:not-sr-only">Reset</span>
                     </ConfirmSubmitButton>
                   </form>
                   <form action={deleteCard}>
@@ -174,7 +178,8 @@ export default function CardBrowser({
                       message="Delete this card? Its review history will also be removed."
                       className="button-danger min-h-9 px-2.5"
                     >
-                      Delete
+                      <Icon name="trash" size={14} />
+                      <span className="sr-only sm:not-sr-only">Delete</span>
                     </ConfirmSubmitButton>
                   </form>
                 </div>

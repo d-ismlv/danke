@@ -7,6 +7,7 @@ import { isAuthed } from "@/lib/auth";
 import { logout } from "@/lib/actions";
 import Logo from "@/components/Logo";
 import MainNav from "@/components/MainNav";
+import Icon from "@/components/Icon";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -14,6 +15,15 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 export const metadata: Metadata = {
   title: "danke — spaced repetition",
   description: "A markdown-first, self-hosted flashcard app.",
+};
+
+/* The browser paints its own chrome from this: the header colour in each
+   theme, so the address bar doesn't sit on a white band above a dark app. */
+export const viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f1f3f8" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f1015" },
+  ],
 };
 
 export default async function RootLayout({
@@ -32,7 +42,10 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col">
         <header className="app-header sticky top-0 z-10 backdrop-blur-xl">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2.5 sm:px-6 lg:px-8">
-            <Link href="/" className="flex items-center gap-2.5 font-semibold">
+            <Link
+              href="/"
+              className="transition-state flex items-center gap-2.5 rounded-md px-1 py-1 font-semibold hover:opacity-80"
+            >
               <Logo className="size-7" />
               <span className="text-base tracking-[-0.025em]">danke</span>
             </Link>
@@ -40,15 +53,16 @@ export default async function RootLayout({
               <div className="flex items-center gap-1 sm:gap-2">
                 <MainNav />
                 <form action={logout}>
-                  <button className="button-quiet min-h-9 px-3">
-                    Lock
+                  <button className="button-quiet min-h-9 px-2.5" title="Lock danke">
+                    <Icon name="lock" size={16} />
+                    <span className="hidden sm:inline">Lock</span>
                   </button>
                 </form>
               </div>
             )}
           </div>
         </header>
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+        <main className="anim-fade mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
           {children}
         </main>
       </body>

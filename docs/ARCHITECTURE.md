@@ -23,13 +23,35 @@ stored as epoch-ms integers.
 | Table | Holds |
 |---|---|
 | `decks` | `id`, `name`, `parent_id` (nesting), `created_at` |
-| `cards` | `id`, `deck_id`, `front` (md), `back` (md), timestamps |
+| `cards` | `id`, `deck_id`, `front` (md), `back` (md), timestamps, and the nullable ladder columns `concept_id`, `rung`, `source_key` |
 | `media_assets` | uploaded image metadata; binary files live under `data/media` |
 | `review_state` | 1:1 with a card — `due`, `stability`, `difficulty`, `reps`, `lapses`, `state`, … |
 | `review_logs` | append-only grading history (powers stats) |
 
 Content (`cards`) and scheduling (`review_state`) are kept separate so authoring
 and spaced-repetition concerns don't entangle.
+
+### Ladders
+
+A *ladder* is one concept drilled through seven rungs — name, mechanism,
+prerequisites, boundaries, breaks, detection, advice. Each rung is an ordinary
+card that FSRS schedules on its own, tagged with `concept_id` (the group),
+`rung` (1–7), and `source_key` (`concept#rung`, unique). The columns are
+nullable throughout, so danke stays a general flashcard app and existing cards
+are untouched.
+
+The importer (`src/lib/import.ts`, `parseLadders`) reads one markdown file per
+concept — front-matter names the concept and its deck path, and each
+`## <rung> :: <question>` heading is a card. Import **upserts on `source_key`**,
+so re-importing edited content updates `front`/`back` and leaves `review_state`
+alone; losing an FSRS history to a typo fix would defeat the point.
+
+Nothing about a ladder's *progress* is stored: the edge (first rung missed) is
+derived from `review_logs` in `src/lib/ladder.ts`. **Drill mode**
+(`/drill/[concept]`) walks a ladder in order and stops at the first Again;
+**rung-band review** (`/decks/[id]/review?rungs=1-2`) filters normal review to
+one altitude across a deck; the **edge map** (`/edge`) is concept × highest rung
+passed. All three grade through the same `/api/review` route handler.
 
 ## Review loop
 
@@ -50,7 +72,7 @@ client-managed session queue.
 ## Screens
 
 Home (decks + due badges) · Deck (card browser) · Review · Card editor · Import ·
-Stats.
+Ladder import · Drill · Edge map · Stats.
 
 ## Markdown & media
 

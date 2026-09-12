@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { importCards } from "@/lib/actions";
 import { parseCards, type SeparatorKey } from "@/lib/import";
+import Icon from "./Icon";
 
 const SEP_OPTIONS: { key: SeparatorKey; label: string }[] = [
   { key: "tab", label: "Tab" },
@@ -28,7 +29,7 @@ export default function ImportForm({ deckId }: { deckId: string }) {
       <input type="hidden" name="separator" value={separator} />
 
       <div className="flex flex-col gap-2">
-        <label className="text-xs font-medium uppercase tracking-wide text-muted">
+        <label className="label">
           Paste cards — one per line, front and back separated by the chosen
           delimiter
         </label>
@@ -38,7 +39,7 @@ export default function ImportForm({ deckId }: { deckId: string }) {
           onChange={(e) => setText(e.target.value)}
           rows={12}
           placeholder={PLACEHOLDER}
-          className="min-h-72 resize-y rounded-[18px] border border-border bg-surface p-4 font-mono text-sm leading-6 outline-none focus:border-accent"
+          className="textarea mono min-h-72"
         />
       </div>
 
@@ -83,6 +84,7 @@ export default function ImportForm({ deckId }: { deckId: string }) {
           disabled={parsed.length === 0}
           className="button-primary"
         >
+          <Icon name="import" size={15} />
           Import {parsed.length > 0 ? parsed.length : ""} card
           {parsed.length === 1 ? "" : "s"}
         </button>

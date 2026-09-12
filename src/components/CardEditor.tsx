@@ -302,13 +302,13 @@ function Field({
           onDrop={onDrop}
           rows={9}
           placeholder="Markdown…"
-          className={`min-h-56 w-full min-w-0 resize-y rounded-[18px] border bg-surface p-4 font-mono text-sm leading-6 outline-none transition focus:border-accent ${
+          className={`min-h-56 w-full min-w-0 resize-y rounded-xl border bg-surface p-4 font-mono text-sm leading-6 outline-none transition focus:border-accent ${
             dragging ? "border-accent ring-2 ring-accent/15" : "border-border"
           } ${mobileView === "preview" ? "hidden md:block" : ""}`}
         />
         <div
           aria-label={`${label} preview`}
-          className={`min-h-56 min-w-0 overflow-auto rounded-[18px] border border-border bg-surface/70 p-4 ${
+          className={`min-h-56 min-w-0 overflow-auto rounded-xl border border-border bg-surface/70 p-4 ${
             mobileView === "edit" ? "hidden md:block" : ""
           }`}
         >

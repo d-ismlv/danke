@@ -1,33 +1,121 @@
 @import "tailwindcss";
 
+/* ==================================================================
+   Tokens
+   ==================================================================
+   Only the semantic names below are used in rules and in markup. The
+   palette is cool-neutral in both themes, so the light half reads as the
+   daylight version of the dark one rather than a separate warm theme.
+
+   Hover and press are measured steps away from the resting colour —
+   roughly 3.5 and 7 L* — so a hover reads as a hover and a press reads as
+   contact. They used to be one shared `color-mix`, which spent a
+   press-sized step on the hover and left the press saying nothing.
+   ================================================================== */
+
 :root {
-  --background: #f6f7f9;
+  color-scheme: light;
+
+  --background: #f1f3f8;
   --surface: #ffffff;
-  --surface-2: #eef0f4;
-  --foreground: #20222a;
-  --muted: #6b7080;
-  --border: #dfe2e8;
-  --accent: #6658d9;
+  --surface-2: #e9ecf4;
+  --surface-hover: #e4e8f2;
+  --surface-press: #d8dde9;
+  --border: #dde2ec;
+  --border-strong: #b6bdcc;
+  --foreground: #1b1d24;
+  --muted: #565c6c;
+  --faint: #868c9d;
+
+  --accent: #5b45d1;
+  --accent-hover: #5340c2;
+  --accent-press: #4a39b3;
   --accent-fg: #ffffff;
-  --again: #f43f5e; /* rose-500 */
-  --hard: #f59e0b; /* amber-500 */
-  --good: #10b981; /* emerald-500 */
-  --easy: #0ea5e9; /* sky-500 */
-  --radius: 12px;
-  --shadow-soft: 0 1px 2px rgb(28 32 45 / 0.04), 0 8px 24px rgb(28 32 45 / 0.04);
+  --accent-tint: #ece8fb;
+  --accent-tint-border: #c6b9f1;
+
+  /* The four grades, deepened for white: the vivid 500s that read well on
+     the dark surface sit at about 2.4:1 on this one. */
+  --again: #d6334f;
+  --again-tint: #fdecef;
+  --hard: #a96a06;
+  --hard-tint: #fbf2df;
+  --good: #0e7a4e;
+  --good-tint: #e4f4ec;
+  --easy: #0b6ea6;
+  --easy-tint: #e5f1f9;
+
+  /* ---- Radii --------------------------------------------------------
+     Three steps, and they are small. A 12px corner on a 36px control is a
+     quarter of its height, which reads as soft before it reads as
+     friendly; at 4-5px the corner is a chamfer — the frame stays a frame
+     and the type inside it stays the loudest thing in the panel. Pills
+     are kept for the two things that are genuinely capsule-shaped: the
+     progress track and the ladder's rungs.
+     ------------------------------------------------------------------ */
+  --radius-control: 5px;
+  --radius-card: 7px;
+  --radius-panel: 9px;
+  --radius-pill: 999px;
+
+  /* One line width, so hairlines can be handed to the surfaces that draw a
+     lot of them from one place (see the dppx query below). */
+  --line: 1px;
+
+  --shadow-soft: 0 1px 2px rgb(24 28 44 / 0.05), 0 10px 28px rgb(24 28 44 / 0.05);
+  --shadow-raised: 0 2px 4px rgb(24 28 44 / 0.06), 0 18px 44px rgb(24 28 44 / 0.1);
+  --shadow-accent: 0 6px 18px color-mix(in srgb, var(--accent) 22%, transparent);
+
+  /* ---- Motion -------------------------------------------------------
+     Three durations and one curve; nothing outside this block picks its
+     own. The curve carries more of the feel than the durations do: CSS
+     `ease` barely moves in its opening frames, and on a 120ms transition
+     the opening frames are most of what there is — so a control reads as
+     slow to answer even though it finished on time. This one leaves at
+     speed and decelerates into place. None of it is slower than what it
+     replaces. */
+  --t-press: 60ms;
+  --t-state: 120ms;
+  --t-enter: 160ms;
+  --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #101116;
-    --surface: #181a21;
-    --surface-2: #22252e;
-    --foreground: #f2f3f7;
-    --muted: #a4a8b3;
-    --border: #30333d;
+    color-scheme: dark;
+
+    --background: #0f1015;
+    --surface: #191b22;
+    --surface-2: #21242d;
+    --surface-hover: #272b35;
+    --surface-press: #2f3441;
+    --border: #2b2f39;
+    --border-strong: #474c5a;
+    --foreground: #f1f2f7;
+    --muted: #a0a6b4;
+    --faint: #737a8b;
+
     --accent: #a99cec;
-    --accent-fg: #171326;
-    --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.2), 0 18px 42px rgb(0 0 0 / 0.18);
+    /* Away from the page, as in light — which on a dark page means lighter,
+       not darker. */
+    --accent-hover: #bcb2f2;
+    --accent-press: #cbc3f7;
+    --accent-fg: #16132a;
+    --accent-tint: #262340;
+    --accent-tint-border: #554c87;
+
+    --again: #ff6b81;
+    --again-tint: #33202a;
+    --hard: #f2b04a;
+    --hard-tint: #332a1c;
+    --good: #3fd39c;
+    --good-tint: #16302a;
+    --easy: #52bdf0;
+    --easy-tint: #162b39;
+
+    --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.3), 0 14px 36px rgb(0 0 0 / 0.24);
+    --shadow-raised: 0 2px 6px rgb(0 0 0 / 0.36), 0 22px 54px rgb(0 0 0 / 0.36);
+    --shadow-accent: 0 6px 20px rgb(0 0 0 / 0.45);
   }
 }
 
@@ -35,24 +123,47 @@
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-press: var(--surface-press);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
+  --color-faint: var(--faint);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
+  --color-accent-tint: var(--accent-tint);
+  --color-accent-tint-border: var(--accent-tint-border);
   --color-again: var(--again);
+  --color-again-tint: var(--again-tint);
   --color-hard: var(--hard);
+  --color-hard-tint: var(--hard-tint);
   --color-good: var(--good);
+  --color-good-tint: var(--good-tint);
   --color-easy: var(--easy);
+  --color-easy-tint: var(--easy-tint);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --radius-xl: var(--radius);
+  /* Tailwind's scale, re-pointed at the steps above: a `rounded-lg` in the
+     markup must not be softer than a `.panel` beside it. */
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 5px;
+  --radius-lg: 6px;
+  --radius-xl: 7px;
+  --radius-2xl: 9px;
+  --radius-3xl: 11px;
 }
 
+/* ==================================================================
+   Base
+   ================================================================== */
+
 html {
-  /* Always reserve the scrollbar gutter so the centered layout doesn't shift
-     horizontally between short pages (no scrollbar) and tall ones. */
+  /* Always reserve the scrollbar gutter so the centered layout doesn't
+     shift horizontally between short pages and tall ones. */
   scrollbar-gutter: stable;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -60,9 +171,42 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
   font-size: 15px;
+  line-height: 1.5;
+  /* On the 2x panels this is read on, unhinted greyscale smoothing is what
+     the rest of macOS and iOS draw; subpixel rendering made the same weight
+     look heavier than the system UI beside it. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /* Counts, intervals and due numbers change in place all over the app;
+     proportional digits made them jitter as they did. */
+  font-variant-numeric: tabular-nums;
   /* Guard against stray horizontal overflow. `clip` (not `hidden`) keeps the
      sticky header working, since it doesn't create a scroll container. */
   overflow-x: clip;
+}
+
+/* A 1px border on a 2x panel is two device pixels — twice the line the
+   design asks for, and on a 4K desktop the frames become the loudest thing
+   on the page. Hairlines go to the surfaces that draw a lot of them. */
+@media (min-resolution: 2dppx) {
+  :root {
+    --line: 0.5px;
+  }
+}
+
+/* Large desktops: the shell is measured in rem, so one step on the root
+   size grows type, padding, controls and gaps together. Laptops are left
+   alone — this is for 27" and 4K panels, where 15px sits too far away. */
+@media (min-width: 1800px) {
+  body {
+    font-size: 16px;
+  }
+}
+@media (min-width: 2400px) {
+  body {
+    font-size: 17px;
+  }
 }
 
 ::selection {
@@ -77,19 +221,66 @@ textarea {
   -webkit-tap-highlight-color: transparent;
 }
 
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--accent) 70%, white);
+:focus-visible {
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-.app-header {
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
-  box-shadow: 0 1px 0 var(--border);
+/* ==================================================================
+   Motion
+   ==================================================================
+   Three entrances, shared by everything that appears. Each is written
+   with `from` alone, so the animation runs to whatever the element's own
+   rules already say, and nothing drifts when one of those changes.
+
+   The travel is 4px. Displacement and duration are spent together: 16px
+   needs a third of a second to avoid looking snatched, and by then it is
+   a slide rather than an arrival.
+   ================================================================== */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
 }
+@keyframes settle {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.anim-rise {
+  animation: rise var(--t-enter) var(--ease-out);
+}
+.anim-settle {
+  animation: settle var(--t-enter) var(--ease-out);
+}
+.anim-fade {
+  animation: fade var(--t-enter) var(--ease-out);
+}
+
+/* The one transition used by markup that isn't a button or a field: rows,
+   nav items, links, chips. Named for the tokens rather than the properties,
+   so nothing in the JSX has to spell out a duration or a curve. */
+.transition-state {
+  transition:
+    background-color var(--t-state) var(--ease-out),
+    border-color var(--t-state) var(--ease-out),
+    color var(--t-state) var(--ease-out),
+    opacity var(--t-state) var(--ease-out),
+    transform var(--t-state) var(--ease-out);
+}
+
+/* ==================================================================
+   Typography
+   ================================================================== */
 
 .eyebrow {
   color: var(--accent);
@@ -99,6 +290,14 @@ textarea:focus-visible {
   text-transform: uppercase;
 }
 
+.label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
 .display-title {
   font-family: var(--font-sans), system-ui, sans-serif;
   font-weight: 680;
@@ -106,65 +305,380 @@ textarea:focus-visible {
   line-height: 1.12;
 }
 
+.numeral {
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.02em;
+}
+
+/* ==================================================================
+   Surfaces
+   ================================================================== */
+
+.app-header {
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  box-shadow: 0 var(--line) 0 var(--border);
+}
+
 .panel {
-  border: 1px solid var(--border);
-  border-radius: 14px;
+  border: var(--line) solid var(--border);
+  border-radius: var(--radius-panel);
   background: var(--surface);
   box-shadow: var(--shadow-soft);
 }
 
+.panel-quiet {
+  border: var(--line) solid var(--border);
+  border-radius: var(--radius-card);
+  background-color: color-mix(in srgb, var(--surface) 55%, transparent);
+}
+
+/* A row in a list of decks, concepts or cards. The whole row answers the
+   pointer, not just the link inside it. */
+.row {
+  transition: background-color var(--t-state) var(--ease-out);
+}
+.row:hover {
+  background-color: color-mix(in srgb, var(--surface-hover) 65%, transparent);
+}
+
+/* ==================================================================
+   Buttons
+   ==================================================================
+   Controls transition `background-color`, never the `background`
+   shorthand: the shorthand carries the image and its position too, so a
+   hover that sets one silently resets the other.
+   ================================================================== */
+
 .button-primary,
 .button-secondary,
 .button-quiet,
-.button-danger {
+.button-danger,
+.button-icon {
   display: inline-flex;
-  min-height: 2.25rem;
+  min-height: 2.375rem;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  gap: 0.4rem;
+  border: var(--line) solid transparent;
+  border-radius: var(--radius-control);
   padding: 0.5rem 0.85rem;
   font-size: 0.8125rem;
   font-weight: 650;
   line-height: 1;
-  transition: background 150ms ease, border-color 150ms ease, color 150ms ease,
-    transform 150ms ease;
+  cursor: pointer;
+  transition:
+    background-color var(--t-state) var(--ease-out),
+    border-color var(--t-state) var(--ease-out),
+    color var(--t-state) var(--ease-out),
+    box-shadow var(--t-state) var(--ease-out),
+    transform var(--t-press) var(--ease-out);
+}
+
+.button-primary:active:not(:disabled),
+.button-secondary:active:not(:disabled),
+.button-quiet:active:not(:disabled),
+.button-danger:active:not(:disabled),
+.button-icon:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .button-primary {
   color: var(--accent-fg);
-  background: var(--accent);
-  box-shadow: 0 7px 18px color-mix(in srgb, var(--accent) 18%, transparent);
+  background-color: var(--accent);
+  box-shadow: var(--shadow-accent);
 }
-.button-primary:hover {
-  transform: translateY(-1px);
-  background: color-mix(in srgb, var(--accent) 88%, var(--foreground));
+.button-primary:hover:not(:disabled) {
+  background-color: var(--accent-hover);
 }
+.button-primary:active:not(:disabled) {
+  background-color: var(--accent-press);
+  box-shadow: none;
+}
+
 .button-secondary {
-  border: 1px solid var(--border);
+  border-color: var(--border);
   color: var(--foreground);
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  background-color: var(--surface);
 }
-.button-secondary:hover,
-.button-quiet:hover {
-  background: var(--surface-2);
+.button-secondary:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background-color: var(--surface-hover);
 }
+.button-secondary:active:not(:disabled) {
+  background-color: var(--surface-press);
+}
+
 .button-quiet {
   color: var(--muted);
+  background-color: transparent;
 }
+.button-quiet:hover:not(:disabled) {
+  color: var(--foreground);
+  background-color: var(--surface-hover);
+}
+
 .button-danger {
   color: var(--again);
+  background-color: transparent;
 }
-.button-danger:hover {
-  background: color-mix(in srgb, var(--again) 10%, transparent);
+.button-danger:hover:not(:disabled) {
+  background-color: var(--again-tint);
+  border-color: color-mix(in srgb, var(--again) 30%, transparent);
 }
+
+.button-icon {
+  padding: 0.5rem;
+  min-width: 2.375rem;
+  color: var(--muted);
+  background-color: transparent;
+}
+.button-icon:hover:not(:disabled) {
+  color: var(--foreground);
+  background-color: var(--surface-hover);
+}
+
+button:disabled,
 .button-primary:disabled,
 .button-secondary:disabled {
   pointer-events: none;
-  opacity: 0.55;
-  transform: none;
+  opacity: 0.5;
 }
 
-/* --- Markdown rendering ---------------------------------------------------- */
+/* ==================================================================
+   Fields
+   ================================================================== */
+
+.input,
+.textarea,
+.select {
+  width: 100%;
+  min-height: 2.75rem;
+  border: var(--line) solid var(--border);
+  border-radius: var(--radius-control);
+  background-color: var(--surface);
+  color: var(--foreground);
+  padding: 0.6rem 0.75rem;
+  font-size: 0.875rem;
+  outline: none;
+  transition:
+    border-color var(--t-state) var(--ease-out),
+    box-shadow var(--t-state) var(--ease-out),
+    background-color var(--t-state) var(--ease-out);
+}
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--faint);
+}
+.input:hover,
+.textarea:hover,
+.select:hover {
+  border-color: var(--border-strong);
+}
+.input:focus,
+.textarea:focus,
+.select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.textarea {
+  min-height: 8rem;
+  resize: vertical;
+  line-height: 1.6;
+}
+.mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.8125rem;
+}
+
+/* ==================================================================
+   Chips
+   ================================================================== */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 4px;
+  padding: 0.22rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+  white-space: nowrap;
+  background-color: var(--surface-2);
+  color: var(--muted);
+}
+.chip-accent {
+  background-color: var(--accent-tint);
+  color: color-mix(in srgb, var(--accent) 82%, var(--foreground));
+}
+.chip-good {
+  background-color: var(--good-tint);
+  color: var(--good);
+}
+.chip-again {
+  background-color: var(--again-tint);
+  color: var(--again);
+}
+
+/* ==================================================================
+   Ladder
+   ==================================================================
+   A concept is drilled through seven rungs, and three screens need the
+   same vocabulary for one: passed, the edge (the first rung missed), and
+   not yet reached.
+   ================================================================== */
+
+.rung-dot {
+  display: block;
+  height: 0.375rem;
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-2);
+  transition:
+    background-color var(--t-state) var(--ease-out),
+    box-shadow var(--t-state) var(--ease-out);
+}
+.rung-dot[data-state="passed"] {
+  background-color: var(--good);
+}
+.rung-dot[data-state="edge"] {
+  background-color: var(--again);
+}
+.rung-dot[data-state="current"] {
+  background-color: var(--accent);
+}
+
+.rung-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.75rem;
+  min-width: 1.75rem;
+  border-radius: 4px;
+  border: var(--line) solid transparent;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background-color: var(--surface-2);
+  color: var(--faint);
+  transition:
+    background-color var(--t-state) var(--ease-out),
+    color var(--t-state) var(--ease-out),
+    border-color var(--t-state) var(--ease-out);
+}
+.rung-cell[data-state="passed"] {
+  background-color: var(--good-tint);
+  border-color: color-mix(in srgb, var(--good) 34%, transparent);
+  color: var(--good);
+}
+.rung-cell[data-state="edge"] {
+  background-color: var(--again-tint);
+  border-color: color-mix(in srgb, var(--again) 40%, transparent);
+  color: var(--again);
+}
+.rung-cell[data-state="current"] {
+  background-color: var(--accent-tint);
+  border-color: var(--accent-tint-border);
+  color: color-mix(in srgb, var(--accent) 80%, var(--foreground));
+}
+
+/* ==================================================================
+   Review stage
+   ================================================================== */
+
+.stage {
+  border: var(--line) solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  box-shadow: var(--shadow-raised);
+}
+
+.stage-question {
+  font-size: clamp(1.05rem, 0.95rem + 0.6vw, 1.45rem);
+  line-height: 1.45;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.progress-track {
+  height: 0.25rem;
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-2);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background-color: var(--accent);
+  transition: width var(--t-enter) var(--ease-out);
+}
+
+/* The four grade buttons: a tinted face each, so the choice is legible
+   before the labels are read, and a keycap that says what to press. */
+.grade {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  min-height: 4rem;
+  border-radius: var(--radius-card);
+  border: var(--line) solid var(--border);
+  border-bottom: 3px solid var(--grade-color);
+  background-color: var(--surface);
+  font-size: 0.875rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    background-color var(--t-state) var(--ease-out),
+    border-color var(--t-state) var(--ease-out),
+    transform var(--t-press) var(--ease-out);
+}
+.grade:hover:not(:disabled) {
+  background-color: var(--grade-tint);
+}
+.grade:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.grade-label {
+  color: var(--grade-color);
+}
+.grade-hint {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.keycap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.25rem;
+  border-radius: 3px;
+  border: var(--line) solid var(--border);
+  background-color: var(--surface-2);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==================================================================
+   Heatmap
+   ================================================================== */
+
+.heat-cell {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 2px;
+  transition: transform var(--t-state) var(--ease-out);
+}
+.heat-cell:hover {
+  transform: scale(1.3);
+}
+
+/* ==================================================================
+   Markdown
+   ================================================================== */
+
 .markdown {
   line-height: 1.65;
   word-break: break-word;
@@ -180,16 +694,17 @@ textarea:focus-visible {
 .markdown h3 {
   font-weight: 650;
   line-height: 1.25;
+  letter-spacing: -0.015em;
   margin: 1.2em 0 0.5em;
 }
 .markdown h1 {
-  font-size: 1.6em;
+  font-size: 1.5em;
 }
 .markdown h2 {
-  font-size: 1.35em;
+  font-size: 1.28em;
 }
 .markdown h3 {
-  font-size: 1.15em;
+  font-size: 1.12em;
 }
 .markdown p,
 .markdown ul,
@@ -201,7 +716,7 @@ textarea:focus-visible {
 }
 .markdown ul,
 .markdown ol {
-  padding-left: 1.4em;
+  padding-left: 1.3em;
 }
 .markdown ul {
   list-style: disc;
@@ -210,24 +725,32 @@ textarea:focus-visible {
   list-style: decimal;
 }
 .markdown li {
-  margin: 0.2em 0;
+  margin: 0.3em 0;
+  padding-left: 0.15em;
+}
+.markdown li::marker {
+  color: var(--accent);
+}
+.markdown strong {
+  font-weight: 680;
 }
 .markdown a {
   color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 2px;
+  text-decoration-thickness: from-font;
 }
 .markdown code {
   font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 0.9em;
+  font-size: 0.88em;
   background: var(--surface-2);
   padding: 0.15em 0.4em;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 .markdown pre {
   background: var(--surface-2);
   padding: 0.9em 1em;
-  border-radius: 10px;
+  border-radius: var(--radius-card);
   overflow-x: auto;
 }
 .markdown pre code {
@@ -235,7 +758,7 @@ textarea:focus-visible {
   padding: 0;
 }
 .markdown blockquote {
-  border-left: 3px solid var(--border);
+  border-left: 3px solid var(--accent-tint-border);
   padding-left: 1em;
   color: var(--muted);
 }
@@ -246,21 +769,36 @@ textarea:focus-visible {
 }
 .markdown th,
 .markdown td {
-  border: 1px solid var(--border);
-  padding: 0.4em 0.7em;
+  border: var(--line) solid var(--border);
+  padding: 0.45em 0.7em;
   text-align: left;
 }
 .markdown th {
   background: var(--surface-2);
 }
+.markdown hr {
+  border: none;
+  border-top: var(--line) solid var(--border);
+  margin: 1.2em 0;
+}
+.markdown input[type="checkbox"] {
+  margin-right: 0.4em;
+}
+
+/* ---- Images ------------------------------------------------------ */
+
 .markdown-image-trigger {
   display: block;
   width: max-content;
   max-width: 100%;
   margin: 0.8em auto;
   cursor: zoom-in;
-  border-radius: 12px;
+  border-radius: var(--radius-card);
   outline: none;
+  transition: transform var(--t-state) var(--ease-out);
+}
+.markdown-image-trigger:hover {
+  transform: scale(1.01);
 }
 .markdown-image-trigger:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
@@ -270,7 +808,7 @@ textarea:focus-visible {
   width: auto;
   max-width: 100%;
   max-height: 28rem;
-  border-radius: 12px;
+  border-radius: var(--radius-card);
   object-fit: contain;
 }
 .markdown-compact .markdown-image-trigger {
@@ -296,12 +834,13 @@ textarea:focus-visible {
   background: rgb(0 0 0 / 0.88);
   backdrop-filter: blur(8px);
   cursor: zoom-out;
+  animation: fade var(--t-enter) var(--ease-out);
 }
 .image-lightbox-content {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  border-radius: 8px;
+  border-radius: var(--radius-card);
   cursor: default;
 }
 .image-lightbox-close {
@@ -309,18 +848,33 @@ textarea:focus-visible {
   top: 1rem;
   right: 1rem;
   border: 1px solid rgb(255 255 255 / 0.22);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   padding: 0.45rem 0.8rem;
   color: white;
-  background: rgb(255 255 255 / 0.1);
+  background-color: rgb(255 255 255 / 0.1);
   font-size: 0.8rem;
   font-weight: 600;
+  transition: background-color var(--t-state) var(--ease-out);
 }
-.markdown hr {
-  border: none;
-  border-top: 1px solid var(--border);
-  margin: 1.2em 0;
+.image-lightbox-close:hover {
+  background-color: rgb(255 255 255 / 0.2);
 }
-.markdown input[type="checkbox"] {
-  margin-right: 0.4em;
+
+/* ==================================================================
+   Reduced motion
+   ==================================================================
+   A system setting, and for some readers a medical one. Nothing here
+   carries its meaning in the movement — every animation is a colour
+   change or a 4px settle — so taking the movement away costs nothing.
+   ================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
 }

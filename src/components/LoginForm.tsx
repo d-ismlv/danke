@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { login, type LoginState } from "@/lib/actions";
 import Logo from "@/components/Logo";
+import Icon from "@/components/Icon";
 
 const initial: LoginState = { error: null };
 
@@ -12,7 +13,7 @@ export default function LoginForm() {
   return (
     <form
       action={formAction}
-      className="panel flex w-full max-w-sm flex-col gap-4 p-7"
+      className="panel anim-rise flex w-full max-w-sm flex-col gap-4 p-7"
     >
       <div className="flex items-center gap-2 font-semibold">
         <Logo />
@@ -29,17 +30,27 @@ export default function LoginForm() {
         autoFocus
         required
         placeholder="Password"
-        className="min-h-11 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-accent"
+        className="input"
       />
       {state.error && (
-        <p className="text-sm text-again">{state.error}</p>
+        <p className="anim-settle flex items-center gap-2 rounded-lg bg-again-tint px-3 py-2 text-sm text-again">
+          <Icon name="alert" size={15} />
+          {state.error}
+        </p>
       )}
       <button
         type="submit"
         disabled={pending}
         className="button-primary"
       >
-        {pending ? "Checking…" : "Unlock"}
+        {pending ? (
+          "Checking…"
+        ) : (
+          <>
+            <Icon name="lock" size={15} />
+            Unlock
+          </>
+        )}
       </button>
     </form>
   );

@@ -22,7 +22,7 @@ export default async function NewCardPage({
       {added === "1" && (
         <div
           role="status"
-          className="rounded-xl border border-good/25 bg-good/10 px-4 py-3 text-sm font-medium text-good"
+          className="rounded-xl border border-good/25 bg-good-tint px-4 py-3 text-sm font-medium text-good"
         >
           Card added. Ready for the next one.
         </div>

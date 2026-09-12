@@ -18,6 +18,11 @@ export const decks = sqliteTable(
 /**
  * Card content only. Scheduling lives in `reviewState` so authoring and
  * spaced-repetition concerns stay decoupled.
+ *
+ * The last three columns describe a *ladder*: a set of cards that walk one
+ * concept through progressively harder questions (rungs). They are nullable
+ * throughout — an ordinary card leaves all three empty — and only the ladder
+ * importer, drill mode, and the edge map read them.
  */
 export const cards = sqliteTable(
   "cards",
@@ -30,8 +35,18 @@ export const cards = sqliteTable(
     back: text("back").notNull().default(""),
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
+    /** Groups one ladder, e.g. `kerberos.roasting`. */
+    conceptId: text("concept_id"),
+    /** Position on the ladder, 1-7. */
+    rung: integer("rung"),
+    /** Stable import identity, e.g. `kerberos.roasting#2`, so re-importing
+     * edited content updates the card instead of duplicating it. */
+    sourceKey: text("source_key").unique(),
   },
-  (t) => [index("cards_deck_idx").on(t.deckId)],
+  (t) => [
+    index("cards_deck_idx").on(t.deckId),
+    index("cards_concept_idx").on(t.conceptId),
+  ],
 );
 
 /**

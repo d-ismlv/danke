@@ -1,6 +1,11 @@
 <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-  <rect x="3.5" y="5" width="19" height="23" rx="6" fill="#6658d9" opacity="0.22" transform="rotate(-8 13 16.5)" />
-  <rect x="8" y="3" width="21" height="25" rx="7" fill="#6658d9" />
-  <path d="M18.5 8.5c.45 3.15 1.85 4.55 5 5-3.15.45-4.55 1.85-5 5-.45-3.15-1.85-4.55-5-5 3.15-.45 4.55-1.85 5-5Z" fill="#ffffff" />
-  <circle cx="14.5" cy="22.5" r="1.5" fill="#ffffff" opacity="0.75" />
+  <defs>
+    <linearGradient id="mark" x1="9" y1="3" x2="29" y2="29" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8a79f2" />
+      <stop offset="1" stop-color="#5340c2" />
+    </linearGradient>
+  </defs>
+  <rect x="3" y="7" width="9" height="18" rx="2.5" fill="#7b67ec" opacity="0.45" />
+  <rect x="9" y="3" width="20" height="26" rx="2.5" fill="url(#mark)" />
+  <path d="M19 9 20.77 14.23 26 16 20.77 17.77 19 23 17.23 17.77 12 16 17.23 14.23Z" fill="#ffffff" />
 </svg>

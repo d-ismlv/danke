@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db } from "@/db";
 import { decks, cards, reviewState, reviewLogs } from "@/db/schema";
 import { emptyState, fsrsCardToRow } from "@/lib/fsrs";
-import { parseCards, type SeparatorKey } from "@/lib/import";
+import { parseCards, parseLadders, type SeparatorKey } from "@/lib/import";
 import { grantSession, clearSession } from "@/lib/auth";
 import { cleanupUnreferencedMedia, extractMediaIds } from "@/lib/media-cleanup";
 import { getDeckAndDescendantIds } from "@/lib/queries";
@@ -218,6 +218,163 @@ export async function importCards(formData: FormData) {
   revalidatePath(`/decks/${deckId}`);
   revalidatePath("/");
   redirect(`/decks/${deckId}`);
+}
+
+// ---- Ladders ---------------------------------------------------------------
+
+export type LadderImportState = {
+  error: string | null;
+  /** Problems worth showing but not worth blocking on. */
+  warnings?: string[];
+};
+
+/**
+ * Import one or more concept files (see `parseLadders`).
+ *
+ * Every card carries a `sourceKey`, and the write is an upsert on it: editing a
+ * typo in a concept file and re-importing updates `front`/`back` and leaves
+ * `review_state` untouched. Losing an FSRS history to a typo fix would undo the
+ * point of drilling in the first place.
+ */
+export async function importLadders(
+  _prev: LadderImportState,
+  formData: FormData,
+): Promise<LadderImportState> {
+  const text = String(formData.get("text") ?? "");
+  const fallbackDeckId = String(formData.get("deckId") ?? "") || null;
+
+  const { ladders, errors, warnings } = parseLadders(text);
+  if (errors.length > 0) {
+    return { error: errors.slice(0, 4).join("  "), warnings };
+  }
+  if (ladders.length === 0) {
+    return { error: "Nothing to import.", warnings };
+  }
+
+  const now = Date.now();
+  const touchedDecks = new Set<string>();
+  const replaced: { front: string; back: string }[] = [];
+  let created = 0;
+  let updated = 0;
+  let missingDeck = false;
+
+  db.transaction((tx) => {
+    // Deck paths are created as needed: "AD / Kerberos" is a Kerberos deck
+    // under an AD deck, either of which may already exist.
+    const deckCache = new Map<string, string>();
+    const resolveDeck = (path: string[]): string | null => {
+      if (path.length === 0) return fallbackDeckId;
+      let parentId: string | null = null;
+      let key = "";
+      for (const name of path) {
+        key = key ? `${key} / ${name}` : name;
+        const cached = deckCache.get(key);
+        if (cached) {
+          parentId = cached;
+          continue;
+        }
+        // Annotated: inside a transaction callback the inferred type of a
+        // `.get()` result loops back through the callback's own return type.
+        const found: { id: string } | undefined = tx
+          .select({ id: decks.id })
+          .from(decks)
+          .where(
+            and(
+              eq(decks.name, name),
+              parentId === null ? isNull(decks.parentId) : eq(decks.parentId, parentId),
+            ),
+          )
+          .limit(1)
+          .get();
+        let id: string | undefined = found?.id;
+        if (!id) {
+          id = nanoid();
+          tx.insert(decks).values({ id, name, parentId, createdAt: now }).run();
+        }
+        deckCache.set(key, id);
+        parentId = id;
+      }
+      return parentId;
+    };
+
+    for (const ladder of ladders) {
+      const deckId = resolveDeck(ladder.deckPath);
+      if (!deckId) {
+        missingDeck = true;
+        continue;
+      }
+      touchedDecks.add(deckId);
+
+      for (const card of ladder.cards) {
+        const existing: { id: string; front: string; back: string } | undefined = tx
+          .select({ id: cards.id, front: cards.front, back: cards.back })
+          .from(cards)
+          .where(eq(cards.sourceKey, card.sourceKey))
+          .limit(1)
+          .get();
+
+        if (existing) {
+          if (existing.front !== card.front || existing.back !== card.back) {
+            replaced.push({ front: existing.front, back: existing.back });
+          }
+          tx.update(cards)
+            .set({
+              deckId,
+              front: card.front,
+              back: card.back,
+              conceptId: card.conceptId,
+              rung: card.rung,
+              updatedAt: now,
+            })
+            .where(eq(cards.id, existing.id))
+            .run();
+          updated += 1;
+          continue;
+        }
+
+        const id = nanoid();
+        tx.insert(cards)
+          .values({
+            id,
+            deckId,
+            front: card.front,
+            back: card.back,
+            conceptId: card.conceptId,
+            rung: card.rung,
+            sourceKey: card.sourceKey,
+            createdAt: now,
+            updatedAt: now,
+          })
+          .run();
+        tx.insert(reviewState)
+          .values({ cardId: id, ...fsrsCardToRow(emptyState(new Date(now))) })
+          .run();
+        created += 1;
+      }
+    }
+  });
+
+  if (missingDeck) {
+    return {
+      error:
+        "A concept has no deck. Add a “deck:” line to its front-matter, or import from inside a deck.",
+      warnings,
+    };
+  }
+
+  // An edited card may have dropped the only reference to an uploaded image.
+  if (replaced.length > 0) {
+    const candidates = new Set<string>();
+    for (const card of replaced) {
+      for (const id of extractMediaIds(`${card.front}\n${card.back}`)) candidates.add(id);
+    }
+    await cleanupUnreferencedMedia(candidates);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/edge");
+  for (const deckId of touchedDecks) revalidatePath(`/decks/${deckId}`);
+  redirect(`/edge?created=${created}&updated=${updated}`);
 }
 
 // Review grading lives in a route handler (src/app/api/review) rather than a
