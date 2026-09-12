@@ -14,7 +14,7 @@ export default function MainNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex items-center gap-0.5 text-sm" aria-label="Main navigation">
+    <nav className="flex items-center gap-1 text-sm sm:gap-0.5" aria-label="Main navigation">
       {ITEMS.map((item) => {
         const active =
           item.href === "/"
@@ -26,13 +26,17 @@ export default function MainNav() {
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
-            className={`transition-state flex min-h-9 items-center gap-1.5 rounded-md px-2.5 font-medium sm:px-3 ${
+            title={item.label}
+            /* Mobile: a comfortable square tap target, icon only. From `sm` up
+               the label appears and the pill relaxes to its text width. */
+            className={`transition-state flex size-12 items-center justify-center gap-1.5 rounded-lg font-medium sm:size-auto sm:min-h-9 sm:justify-start sm:rounded-md sm:px-3 ${
               active
                 ? "bg-surface-2 text-foreground"
                 : "text-muted hover:bg-surface-hover hover:text-foreground"
             }`}
           >
-            <Icon name={item.icon} size={16} />
+            <Icon name={item.icon} size={19} className="sm:hidden" />
+            <Icon name={item.icon} size={16} className="hidden sm:block" />
             <span className="hidden sm:inline">{item.label}</span>
           </Link>
         );

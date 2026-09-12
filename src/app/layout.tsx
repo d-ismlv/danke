@@ -60,8 +60,12 @@ export default async function RootLayout({
               <div className="flex items-center gap-1 sm:gap-2">
                 <MainNav />
                 <form action={logout}>
-                  <button className="button-quiet min-h-9 px-2.5" title="Lock danke">
-                    <Icon name="lock" size={16} />
+                  <button
+                    className="button-quiet size-12 justify-center p-0 sm:size-auto sm:min-h-9 sm:px-2.5"
+                    title="Lock danke"
+                  >
+                    <Icon name="lock" size={19} className="sm:hidden" />
+                    <Icon name="lock" size={16} className="hidden sm:block" />
                     <span className="hidden sm:inline">Lock</span>
                   </button>
                 </form>
