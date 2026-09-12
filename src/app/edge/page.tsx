@@ -7,6 +7,7 @@ import {
   type ConceptLadder,
 } from "@/lib/ladder";
 import Icon from "@/components/Icon";
+import StatTile from "@/components/StatTile";
 
 export const dynamic = "force-dynamic";
 
@@ -17,15 +18,6 @@ const BANDS: { label: string; rungs: string; hint: string }[] = [
   { label: "3–5", rungs: "3-5", hint: "Prerequisites to breaks" },
   { label: "6–7", rungs: "6-7", hint: "Detection and advice" },
 ];
-
-function Summary({ value, label }: { value: string | number; label: string }) {
-  return (
-    <div className="min-w-28 flex-1 border-l border-border px-4 py-1 first:border-l-0 first:pl-0">
-      <div className="display-title numeral text-2xl sm:text-3xl">{value}</div>
-      <div className="label mt-1">{label}</div>
-    </div>
-  );
-}
 
 function LadderRow({ ladder }: { ladder: ConceptLadder }) {
   const byRung = new Map(ladder.rungs.map((r) => [r.rung, r]));
@@ -128,9 +120,8 @@ export default async function EdgePage({
         <div>
           <p className="eyebrow mb-2">Recall</p>
           <h1 className="display-title text-3xl sm:text-4xl">Edge map</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-            Every concept, and the first rung its ladder stops at. Weakest first —
-            that rung is what to read before drilling it again.
+          <p className="mt-2 max-w-xl text-pretty text-sm leading-6 text-muted">
+            Every concept and the rung its ladder stops at, weakest first.
           </p>
         </div>
         <Link href="/edge/import" className="button-secondary">
@@ -156,11 +147,11 @@ export default async function EdgePage({
         <EmptyEdge />
       ) : (
         <>
-          <div className="panel flex flex-wrap gap-y-4 px-4 py-5 sm:px-6">
-            <Summary value={concepts} label="Concepts" />
-            <Summary value={`${climbed}/${rungs}`} label="Rungs standing" />
-            <Summary value={complete} label="Full ladders" />
-            <Summary value={due} label="Due now" />
+          <div className="panel grid grid-cols-2 gap-x-6 gap-y-5 px-4 py-5 sm:grid-cols-4 sm:px-6">
+            <StatTile value={concepts} label="Concepts" icon="ladder" />
+            <StatTile value={`${climbed}/${rungs}`} label="Rungs standing" icon="target" />
+            <StatTile value={complete} label="Full ladders" icon="check" />
+            <StatTile value={due} label="Due now" icon="clock" tone="accent" />
           </div>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted">
@@ -176,9 +167,9 @@ export default async function EdgePage({
             <span className="flex items-center gap-1.5">
               <span className="rung-cell size-4 min-w-0" /> not drilled
             </span>
-            <span className="ml-auto hidden sm:inline">
-              1 Name · 2 Mechanism · 3 Prerequisites · 4 Boundaries · 5 Breaks · 6
-              Detection · 7 Advice
+            <span className="ml-auto hidden text-pretty lg:inline">
+              1 Name · 2 Mechanism · 3 Prerequisites · 4 Boundaries · 5 Breaks ·
+              6 Detection · 7 Advice
             </span>
           </div>
 
@@ -221,35 +212,31 @@ export default async function EdgePage({
 
 function EmptyEdge() {
   return (
-    <div className="panel flex flex-col items-center gap-4 px-6 py-12 text-center">
-      <div className="flex size-12 items-center justify-center rounded-xl bg-accent-tint text-accent">
-        <Icon name="ladder" size={22} />
-      </div>
-      <div>
+    <div className="panel flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:gap-8 sm:p-8">
+      <div className="min-w-0 flex-1">
+        <div className="mb-3 flex size-10 items-center justify-center rounded-md bg-accent-tint text-accent">
+          <Icon name="ladder" size={20} />
+        </div>
         <h2 className="text-lg font-semibold">No ladders yet</h2>
-        <p className="mx-auto mt-1 max-w-lg text-sm leading-6 text-muted">
-          A ladder is one concept drilled through seven rungs — name, mechanism,
-          prerequisites, boundaries, breaks, detection, advice. Import a concept
-          file and each rung becomes a card that FSRS schedules on its own.
+        <p className="mt-1.5 max-w-md text-pretty text-sm leading-6 text-muted">
+          One concept, seven rungs: name, mechanism, prerequisites, boundaries,
+          breaks, detection, advice. Each rung becomes a card FSRS schedules on
+          its own.
         </p>
+        <Link href="/edge/import" className="button-primary mt-4">
+          <Icon name="import" size={15} />
+          Import ladders
+        </Link>
       </div>
-      <pre className="mono w-full max-w-lg overflow-x-auto rounded-xl border border-border bg-surface-2 p-4 text-left leading-6">
+      <pre className="mono shrink-0 rounded-md border border-border bg-surface-2 p-4 leading-6 sm:max-w-sm">
         {`---
 concept: kerberos.roasting
 deck: AD / Kerberos
 ---
 
 ## 1 :: What is Kerberoasting?
-Offline password attack against **service accounts**.
-
-## 2 :: Why does it work?
-- Any authenticated principal can request a ticket for **any SPN**
-- Part of it is encrypted with the account's **long-term key**`}
+Offline attack on **service accounts**.`}
       </pre>
-      <Link href="/edge/import" className="button-primary">
-        <Icon name="import" size={15} />
-        Import ladders
-      </Link>
     </div>
   );
 }

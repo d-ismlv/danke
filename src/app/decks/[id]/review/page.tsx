@@ -61,7 +61,7 @@ export default async function ReviewPage({
         <h1 className="display-title text-3xl sm:text-4xl">
           {practice ? "Nothing to practice" : "Nothing due"}
         </h1>
-        <p className="text-muted">
+        <p className="max-w-md text-pretty text-muted">
           {band
             ? `No ${practice ? "" : "due "}cards in ${deck.name} at ${bandLabel?.toLowerCase()}.`
             : practice

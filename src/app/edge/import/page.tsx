@@ -20,11 +20,10 @@ export default async function LadderImportPage() {
         </Link>
         <p className="eyebrow mt-4">One file per concept</p>
         <h1 className="display-title mt-1 text-3xl sm:text-4xl">Import ladders</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
-          Paste or choose concept files. Front-matter names the concept and its deck
-          (created if missing); each <code className="mono">## rung :: question</code>{" "}
-          heading is a card, and everything up to the next heading is its answer.
-          Re-importing an edited file updates the text and keeps the review history.
+        <p className="mt-3 max-w-xl text-pretty text-sm leading-6 text-muted">
+          Front-matter names the concept and its deck; each{" "}
+          <code className="mono">## rung :: question</code> heading is a card.
+          Re-importing an edited file keeps the review history.
         </p>
       </div>
       <LadderImportForm decks={decks} />

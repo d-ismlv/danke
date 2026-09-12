@@ -179,7 +179,7 @@ export default function ReviewSession({
               ? "Ladder complete"
               : "Session complete"}
         </h1>
-        <p className="max-w-md text-muted">
+        <p className="max-w-md text-pretty text-muted">
           {stopped ? (
             <>
               That is the rung to re-read. It comes back on its own schedule; the

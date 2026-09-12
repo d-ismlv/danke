@@ -27,10 +27,9 @@ export default async function ImportPage({
         </Link>
         <p className="eyebrow mt-4">Bring your notes</p>
         <h1 className="display-title mt-1 text-3xl sm:text-4xl">Import cards</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
+        <p className="mt-3 max-w-xl text-pretty text-sm leading-6 text-muted">
           Paste tab-separated text (e.g. an Anki export) or pick another
-          delimiter. Markdown works inside each field, but a card has to fit on
-          one line.
+          delimiter. Markdown works in each field, but a card must fit on one line.
         </p>
         <Link
           href="/edge/import"

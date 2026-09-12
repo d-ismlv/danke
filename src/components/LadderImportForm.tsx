@@ -13,13 +13,11 @@ deck: AD / Kerberos
 ---
 
 ## 1 :: What is Kerberoasting?
-Offline password attack against **service accounts**, using service tickets
-any authenticated user can request.
+Offline attack on **service accounts**.
 
 ## 2 :: Why does it work?
-- Any authenticated principal can request a ticket for **any SPN**
-- Part of the ticket is encrypted with the **service account's long-term key**
-- That key is derived from the account **password**`;
+- Any principal can request a ticket for **any SPN**
+- It is encrypted with the account's **long-term key**`;
 
 export default function LadderImportForm({
   decks,
@@ -111,7 +109,7 @@ export default function LadderImportForm({
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <label htmlFor="ladder-deck" className="text-muted">
-          Deck for concepts with no <code className="mono">deck:</code> line
+          Fallback deck
         </label>
         <select
           id="ladder-deck"

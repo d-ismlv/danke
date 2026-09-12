@@ -21,7 +21,7 @@ export default async function Home() {
         <div>
           <p className="eyebrow mb-2">Library</p>
           <h1 className="display-title text-3xl sm:text-4xl">Your decks</h1>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-muted">
+          <p className="mt-2 max-w-xl text-pretty text-sm leading-6 text-muted">
             {totalDue > 0
               ? `${totalDue} card${totalDue === 1 ? "" : "s"} ready for a quick review.`
               : "Nothing is waiting. Enjoy the quiet moment."}
@@ -49,8 +49,8 @@ export default async function Home() {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold">Edge map</span>
-            <span className="block text-xs text-muted">
-              {ladderCards} ladder card{ladderCards === 1 ? "" : "s"} — see where each
+            <span className="block truncate text-xs text-muted">
+              {ladderCards} ladder card{ladderCards === 1 ? "" : "s"} — where each
               concept stops
             </span>
           </span>
@@ -59,12 +59,12 @@ export default async function Home() {
       )}
 
       {tree.length === 0 ? (
-        <div className="panel px-6 py-12 text-center">
+        <div className="panel px-6 py-10 text-center">
           <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-accent-tint text-accent">
             <Icon name="sparkle" size={22} />
           </div>
           <h2 className="text-lg font-semibold">Start a small collection</h2>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-pretty text-sm text-muted">
             Create a deck, then add your first idea below.
           </p>
         </div>

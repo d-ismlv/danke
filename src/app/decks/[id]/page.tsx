@@ -145,12 +145,12 @@ export default async function DeckPage({
       )}
 
       {cards.length === 0 ? (
-        <div className="panel px-6 py-12 text-center">
+        <div className="panel px-6 py-10 text-center">
           <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-accent-tint text-accent">
             <Icon name="plus" size={22} />
           </div>
           <h2 className="text-lg font-semibold">This deck is still empty</h2>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-pretty text-sm text-muted">
             Add a thought, image, definition, or question to begin.
           </p>
           <Link href={`/decks/${deck.id}/cards/new`} className="button-primary mt-5">
