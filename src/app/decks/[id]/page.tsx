@@ -14,6 +14,16 @@ import Icon from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const deck = await getDeck(id);
+  return { title: deck?.name ?? "Deck" };
+}
+
 /** The gradually-harder pass: the same deck read at one altitude at a time. */
 const BANDS = [
   { label: "1–2", rungs: "1-2" },

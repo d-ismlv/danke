@@ -6,6 +6,10 @@ import Icon from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 
+/* The root layout's title template applies to child segments, not to the page
+   of the segment that defines it — so this one spells itself out. */
+export const metadata = { title: "danke: Decks" };
+
 export default async function Home() {
   const [tree, allDecks, ladderCards] = await Promise.all([
     getDeckTree(),

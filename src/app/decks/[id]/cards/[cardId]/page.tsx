@@ -5,6 +5,16 @@ import CardEditor from "@/components/CardEditor";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string; cardId: string }>;
+}) {
+  const { id } = await params;
+  const deck = await getDeck(id);
+  return { title: `Edit card · ${deck?.name ?? "deck"}` };
+}
+
 export default async function EditCardPage({
   params,
 }: {

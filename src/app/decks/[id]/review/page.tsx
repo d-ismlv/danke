@@ -13,6 +13,24 @@ import Icon from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ mode?: string | string[]; rungs?: string | string[] }>;
+}) {
+  const [{ id }, query] = await Promise.all([params, searchParams]);
+  const deck = await getDeck(id);
+  const band = parseRungBand(query.rungs);
+  const verb = query.mode === "practice" ? "Practice" : "Review";
+  const where = deck?.name ?? "deck";
+  const rungs = band
+    ? ` ${band.min === band.max ? `rung ${band.min}` : `rungs ${band.min}-${band.max}`}`
+    : "";
+  return { title: `${verb} · ${where}${rungs}` };
+}
+
 export default async function ReviewPage({
   params,
   searchParams,

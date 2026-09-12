@@ -11,6 +11,8 @@ import StatTile from "@/components/StatTile";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Edge map" };
+
 const RUNGS = Array.from({ length: MAX_RUNG }, (_, i) => i + 1);
 
 const BANDS: { label: string; rungs: string; hint: string }[] = [

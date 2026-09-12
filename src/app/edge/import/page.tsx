@@ -5,6 +5,8 @@ import Icon from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Import ladders" };
+
 export default async function LadderImportPage() {
   const decks = await getAllDecks();
 

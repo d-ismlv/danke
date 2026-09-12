@@ -7,6 +7,15 @@ import Icon from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ concept: string }>;
+}) {
+  const { concept } = await params;
+  return { title: `Drill · ${decodeURIComponent(concept)}` };
+}
+
 /**
  * Drill one concept: every rung in ladder order, due dates ignored, stopping
  * at the first Again. Grading still goes through `/api/review`, so a drill

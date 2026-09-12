@@ -13,7 +13,14 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "danke — spaced repetition",
+  /* Every page names only where you are; the template puts danke in front of
+     it. With several tabs open on the same app, the tab strip is the only
+     place that says which is the drill and which is the deck you were
+     editing. */
+  title: {
+    default: "danke",
+    template: "danke: %s",
+  },
   description: "A markdown-first, self-hosted flashcard app.",
 };
 

@@ -6,6 +6,8 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Stats" };
+
 const DAY_MS = 86_400_000;
 const WEEKS = 52; // a year, which is also what fills the panel at a legible cell size
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
