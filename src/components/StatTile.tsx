@@ -14,23 +14,21 @@ import Icon, { type IconName } from "./Icon";
  * for what a thing simply is. Left alone a tile is plain, which is the right
  * answer for most of them — a panel where every number is coloured says no
  * more than a panel where none of them is.
+ *
+ * The glyph is bare, and set from the top rather than centred. It used to sit
+ * on a 28px tinted plate, which is taller than the 17.5px number beside it: the
+ * value rose clear above the top of its own square and the row read as two
+ * things that had come apart. Nothing is left to mismatch now, and the tone
+ * still carries — it moved from the plate onto the glyph itself.
  */
 export type Tone = "accent" | "due" | "good" | "again" | "info";
 
-const VALUE: Record<Tone, string> = {
+const TONE: Record<Tone, string> = {
   accent: "text-accent",
   due: "text-due",
   good: "text-good",
   again: "text-again",
   info: "text-info",
-};
-
-const GLYPH: Record<Tone, string> = {
-  accent: "bg-accent-tint text-accent",
-  due: "bg-due-tint text-due",
-  good: "bg-good-tint text-good",
-  again: "bg-again-tint text-again",
-  info: "bg-info-tint text-info",
 };
 
 export default function StatTile({
@@ -48,18 +46,12 @@ export default function StatTile({
   hint?: string;
 }) {
   return (
-    <div className="flex items-center gap-3">
-      <span
-        className={`flex size-8 shrink-0 items-center justify-center rounded-md ${
-          tone ? GLYPH[tone] : "bg-surface-2 text-muted"
-        }`}
-      >
-        <Icon name={icon} size={16} />
+    <div className="flex items-start gap-2.5">
+      <span className={`shrink-0 ${tone ? TONE[tone] : "text-muted"}`}>
+        <Icon name={icon} size={19} />
       </span>
       <div className="min-w-0">
-        <div
-          className={`display-title numeral text-xl leading-none ${tone ? VALUE[tone] : ""}`}
-        >
+        <div className={`display-title numeral text-xl leading-none ${tone ? TONE[tone] : ""}`}>
           {value}
         </div>
         <div className="label mt-1 truncate">{label}</div>

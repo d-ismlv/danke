@@ -8,6 +8,7 @@ import {
 } from "@/lib/ladder";
 import Icon from "@/components/Icon";
 import StatTile from "@/components/StatTile";
+import DeckSection from "@/components/DeckSection";
 
 export const dynamic = "force-dynamic";
 
@@ -188,15 +189,21 @@ export default async function EdgePage({
           </div>
 
           {[...groups.entries()].map(([deckId, group]) => (
-            <section key={deckId} className="panel overflow-hidden">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface-2/60 px-4 py-3 sm:px-5">
+            <DeckSection
+              key={deckId}
+              name={group.deckName}
+              title={
                 <Link
                   href={`/decks/${deckId}`}
-                  className="transition-state flex items-center gap-2 text-sm font-semibold hover:text-accent"
+                  className="transition-state flex min-w-0 items-center gap-2 text-sm font-semibold hover:text-accent"
                 >
-                  <Icon name="decks" size={16} />
-                  {group.deckName}
+                  <Icon name="decks" size={16} className="shrink-0" />
+                  <span className="truncate">{group.deckName}</span>
                 </Link>
+              }
+              concepts={group.ladders.length}
+              due={group.ladders.reduce((n, l) => n + l.dueCount, 0)}
+              actions={
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span className="label mr-1 hidden sm:inline">Band pass</span>
                   {BANDS.map((band) => (
@@ -210,13 +217,14 @@ export default async function EdgePage({
                     </Link>
                   ))}
                 </div>
-              </div>
+              }
+            >
               <ul className="divide-y divide-border">
                 {group.ladders.map((ladder) => (
                   <LadderRow key={ladder.conceptId} ladder={ladder} />
                 ))}
               </ul>
-            </section>
+            </DeckSection>
           ))}
         </>
       )}

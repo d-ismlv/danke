@@ -17,7 +17,6 @@ export const metadata = { title: "Stats" };
 const DAY_MS = 86_400_000;
 const WEEKS = 52; // a year, which is also what fills the panel at a legible cell size
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
 /** Four steps, so a quiet day and a heavy one aren't the same square.
  * Green rather than the accent: the heatmap counts days you turned up, which
@@ -106,7 +105,6 @@ export default async function StatsPage() {
   const gradeSource = recentTotal > 0 ? grades.recent : grades.all;
   const gradeTotal = recentTotal > 0 ? recentTotal : allTotal;
 
-  const peak = Math.max(1, ...forecast.map((f) => f.count));
   const nextWeek = forecast.slice(0, 7).reduce((n, f) => n + f.count, 0);
 
   // Weakest first is the order getConceptLadders already returns, so the head
@@ -262,40 +260,6 @@ export default async function StatsPage() {
               <span>more</span>
             </div>
           </div>
-        </div>
-      </section>
-
-      <section className="panel p-5 sm:p-6">
-        <div className="mb-4 flex items-baseline justify-between gap-3">
-          <h2 className="text-sm font-semibold">The fortnight ahead</h2>
-          <span className="text-xs text-muted">
-            {due > 0 ? `${due} due now · ` : ""}{nextWeek} in the next 7 days
-          </span>
-        </div>
-        <div className="flex items-end gap-1 sm:gap-1.5">
-          {forecast.map((f) => {
-            const date = new Date(f.day * DAY_MS);
-            return (
-              <div key={f.day} className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
-                <span className="numeral text-[0.65rem] leading-none text-faint">{f.count || ""}</span>
-                <div className="h-14 w-full max-w-9">
-                  <div className="bar-track">
-                    <div
-                      className="bar"
-                      title={`${date.toISOString().slice(0, 10)}: ${f.count} card${f.count === 1 ? "" : "s"}`}
-                      style={{
-                        height: `${Math.max(2, (f.count / peak) * 100)}%`,
-                        backgroundColor: f.count ? "var(--due)" : "var(--surface-2)",
-                      }}
-                    />
-                  </div>
-                </div>
-                <span className="text-[0.65rem] leading-none text-faint">
-                  {WEEKDAYS[date.getUTCDay()]}
-                </span>
-              </div>
-            );
-          })}
         </div>
       </section>
 
