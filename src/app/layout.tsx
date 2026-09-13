@@ -34,6 +34,16 @@ export const metadata: Metadata = {
     template: "danke: %s",
   },
   description: "A markdown-first, self-hosted flashcard app.",
+  /* Kept on a home screen, the icon comes from `apple-icon.png` beside this
+     file — iOS will not use an SVG for one, which is why it had been drawing
+     its own grey letter tile instead. `title` is what goes under it: without
+     it the label is whichever page was open when the site was saved, so an
+     app added from the stats page would be called "danke: Stats". */
+  appleWebApp: {
+    capable: true,
+    title: "danke",
+    statusBarStyle: "default",
+  },
 };
 
 /* The browser paints its own chrome from this: the header colour in each

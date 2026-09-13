@@ -40,6 +40,13 @@ export default async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  // Protect everything except Next internals and the favicon.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  /* Protect everything except Next internals and the icons.
+     The icons have to be public. A phone fetches the home-screen icon and the
+     manifest as ordinary requests, and not always with the session cookie
+     attached — behind the gate they come back as the login page's HTML, which
+     is exactly the "no usable icon" that had iOS drawing its own grey tile.
+     None of them says anything a stranger could not read off /login. */
+  matcher: [
+    "/((?!_next/static|_next/image|favicon\\.ico|icon\\.svg|apple-icon\\.png|icon-\\d+\\.png|manifest\\.webmanifest).*)",
+  ],
 };
