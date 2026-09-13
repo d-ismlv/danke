@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
@@ -9,11 +10,16 @@ import Logo from "@/components/Logo";
 import MainNav from "@/components/MainNav";
 import Icon from "@/components/Icon";
 import ThemeToggle from "@/components/ThemeToggle";
+import { asTheme, THEME_COOKIE, type Theme } from "@/lib/theme";
 
-/** Runs before first paint: reads the saved theme and stamps it on <html> so a
- * forced light/dark choice doesn't flash the OS theme on load. Wrapped in
- * try/catch because storage can throw in private modes. */
-const NO_FLASH = `try{var t=localStorage.getItem("danke-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}`;
+/** The saved theme, read on the server so `data-theme` is already on <html>
+ * in the HTML we send. This is what keeps a forced light/dark choice from
+ * flashing the OS theme on load — it used to take an inline script racing the
+ * first paint, which React 19 will not run anyway. "system" is the absence of
+ * the attribute, so the CSS falls through to prefers-color-scheme. */
+async function savedTheme(): Promise<Theme> {
+  return asTheme((await cookies()).get(THEME_COOKIE)?.value);
+}
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -43,6 +49,7 @@ export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const authed = await isAuthed();
+  const theme = await savedTheme();
 
   return (
     // suppressHydrationWarning: dark-mode browser extensions (e.g. DarkReader)
@@ -50,11 +57,9 @@ export default async function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
+      data-theme={theme === "system" ? undefined : theme}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: NO_FLASH }} />
-      </head>
       <body className="min-h-full flex flex-col">
         <header className="app-header sticky top-0 z-10 backdrop-blur-xl">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2.5 sm:px-6 lg:px-8">
@@ -67,7 +72,7 @@ export default async function RootLayout({
             </Link>
             <div className="flex items-center gap-1 sm:gap-2">
               {authed && <MainNav />}
-              <ThemeToggle />
+              <ThemeToggle initial={theme} />
               {authed && (
                 <form action={logout}>
                   <button

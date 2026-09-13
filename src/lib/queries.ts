@@ -234,15 +234,63 @@ export async function getPracticeCards(
   }));
 }
 
+/** Counts of the four grades. 1 Again, 2 Hard, 3 Good, 4 Easy. */
+export type GradeMix = { again: number; hard: number; good: number; easy: number };
+
 export type Stats = {
   totalCards: number;
   reviewsToday: number;
   streak: number;
+  /** The longest run of consecutive studied days in the history. */
+  bestStreak: number;
+  /** Days with at least one review — the denominator for "per active day". */
+  daysStudied: number;
   /** epoch-day (UTC) of "today", so callers don't read the clock in render. */
   today: number;
   /** epoch-day (UTC) -> review count, for the heatmap. */
   heatmap: Record<number, number>;
+  /** Grades over the whole history, and over the last 30 days. */
+  grades: { all: GradeMix; recent: GradeMix };
+  /**
+   * Share of reviews you answered without pressing Again, over the last 30
+   * days and over the whole history. This is the one number that says whether
+   * the schedule is working: too low and the intervals are outrunning you,
+   * too high (past ~95%) and you are reviewing things you already know.
+   * Null until something has been graded.
+   */
+  retention: number | null;
+  retentionAll: number | null;
+  /** Cards coming due on each of the next 14 days, today first. */
+  forecast: { day: number; count: number }[];
+  /** Cards due now — the backlog the forecast sits behind. */
+  due: number;
+  /**
+   * How deep the collection is, not just how big: never seen, still being
+   * learned, holding for under three weeks, holding for longer.
+   */
+  maturity: { fresh: number; learning: number; young: number; mature: number };
 };
+
+const MATURE_DAYS = 21;
+const FORECAST_DAYS = 14;
+const RECENT_DAYS = 30;
+
+function mix(): GradeMix {
+  return { again: 0, hard: 0, good: 0, easy: 0 };
+}
+
+const GRADE_KEY: Record<number, keyof GradeMix> = {
+  1: "again",
+  2: "hard",
+  3: "good",
+  4: "easy",
+};
+
+/** Reviews answered without pressing Again, as a percentage. */
+function retentionOf(m: GradeMix): number | null {
+  const total = m.again + m.hard + m.good + m.easy;
+  return total === 0 ? null : Math.round(((total - m.again) / total) * 100);
+}
 
 const DAY_MS = 86_400_000;
 
@@ -250,7 +298,7 @@ export async function getStats(now = Date.now()): Promise<Stats> {
   const totalCards = await db.$count(cards);
 
   const logs = await db
-    .select({ reviewedAt: reviewLogs.reviewedAt })
+    .select({ reviewedAt: reviewLogs.reviewedAt, rating: reviewLogs.rating })
     .from(reviewLogs)
     .orderBy(asc(reviewLogs.reviewedAt));
 
@@ -272,5 +320,70 @@ export async function getStats(now = Date.now()): Promise<Stats> {
     cursor -= 1;
   }
 
-  return { totalCards, reviewsToday, streak, today, heatmap };
+  // Best streak: the longest run in the studied days, which are already sorted
+  // because the logs were.
+  const studied = Object.keys(heatmap)
+    .map(Number)
+    .sort((a, b) => a - b);
+  let bestStreak = 0;
+  let run = 0;
+  for (let i = 0; i < studied.length; i++) {
+    run = i > 0 && studied[i] === studied[i - 1] + 1 ? run + 1 : 1;
+    if (run > bestStreak) bestStreak = run;
+  }
+
+  const grades = { all: mix(), recent: mix() };
+  const recentFrom = now - RECENT_DAYS * DAY_MS;
+  for (const l of logs) {
+    const key = GRADE_KEY[l.rating];
+    if (!key) continue;
+    grades.all[key] += 1;
+    if (l.reviewedAt >= recentFrom) grades.recent[key] += 1;
+  }
+
+  // Scheduling state: the backlog, the fortnight ahead, and how deep the
+  // collection has actually become.
+  const scheduled = await db
+    .select({
+      due: reviewState.due,
+      state: reviewState.state,
+      stability: reviewState.stability,
+    })
+    .from(reviewState);
+
+  const maturity = { fresh: totalCards - scheduled.length, learning: 0, young: 0, mature: 0 };
+  const ahead: Record<number, number> = {};
+  let due = 0;
+  for (const r of scheduled) {
+    if (r.state === 1 || r.state === 3) maturity.learning += 1;
+    else if (r.stability >= MATURE_DAYS) maturity.mature += 1;
+    else maturity.young += 1;
+
+    if (r.due <= now) due += 1;
+    else {
+      const day = Math.floor(r.due / DAY_MS);
+      if (day <= today + FORECAST_DAYS) ahead[day] = (ahead[day] ?? 0) + 1;
+    }
+  }
+
+  const forecast = Array.from({ length: FORECAST_DAYS }, (_, i) => ({
+    day: today + i + 1,
+    count: ahead[today + i + 1] ?? 0,
+  }));
+
+  return {
+    totalCards,
+    reviewsToday,
+    streak,
+    bestStreak,
+    daysStudied: studied.length,
+    today,
+    heatmap,
+    grades,
+    retention: retentionOf(grades.recent),
+    retentionAll: retentionOf(grades.all),
+    forecast,
+    due,
+    maturity,
+  };
 }

@@ -137,7 +137,7 @@ export default async function DeckPage({
       {ladderCards > 0 && (
         <div className="panel flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 sm:px-5">
           <div className="flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-md bg-accent-tint text-accent">
+            <span className="flex size-8 items-center justify-center rounded-md bg-info-tint text-info">
               <Icon name="ladder" size={16} />
             </span>
             <div>
@@ -186,7 +186,7 @@ export default async function DeckPage({
                     </span>
                   </Link>
                   {child.due > 0 && (
-                    <span className="chip chip-accent">
+                    <span className="chip chip-due">
                       <Icon name="clock" size={12} />
                       {child.due} due
                     </span>
@@ -217,7 +217,7 @@ export default async function DeckPage({
       ) : (
         children.length === 0 && (
           <div className="panel px-6 py-10 text-center">
-            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-accent-tint text-accent">
+            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-info-tint text-info">
               <Icon name="plus" size={22} />
             </div>
             <h2 className="text-lg font-semibold">This deck is still empty</h2>

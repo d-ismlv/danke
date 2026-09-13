@@ -36,7 +36,7 @@ export default async function Home() {
         </div>
         <dl className="flex items-end gap-6">
           <div className="text-right">
-            <dd className="display-title numeral text-2xl text-accent">{totalDue}</dd>
+            <dd className="display-title numeral text-2xl text-due">{totalDue}</dd>
             <dt className="label mt-1">Due now</dt>
           </div>
           <div className="hidden text-right sm:block">
@@ -49,9 +49,9 @@ export default async function Home() {
       {ladderCards > 0 && (
         <Link
           href="/edge"
-          className="panel transition-state flex items-center gap-3 px-4 py-3 hover:border-accent-tint-border hover:bg-accent-tint/40 sm:px-5"
+          className="panel transition-state flex items-center gap-3 px-4 py-3 hover:border-info-tint-border hover:bg-info-tint/40 sm:px-5"
         >
-          <span className="flex size-9 items-center justify-center rounded-md bg-accent-tint text-accent">
+          <span className="flex size-9 items-center justify-center rounded-md bg-info-tint text-info">
             <Icon name="ladder" size={18} />
           </span>
           <span className="min-w-0 flex-1">
@@ -85,7 +85,7 @@ export default async function Home() {
                   style={{ paddingLeft: `calc(1.25rem + ${deck.depth * 1.5}rem)` }}
                 >
                   <span
-                    className={`shrink-0 ${parentIds.has(deck.id) ? "text-accent" : "text-faint"}`}
+                    className={`shrink-0 ${parentIds.has(deck.id) ? "text-info" : "text-faint"}`}
                     aria-hidden="true"
                   >
                     <Icon name={parentIds.has(deck.id) ? "decks" : "cards"} size={16} />
@@ -102,7 +102,7 @@ export default async function Home() {
                   </Link>
 
                   {deck.due > 0 ? (
-                    <span className="chip chip-accent">
+                    <span className="chip chip-due">
                       <Icon name="clock" size={12} />
                       {deck.due} due
                     </span>

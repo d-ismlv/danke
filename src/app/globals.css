@@ -34,6 +34,27 @@
   --accent-tint: #ece8fb;
   --accent-tint-border: #c6b9f1;
 
+  /* ---- Two hues that are not the accent ------------------------------
+     The app had one colour and spent it on everything: the eyebrow over
+     every title, every count, every chip, the whole year of the heatmap.
+     When one hue means "act", "how many", "where you are" and "you showed
+     up", it has stopped meaning any of them, and the page reads as one
+     flat wash of violet.
+
+     So: violet is now reserved for *acting* — the primary button, the
+     focus ring, the rung you are standing on. Teal marks what refers
+     rather than acts: labels, counts, links, the furniture of a page.
+     Amber marks what is waiting on you — due counts and their clock. The
+     four grades keep the four hues they already had, and green does
+     double duty as mastery, which is the same thing a good grade says. */
+  --info: #0e7490;
+  --info-tint: #e2f1f6;
+  --info-tint-border: #a8d5e3;
+
+  --due: #b1600a;
+  --due-tint: #fbf0e0;
+  --due-tint-border: #eccfa6;
+
   /* The four grades, deepened for white: the vivid 500s that read well on
      the dark surface sit at about 2.4:1 on this one. */
   --again: #d6334f;
@@ -109,6 +130,14 @@
     --accent-tint: #262340;
     --accent-tint-border: #554c87;
 
+    --info: #4cc3d9;
+    --info-tint: #162e35;
+    --info-tint-border: #2f6b7a;
+
+    --due: #e5a54a;
+    --due-tint: #332818;
+    --due-tint-border: #6b5326;
+
     --again: #ff6b81;
     --again-tint: #33202a;
     --hard: #f2b04a;
@@ -147,6 +176,14 @@
   --accent-tint: #262340;
   --accent-tint-border: #554c87;
 
+  --info: #4cc3d9;
+  --info-tint: #162e35;
+  --info-tint-border: #2f6b7a;
+
+  --due: #e5a54a;
+  --due-tint: #332818;
+  --due-tint-border: #6b5326;
+
   --again: #ff6b81;
   --again-tint: #33202a;
   --hard: #f2b04a;
@@ -184,6 +221,12 @@
   --color-good-tint: var(--good-tint);
   --color-easy: var(--easy);
   --color-easy-tint: var(--easy-tint);
+  --color-info: var(--info);
+  --color-info-tint: var(--info-tint);
+  --color-info-tint-border: var(--info-tint-border);
+  --color-due: var(--due);
+  --color-due-tint: var(--due-tint);
+  --color-due-tint-border: var(--due-tint-border);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   /* Tailwind's scale, re-pointed at the steps above: a `rounded-lg` in the
@@ -343,7 +386,7 @@ textarea {
    ================================================================== */
 
 .eyebrow {
-  color: var(--accent);
+  color: var(--info);
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -434,12 +477,21 @@ textarea {
     transform var(--t-press) var(--ease-out);
 }
 
+/* Only the controls that draw a face at rest get the 1px press. The other
+   three are transparent until hover, so displacing the box displaced nothing
+   but the glyph inside it: the press read as the icon floating free of its
+   button rather than the button giving way — and on touch, where there is no
+   hover to paint a face first, floating was all there ever was. Those press
+   in colour instead, which is the step the palette already reserves for it. */
 .button-primary:active:not(:disabled),
-.button-secondary:active:not(:disabled),
-.button-quiet:active:not(:disabled),
-.button-danger:active:not(:disabled),
-.button-icon:active:not(:disabled) {
+.button-secondary:active:not(:disabled) {
   transform: translateY(1px);
+}
+
+.button-quiet:active:not(:disabled),
+.button-icon:active:not(:disabled) {
+  color: var(--foreground);
+  background-color: var(--surface-press);
 }
 
 .button-primary {
@@ -484,6 +536,9 @@ textarea {
 .button-danger:hover:not(:disabled) {
   background-color: var(--again-tint);
   border-color: color-mix(in srgb, var(--again) 30%, transparent);
+}
+.button-danger:active:not(:disabled) {
+  background-color: color-mix(in srgb, var(--again) 18%, var(--surface));
 }
 
 .button-icon {
@@ -569,6 +624,17 @@ button:disabled,
 .chip-accent {
   background-color: var(--accent-tint);
   color: color-mix(in srgb, var(--accent) 82%, var(--foreground));
+}
+/* What is waiting on you, wherever it is counted. Amber rather than violet:
+   a due count is a fact about time, and the button beside it is the action. */
+.chip-due {
+  background-color: var(--due-tint);
+  color: color-mix(in srgb, var(--due) 86%, var(--foreground));
+}
+/* What a thing *is* — a deck's size, a ladder's length, a card's rung. */
+.chip-info {
+  background-color: var(--info-tint);
+  color: color-mix(in srgb, var(--info) 86%, var(--foreground));
 }
 .chip-good {
   background-color: var(--good-tint);
@@ -753,6 +819,56 @@ button:disabled,
 .heat-cell:hover {
   transform: scale(1.25);
 }
+/* ---- Proportion bars ----------------------------------------------
+   Two shapes carry every small chart on the stats page. A `.meter` is one
+   row split into shares — how the last month was graded, how deep the
+   collection is — and it is the place the four grade colours finally do
+   some work outside the four grade buttons. `.bar` is a column, for the
+   fortnight ahead and the seven rungs.
+
+   Neither draws an axis. At this size an axis costs more room than it
+   returns; the number that matters is written beside the chart instead. */
+.meter {
+  display: flex;
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-2);
+}
+.meter > span {
+  display: block;
+  height: 100%;
+  transition: width var(--t-enter) var(--ease-out);
+}
+
+.bar-track {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+.bar {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+  background-color: var(--surface-2);
+  transition:
+    background-color var(--t-state) var(--ease-out),
+    height var(--t-enter) var(--ease-out);
+}
+
+/* A column that is a share of something fixed — a percentage — is drawn
+   inside its own track, so the empty part is visible. Without it, seven
+   readings between 83 and 94 fill the panel almost to the top and the chart
+   says "all high" where the whole point was which one is lowest. Counts, with
+   no ceiling to be a share of, keep the bare baseline. */
+.gauge {
+  background-color: var(--surface-2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
 /* The legend's own swatches aren't in the grid, so they need a size. */
 .heat-key {
   width: 0.65rem;
@@ -814,13 +930,13 @@ button:disabled,
   padding-left: 0.15em;
 }
 .markdown li::marker {
-  color: var(--accent);
+  color: var(--faint);
 }
 .markdown strong {
   font-weight: 680;
 }
 .markdown a {
-  color: var(--accent);
+  color: var(--info);
   text-decoration: underline;
   text-underline-offset: 2px;
   text-decoration-thickness: from-font;
@@ -843,7 +959,7 @@ button:disabled,
   padding: 0;
 }
 .markdown blockquote {
-  border-left: 3px solid var(--accent-tint-border);
+  border-left: 3px solid var(--info-tint-border);
   padding-left: 1em;
   color: var(--muted);
 }

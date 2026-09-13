@@ -208,3 +208,48 @@ export function ladderSummary(ladders: ConceptLadder[]) {
   const due = ladders.reduce((n, l) => n + l.dueCount, 0);
   return { concepts, complete, climbed, rungs, due };
 }
+
+export type RungProfile = {
+  rung: number;
+  /** Gradings recorded against cards at this rung, all time. */
+  reviews: number;
+  /** Of those, the ones that weren't Again. */
+  recalled: number;
+  /** `recalled / reviews` as a percentage, or null if the rung is untouched. */
+  retention: number | null;
+};
+
+/**
+ * Recall by rung, 1-7.
+ *
+ * The ladder's premise is that the rungs get harder in order, and this is the
+ * only view that checks it. A profile that falls away after rung 3 says the
+ * mechanism is known and the boundaries are not — which is a different problem
+ * from a flat-but-low profile, and wants a different kind of study.
+ */
+export async function getRungProfile(): Promise<RungProfile[]> {
+  const rows = await db
+    .select({ rung: cards.rung, rating: reviewLogs.rating })
+    .from(reviewLogs)
+    .innerJoin(cards, eq(cards.id, reviewLogs.cardId))
+    .where(isNotNull(cards.rung));
+
+  const tally = new Map<number, { reviews: number; recalled: number }>();
+  for (const row of rows) {
+    const rung = row.rung ?? 0;
+    if (rung < 1 || rung > MAX_RUNG) continue;
+    const t = tally.get(rung) ?? tally.set(rung, { reviews: 0, recalled: 0 }).get(rung)!;
+    t.reviews += 1;
+    if (row.rating > 1) t.recalled += 1;
+  }
+
+  return Array.from({ length: MAX_RUNG }, (_, i) => {
+    const rung = i + 1;
+    const t = tally.get(rung) ?? { reviews: 0, recalled: 0 };
+    return {
+      rung,
+      ...t,
+      retention: t.reviews === 0 ? null : Math.round((t.recalled / t.reviews) * 100),
+    };
+  });
+}

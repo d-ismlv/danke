@@ -168,17 +168,24 @@ const PATHS: Record<IconName, ReactElement> = {
       <path d="M18.5 16.5c.3 1.8 1 2.5 2.8 2.8-1.8.3-2.5 1-2.8 2.8-.3-1.8-1-2.5-2.8-2.8 1.8-.3 2.5-1 2.8-2.8z" />
     </>
   ),
+  /* The three theme glyphs are drawn to one shared optical centre (y=12) and
+     one ink height (17.7-18.5 of the 24 box). They are the only icons in the
+     set that swap in place, so a difference that no one would notice between
+     two icons side by side became a visible jump when the button cycled: the
+     old moon centred at y=10.3 against the monitor's 12.5, which at a 19px
+     render is nearly 2px of travel. Change any of them and re-check the
+     others; the numbers are the point. */
   sun: (
     <>
       <circle cx="12" cy="12" r="4" />
-      <path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6" />
+      <path d="M12 3.6v2M12 18.4v2M6.1 6.1l1.4 1.4M16.5 16.5l1.4 1.4M3.6 12h2M18.4 12h2M6.1 17.9l1.4-1.4M16.5 7.5l1.4-1.4" />
     </>
   ),
-  moon: <path d="M20 14.5A8 8 0 0 1 9.5 4a7 7 0 1 0 10.5 10.5z" />,
+  moon: <path d="M20.3 15A8.6 8.6 0 0 1 9.1 3.7a8.6 8.6 0 1 0 11.2 11.3z" />,
   auto: (
     <>
-      <rect x="3" y="4.5" width="18" height="12.5" rx="2.2" />
-      <path d="M8.5 20.5h7M12 17v3.5" />
+      <rect x="3" y="4" width="18" height="12.5" rx="2.2" />
+      <path d="M8.5 20h7M12 16.5v3.5" />
     </>
   ),
 };

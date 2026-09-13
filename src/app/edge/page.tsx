@@ -42,7 +42,7 @@ function LadderRow({ ladder }: { ladder: ConceptLadder }) {
             </span>
           )}
           {ladder.dueCount > 0 && (
-            <span className="chip chip-accent">
+            <span className="chip chip-due">
               <Icon name="clock" size={12} />
               {ladder.dueCount} due
             </span>
@@ -157,10 +157,15 @@ export default async function EdgePage({
       ) : (
         <>
           <div className="panel grid grid-cols-2 gap-x-6 gap-y-5 px-4 py-5 sm:grid-cols-4 sm:px-6">
-            <StatTile value={concepts} label="Concepts" icon="ladder" />
-            <StatTile value={`${climbed}/${rungs}`} label="Rungs standing" icon="target" />
-            <StatTile value={complete} label="Full ladders" icon="check" />
-            <StatTile value={due} label="Due now" icon="clock" tone="accent" />
+            <StatTile value={concepts} label="Concepts" icon="ladder" tone="info" />
+            <StatTile
+              value={`${climbed}/${rungs}`}
+              label="Rungs standing"
+              icon="target"
+              hint={`${Math.round((climbed / Math.max(1, rungs)) * 100)}% of the set`}
+            />
+            <StatTile value={complete} label="Full ladders" icon="check" tone="good" />
+            <StatTile value={due} label="Due now" icon="clock" tone="due" />
           </div>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted">
@@ -223,7 +228,7 @@ function EmptyEdge() {
   return (
     <div className="panel flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:gap-8 sm:p-8">
       <div className="min-w-0 flex-1">
-        <div className="mb-3 flex size-10 items-center justify-center rounded-md bg-accent-tint text-accent">
+        <div className="mb-3 flex size-10 items-center justify-center rounded-md bg-info-tint text-info">
           <Icon name="ladder" size={20} />
         </div>
         <h2 className="text-lg font-semibold">No ladders yet</h2>

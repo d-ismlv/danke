@@ -131,7 +131,7 @@ export default function CardBrowser({
                     </Markdown>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-muted">
-                    <span className={due ? "chip chip-accent" : "chip"}>
+                    <span className={due ? "chip chip-due" : "chip"}>
                       {STATE_LABEL[card.state ?? State.New] ?? "New"}
                     </span>
                     {due && <span>due now</span>}
