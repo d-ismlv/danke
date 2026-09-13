@@ -580,6 +580,18 @@ button:disabled,
     box-shadow var(--t-state) var(--ease-out),
     background-color var(--t-state) var(--ease-out);
 }
+
+/* A field with a glyph sitting in its leading edge.
+   The inset is declared here rather than as a `pl-9` in the markup, and it has
+   to be: everything in this file is unlayered, while Tailwind's utilities sit
+   in `@layer utilities`, and an unlayered rule beats a layered one whatever
+   its specificity. A padding utility on `.input` is therefore dropped without
+   a word — which is how the search glyph came to sit on top of its own
+   placeholder. The same is true of every utility in the markup that collides
+   with a property one of these classes sets. */
+.input-icon {
+  padding-inline-start: 2.25rem;
+}
 .input::placeholder,
 .textarea::placeholder {
   color: var(--faint);

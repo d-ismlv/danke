@@ -82,7 +82,7 @@ export default function CardBrowser({
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search cards"
-            className="input min-h-10 pl-9"
+            className="input input-icon"
           />
         </label>
         <div className="flex max-w-full gap-1 overflow-x-auto rounded-lg bg-surface-2 p-1">

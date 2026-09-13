@@ -60,6 +60,7 @@ export default async function ReviewPage({
     front: c.front,
     back: c.back,
     rung: c.rung,
+    conceptId: c.conceptId,
     previews: practice ? {} : intervalPreviews(rowToFsrsCard(c.state), now),
   }));
 

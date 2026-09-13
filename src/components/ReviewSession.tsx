@@ -14,6 +14,8 @@ export type QueueItem = {
   back: string;
   /** Ladder position, when the card belongs to a concept. */
   rung?: number | null;
+  /** The concept the card asks about, when it belongs to a ladder. */
+  conceptId?: string | null;
   previews: Record<number, string>;
 };
 
@@ -302,6 +304,25 @@ export default function ReviewSession({
               </ol>
             )}
           </div>
+        )}
+
+        {/* The subject the question is about.
+            A ladder question is written to follow the one before it, so from
+            rung 2 on it leans on the concept named at rung 1: "what do you
+            need to find and use *one*", "what breaks *it*". That reads fine
+            in a drill, where the concept is in the page header and the rungs
+            arrive in order. It falls apart in a deck review or a rung-band
+            pass, which cross concepts — and the questions repeat besides:
+            41 of the 49 ladders ask "What does the defender see?" at rung 6
+            and 45 ask "What do you tell a 40,000-seat customer?" at rung 7,
+            word for word. Without the subject those cards are not merely
+            hard, they are unanswerable, and indistinguishable from each
+            other. So when the session spans concepts, the card names its
+            own. A drill omits it: the header two lines up already says it. */}
+        {current.conceptId && !drill && (
+          <p className="mb-1.5 truncate text-sm font-semibold text-info" title={current.conceptId}>
+            {current.conceptId}
+          </p>
         )}
 
         <div className="stage-question">

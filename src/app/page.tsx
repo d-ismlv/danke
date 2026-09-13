@@ -78,24 +78,42 @@ export default async function Home() {
       ) : (
         <div className="panel overflow-hidden">
           <ul className="divide-y divide-border">
-            {tree.map((deck) => (
+            {tree.map((deck) => {
+              const isParent = parentIds.has(deck.id);
+              return (
               <li key={deck.id}>
                 <div
-                  className="row group flex min-h-[4.25rem] items-center gap-3 py-3 pr-4 sm:pr-5"
+                  /* A deck that holds other decks is drawn as the band over
+                     them, the way the edge map draws its deck sections —
+                     indentation alone was carrying the whole hierarchy, and
+                     a 1.5rem step between two rows of identical weight is not
+                     a hierarchy anyone can see. The band says "these belong to
+                     that" before any indent is measured; the child rows drop a
+                     weight and keep the faint card glyph, so the two levels
+                     differ in three ways at once rather than one. */
+                  className={`row group flex items-center gap-3 py-3 pr-4 sm:pr-5 ${
+                    isParent ? "min-h-14 bg-surface-2/60" : "min-h-[4.25rem]"
+                  }`}
                   style={{ paddingLeft: `calc(1.25rem + ${deck.depth * 1.5}rem)` }}
                 >
                   <span
-                    className={`shrink-0 ${parentIds.has(deck.id) ? "text-info" : "text-faint"}`}
+                    className={`shrink-0 ${isParent ? "text-info" : "text-faint"}`}
                     aria-hidden="true"
                   >
-                    <Icon name={parentIds.has(deck.id) ? "decks" : "cards"} size={16} />
+                    <Icon name={isParent ? "decks" : "cards"} size={isParent ? 17 : 16} />
                   </span>
                   <Link href={`/decks/${deck.id}`} className="min-w-0 flex-1 self-stretch py-1">
-                    <span className="transition-state block truncate font-semibold group-hover:text-accent">
+                    <span
+                      className={`transition-state block truncate group-hover:text-accent ${
+                        isParent
+                          ? "text-[0.95rem] font-bold tracking-[-0.01em]"
+                          : "font-medium"
+                      }`}
+                    >
                       {deck.name}
                     </span>
                     <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted">
-                      {parentIds.has(deck.id)
+                      {isParent
                         ? `${tree.filter((d) => d.parentId === deck.id).length} decks · ${deck.total} cards`
                         : `${deck.total} card${deck.total === 1 ? "" : "s"}`}
                     </span>
@@ -146,7 +164,8 @@ export default async function Home() {
                   </Link>
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         </div>
       )}

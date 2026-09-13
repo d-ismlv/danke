@@ -40,6 +40,7 @@ export default async function DrillPage({
     front: c.front,
     back: c.back,
     rung: c.rung,
+    conceptId: c.conceptId,
     previews: intervalPreviews(rowToFsrsCard(c.state), now),
   }));
 
