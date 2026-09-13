@@ -79,7 +79,7 @@ npm run dev       # http://localhost:3000
 | Variable | Purpose |
 |---|---|
 | `AUTH_PASSWORD` | Login password |
-| `AUTH_SESSION_TOKEN` | Session cookie secret — auto-generated if unset |
+| `AUTH_SESSION_TOKEN` | Key the session cookie is signed with — auto-generated if unset. Changing it signs every device out. |
 | `DANKE_DATA_DIR` | Database location (default `/app/data`) |
 | `TZ` | Timezone (optional) |
 

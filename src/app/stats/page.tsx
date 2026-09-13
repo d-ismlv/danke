@@ -238,18 +238,27 @@ export default async function StatsPage() {
             </div>
             <div className="heat-grid" style={{ gridTemplateColumns: `repeat(${WEEKS}, minmax(0, 0.72rem))` }}>
               {columns.flatMap((col) =>
-                col.map(({ day, count }) => (
-                  <div
-                    key={day}
-                    title={
-                      count >= 0
-                        ? `${new Date(day * DAY_MS).toISOString().slice(0, 10)}: ${count} review${count === 1 ? "" : "s"}`
-                        : ""
-                    }
-                    className="heat-cell"
-                    style={{ background: count < 0 ? "transparent" : intensity(count) }}
-                  />
-                )),
+                col.map(({ day, count }) => {
+                  // A day in the future is a hole in the grid, not a cell.
+                  if (count < 0) {
+                    return <div key={day} className="heat-cell" aria-hidden="true" />;
+                  }
+                  const label = `${new Date(day * DAY_MS).toISOString().slice(0, 10)}: ${count} review${count === 1 ? "" : "s"}`;
+                  /* A focusable element with a name, not a div with a title:
+                     364 days of counts were readable only by hovering a mouse
+                     over them, which is no help to a keyboard or a screen
+                     reader. Tab reaches them now and the name is announced. */
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      title={label}
+                      aria-label={label}
+                      className="heat-cell"
+                      style={{ background: intensity(count) }}
+                    />
+                  );
+                }),
               )}
             </div>
             <div className="mt-2.5 flex w-fit items-center gap-1 text-xs text-muted">
@@ -270,24 +279,32 @@ export default async function StatsPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-x-6 gap-y-5 px-4 py-5 sm:grid-cols-4 sm:px-6">
-            <StatTile value={ladderStats.concepts} label="Concepts" icon="ladder" tone="info" />
+            <StatTile
+              value={ladderStats.concepts}
+              label="Concepts"
+              icon="ladder"
+              tone="info"
+              align="center"
+            />
             <StatTile
               value={`${ladderStats.climbed}/${ladderStats.rungs}`}
               label="Rungs standing"
               icon="target"
-              hint={`${Math.round((ladderStats.climbed / Math.max(1, ladderStats.rungs)) * 100)}% of the set`}
+              align="center"
             />
             <StatTile
               value={ladderStats.complete}
               label="Full ladders"
               icon="check"
               tone={ladderStats.complete > 0 ? "good" : undefined}
+              align="center"
             />
             <StatTile
               value={ladderStats.due}
               label="Due now"
               icon="clock"
               tone={ladderStats.due > 0 ? "due" : undefined}
+              align="center"
             />
           </div>
 

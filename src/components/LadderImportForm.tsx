@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useRef, useState } from "react";
+import { useActionState, useDeferredValue, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { importLadders, type LadderImportState } from "@/lib/actions";
 import { parseLadders, RUNG_NAMES } from "@/lib/import";
@@ -34,7 +34,14 @@ export default function LadderImportForm({
     { error: null },
   );
 
-  const parsed = useMemo(() => parseLadders(text), [text]);
+  /* Parsing is deferred, not immediate. `text` here is a whole directory of
+     concept files pasted into one box — 144KB for the set this was built
+     against — and re-parsing all of it between keystrokes made typing in the
+     field stutter. React keeps the field responsive and re-runs the parse on
+     the value that settles. */
+  const deferredText = useDeferredValue(text);
+  const parsed = useMemo(() => parseLadders(deferredText), [deferredText]);
+  const parsing = deferredText !== text;
   const cardCount = parsed.ladders.reduce((n, l) => n + l.cards.length, 0);
   const blocked = parsed.errors.length > 0 || parsed.ladders.length === 0;
 
@@ -156,7 +163,13 @@ export default function LadderImportForm({
       )}
 
       {parsed.ladders.length > 0 && (
-        <div className="panel overflow-hidden">
+        <div
+          className="panel overflow-hidden transition-state"
+          /* While the parse is catching up the summary describes the text as
+             it was a moment ago, so it says so rather than quietly lying. */
+          style={parsing ? { opacity: 0.55 } : undefined}
+          aria-busy={parsing}
+        >
           <div className="flex items-center justify-between border-b border-border bg-surface-2/60 px-4 py-2.5 text-sm">
             <span className="font-semibold">
               {parsed.ladders.length} concept{parsed.ladders.length === 1 ? "" : "s"} ·{" "}
@@ -196,7 +209,7 @@ export default function LadderImportForm({
       )}
 
       <div className="flex items-center gap-2">
-        <button type="submit" disabled={blocked || pending} className="button-primary">
+        <button type="submit" disabled={blocked || pending || parsing} className="button-primary">
           <Icon name="import" size={15} />
           {pending
             ? "Importing…"

@@ -17,11 +17,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
-# --- Production-only deps (smaller runtime node_modules) ---------------------
-FROM base AS prod-deps
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
-
 # --- Runtime image -----------------------------------------------------------
 FROM base AS runner
 ENV NODE_ENV=production
@@ -29,10 +24,16 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=32323
 ENV DANKE_DATA_DIR=/app/data
 
-COPY --from=prod-deps /app/node_modules ./node_modules
-COPY --from=builder /app/.next ./.next
+# `output: "standalone"` traces the files the server actually loads and writes
+# them, with a minimal node_modules, into .next/standalone. That replaces
+# copying the whole production dependency tree, most of which never gets
+# required at runtime. Static assets are not traced and are copied beside it.
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
-COPY package.json next.config.ts ./
+# The migration runner needs drizzle-orm, which the traced server bundle has no
+# reason to include.
+COPY --from=builder /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
 COPY drizzle ./drizzle
 COPY scripts ./scripts
 COPY --chmod=0755 docker-entrypoint.sh ./docker-entrypoint.sh

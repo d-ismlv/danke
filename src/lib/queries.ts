@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { decks, cards, reviewState, reviewLogs } from "@/db/schema";
 import type { Deck, Card, ReviewStateRow } from "@/db/schema";
@@ -52,19 +52,21 @@ export async function getDeckAndDescendantIds(deckId: string): Promise<string[]>
  */
 export async function getDeckTree(now = Date.now()): Promise<DeckNode[]> {
   const all = await db.select().from(decks).orderBy(asc(decks.name));
-  const cardRows = await db
-    .select({ id: cards.id, deckId: cards.deckId, due: reviewState.due })
-    .from(cards)
-    .leftJoin(reviewState, eq(reviewState.cardId, cards.id));
+  /* One row per deck, not one per card: this used to pull every card in the
+     database (joined to its schedule) just to count them, on every visit to
+     the page that is also the app's front door. */
+  const perDeck = await db.all<{ deckId: string; total: number; due: number }>(sql`
+    SELECT
+      ${cards.deckId} AS deckId,
+      COUNT(*) AS total,
+      SUM(CASE WHEN ${reviewState.due} IS NOT NULL AND ${reviewState.due} <= ${now} THEN 1 ELSE 0 END) AS due
+    FROM ${cards} LEFT JOIN ${reviewState} ON ${reviewState.cardId} = ${cards.id}
+    GROUP BY ${cards.deckId}
+  `);
 
   const map = descendantMap(all);
   const byDeckDirect = new Map<string, { total: number; due: number }>();
-  for (const row of cardRows) {
-    const agg = byDeckDirect.get(row.deckId) ?? { total: 0, due: 0 };
-    agg.total += 1;
-    if (row.due !== null && row.due <= now) agg.due += 1;
-    byDeckDirect.set(row.deckId, agg);
-  }
+  for (const row of perDeck) byDeckDirect.set(row.deckId, { total: row.total, due: row.due });
 
   const counts = (deckId: string) => {
     let total = 0;
@@ -175,7 +177,7 @@ export async function getDueCards(
   now = Date.now(),
   limit = 500,
   band?: RungBand,
-): Promise<DueCard[]> {
+): Promise<{ cards: DueCard[]; truncated: boolean }> {
   const deckIds = await getDeckAndDescendantIds(deckId);
   const rows = await db
     .select({ card: cards, state: reviewState })
@@ -188,16 +190,29 @@ export async function getDueCards(
         bandFilter(band),
       ),
     )
-    .orderBy(asc(cards.rung), asc(reviewState.due))
-    .limit(limit);
-  return rows.map((r) => ({
+    /* Earliest due first, as the queue's whole purpose implies. Ordering by
+       rung ahead of due sent every rung-1 card in the deck before the card
+       that had been overdue for a week — and put ordinary cards, whose rung
+       is NULL and therefore sorts first in SQLite, ahead of the lot. A rung
+       band is the one case where rung leads: asking for "rungs 3-5" is asking
+       to go through one altitude, so within the band the order still climbs. */
+    .orderBy(...(band ? [asc(cards.rung)] : []), asc(reviewState.due))
+    .limit(limit + 1);
+  /* The queue is capped so a 4,000-card backlog doesn't arrive as one payload.
+     Fetching one row past the cap is how the caller can say so, rather than
+     ending the session early and letting it look finished. */
+  return { cards: rows.slice(0, limit).map(toDueCard), truncated: rows.length > limit };
+}
+
+function toDueCard(r: { card: Card; state: ReviewStateRow }): DueCard {
+  return {
     id: r.card.id,
     front: r.card.front,
     back: r.card.back,
     rung: r.card.rung,
     conceptId: r.card.conceptId,
     state: r.state,
-  }));
+  };
 }
 
 /**
@@ -224,14 +239,24 @@ export async function getPracticeCards(
     )
     .orderBy(asc(cards.rung), asc(cards.createdAt))
     .limit(limit);
-  return rows.map((r) => ({
-    id: r.card.id,
-    front: r.card.front,
-    back: r.card.back,
-    rung: r.card.rung,
-    conceptId: r.card.conceptId,
-    state: r.state,
-  }));
+
+  /* Practice ran in the same order every time, so a second pass through a deck
+     rehearsed the sequence as much as the cards — the answer starts arriving
+     from the position rather than the prompt. One card asked for by id is not
+     a queue and keeps its order. A ladder keeps its rungs in order too: the
+     rungs are a progression, and shuffling them would ask about the boundaries
+     of a thing before naming it. */
+  const queue = rows.map(toDueCard);
+  if (!cardId && !queue.some((c) => c.rung !== null)) shuffle(queue);
+  return queue;
+}
+
+/** Fisher-Yates, in place. */
+function shuffle<T>(items: T[]): void {
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [items[i], items[j]] = [items[j], items[i]];
+  }
 }
 
 /** Counts of the four grades. 1 Again, 2 Hard, 3 Good, 4 Easy. */
@@ -295,20 +320,50 @@ function retentionOf(m: GradeMix): number | null {
 const DAY_MS = 86_400_000;
 
 export async function getStats(now = Date.now()): Promise<Stats> {
-  const totalCards = await db.$count(cards);
+  const today = Math.floor(now / DAY_MS);
+  const recentFrom = now - RECENT_DAYS * DAY_MS;
 
-  const logs = await db
-    .select({ reviewedAt: reviewLogs.reviewedAt, rating: reviewLogs.rating })
-    .from(reviewLogs)
-    .orderBy(asc(reviewLogs.reviewedAt));
+  /* Everything below is counted by SQLite and comes back already reduced.
+     It used to select every row of review_logs and fold them in JS, which is
+     fine at a few thousand and is several megabytes of garbage per page view
+     after a couple of years of daily study. The logs are the one table here
+     that grows without bound, so it is the one that must never be read whole.
+     The CASTs are not decoration. A bound parameter arrives as REAL, so
+     `reviewed_at / ?` is float division and every row lands in its own bucket
+     — 2,820 "days studied" out of 2,820 reviews. Truncating to INTEGER gives
+     back the epoch-day the heatmap is keyed by. */
+  const [byDay, gradeRows, recentGradeRows, scheduleRows, totalCards] = await Promise.all([
+    db.all<{ day: number; n: number }>(sql`
+      SELECT CAST(${reviewLogs.reviewedAt} / ${DAY_MS} AS INTEGER) AS day, COUNT(*) AS n
+      FROM ${reviewLogs} GROUP BY day ORDER BY day
+    `),
+    db.all<{ rating: number; n: number }>(sql`
+      SELECT ${reviewLogs.rating} AS rating, COUNT(*) AS n
+      FROM ${reviewLogs} GROUP BY rating
+    `),
+    db.all<{ rating: number; n: number }>(sql`
+      SELECT ${reviewLogs.rating} AS rating, COUNT(*) AS n
+      FROM ${reviewLogs} WHERE ${reviewLogs.reviewedAt} >= ${recentFrom} GROUP BY rating
+    `),
+    db.all<{ bucket: string; day: number | null; n: number }>(sql`
+      SELECT
+        CASE
+          WHEN ${reviewState.state} IN (1, 3) THEN 'learning'
+          WHEN ${reviewState.stability} >= ${MATURE_DAYS} THEN 'mature'
+          ELSE 'young'
+        END AS bucket,
+        CASE
+          WHEN ${reviewState.due} <= ${now} THEN -1
+          ELSE CAST(${reviewState.due} / ${DAY_MS} AS INTEGER)
+        END AS day,
+        COUNT(*) AS n
+      FROM ${reviewState} GROUP BY bucket, day
+    `),
+    db.$count(cards),
+  ]);
 
   const heatmap: Record<number, number> = {};
-  for (const l of logs) {
-    const day = Math.floor(l.reviewedAt / DAY_MS);
-    heatmap[day] = (heatmap[day] ?? 0) + 1;
-  }
-
-  const today = Math.floor(now / DAY_MS);
+  for (const row of byDay) heatmap[row.day] = row.n;
   const reviewsToday = heatmap[today] ?? 0;
 
   // Streak: consecutive days with >=1 review, counting back from today
@@ -320,51 +375,38 @@ export async function getStats(now = Date.now()): Promise<Stats> {
     cursor -= 1;
   }
 
-  // Best streak: the longest run in the studied days, which are already sorted
-  // because the logs were.
-  const studied = Object.keys(heatmap)
-    .map(Number)
-    .sort((a, b) => a - b);
+  // Best streak: the longest run of consecutive days. `byDay` is ordered.
   let bestStreak = 0;
   let run = 0;
-  for (let i = 0; i < studied.length; i++) {
-    run = i > 0 && studied[i] === studied[i - 1] + 1 ? run + 1 : 1;
+  for (let i = 0; i < byDay.length; i++) {
+    run = i > 0 && byDay[i].day === byDay[i - 1].day + 1 ? run + 1 : 1;
     if (run > bestStreak) bestStreak = run;
   }
 
   const grades = { all: mix(), recent: mix() };
-  const recentFrom = now - RECENT_DAYS * DAY_MS;
-  for (const l of logs) {
-    const key = GRADE_KEY[l.rating];
-    if (!key) continue;
-    grades.all[key] += 1;
-    if (l.reviewedAt >= recentFrom) grades.recent[key] += 1;
+  for (const row of gradeRows) {
+    const key = GRADE_KEY[row.rating];
+    if (key) grades.all[key] = row.n;
+  }
+  for (const row of recentGradeRows) {
+    const key = GRADE_KEY[row.rating];
+    if (key) grades.recent[key] = row.n;
   }
 
-  // Scheduling state: the backlog, the fortnight ahead, and how deep the
-  // collection has actually become.
-  const scheduled = await db
-    .select({
-      due: reviewState.due,
-      state: reviewState.state,
-      stability: reviewState.stability,
-    })
-    .from(reviewState);
-
-  const maturity = { fresh: totalCards - scheduled.length, learning: 0, young: 0, mature: 0 };
+  const maturity = { fresh: 0, learning: 0, young: 0, mature: 0 };
   const ahead: Record<number, number> = {};
   let due = 0;
-  for (const r of scheduled) {
-    if (r.state === 1 || r.state === 3) maturity.learning += 1;
-    else if (r.stability >= MATURE_DAYS) maturity.mature += 1;
-    else maturity.young += 1;
-
-    if (r.due <= now) due += 1;
-    else {
-      const day = Math.floor(r.due / DAY_MS);
-      if (day <= today + FORECAST_DAYS) ahead[day] = (ahead[day] ?? 0) + 1;
+  let scheduled = 0;
+  for (const row of scheduleRows) {
+    scheduled += row.n;
+    maturity[row.bucket as "learning" | "young" | "mature"] += row.n;
+    if (row.day === -1) due += row.n;
+    else if (row.day !== null && row.day <= today + FORECAST_DAYS) {
+      ahead[row.day] = (ahead[row.day] ?? 0) + row.n;
     }
   }
+  // A card with no review_state row has never been seen at all.
+  maturity.fresh = totalCards - scheduled;
 
   const forecast = Array.from({ length: FORECAST_DAYS }, (_, i) => ({
     day: today + i + 1,
@@ -376,7 +418,7 @@ export async function getStats(now = Date.now()): Promise<Stats> {
     reviewsToday,
     streak,
     bestStreak,
-    daysStudied: studied.length,
+    daysStudied: byDay.length,
     today,
     heatmap,
     grades,

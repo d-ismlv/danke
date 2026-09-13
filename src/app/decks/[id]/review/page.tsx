@@ -51,9 +51,8 @@ export default async function ReviewPage({
   const cardId = typeof query.cardId === "string" ? query.cardId : undefined;
   const band = parseRungBand(query.rungs);
   const now = new Date();
-  const reviewCards = practice
-    ? await getPracticeCards(id, cardId, 500, band)
-    : await getDueCards(id, now.getTime(), 500, band);
+  const due = practice ? null : await getDueCards(id, now.getTime(), 500, band);
+  const reviewCards = due ? due.cards : await getPracticeCards(id, cardId, 500, band);
 
   const queue: QueueItem[] = reviewCards.map((c) => ({
     id: c.id,
@@ -113,6 +112,7 @@ export default async function ReviewPage({
       backHref={`/decks/${deck.id}`}
       initialQueue={queue}
       mode={practice ? "practice" : "review"}
+      truncated={due?.truncated ?? false}
     />
   );
 }

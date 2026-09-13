@@ -8,7 +8,9 @@ import { db } from "@/db";
 import { decks, cards, reviewState, reviewLogs } from "@/db/schema";
 import { emptyState, fsrsCardToRow } from "@/lib/fsrs";
 import { parseCards, parseLadders, type SeparatorKey } from "@/lib/import";
-import { grantSession, clearSession } from "@/lib/auth";
+import { grantSession, clearSession, clientAddress, requireSession } from "@/lib/auth";
+import { secretsMatch } from "@/lib/session";
+import { retryAfter, recordFailure, recordSuccess } from "@/lib/throttle";
 import { cleanupUnreferencedMedia, extractMediaIds } from "@/lib/media-cleanup";
 import { getDeckAndDescendantIds } from "@/lib/queries";
 
@@ -20,10 +22,29 @@ export async function login(
   _prev: LoginState,
   formData: FormData,
 ): Promise<LoginState> {
+  const caller = await clientAddress();
+  const wait = retryAfter(caller);
+  if (wait > 0) {
+    const seconds = Math.ceil(wait / 1000);
+    return {
+      error: `Too many attempts. Try again in ${
+        seconds < 60 ? `${seconds} seconds` : `${Math.ceil(seconds / 60)} minutes`
+      }.`,
+    };
+  }
+
   const password = String(formData.get("password") ?? "");
-  if (!process.env.AUTH_PASSWORD || password !== process.env.AUTH_PASSWORD) {
+  const expected = process.env.AUTH_PASSWORD;
+  // `secretsMatch` compares digests, not the strings: `!==` returns as soon as
+  // two characters differ, which tells a patient caller how much of a guess
+  // was right. Unlimited guesses is the bigger half of that problem, and the
+  // throttle above is what answers it.
+  if (!expected || !(await secretsMatch(password, expected))) {
+    recordFailure(caller);
     return { error: "Incorrect password" };
   }
+
+  recordSuccess(caller);
   await grantSession();
   redirect("/");
 }
@@ -36,6 +57,7 @@ export async function logout() {
 // ---- Decks -----------------------------------------------------------------
 
 export async function createDeck(formData: FormData) {
+  await requireSession();
   const name = String(formData.get("name") ?? "").trim();
   const parentId = (formData.get("parentId") as string) || null;
   if (!name) return;
@@ -49,6 +71,7 @@ export async function createDeck(formData: FormData) {
 }
 
 export async function renameDeck(formData: FormData) {
+  await requireSession();
   const id = String(formData.get("id"));
   const name = String(formData.get("name") ?? "").trim();
   if (!id || !name) return;
@@ -58,6 +81,7 @@ export async function renameDeck(formData: FormData) {
 }
 
 export async function deleteDeck(formData: FormData) {
+  await requireSession();
   const id = String(formData.get("id"));
   if (!id) return;
   const removedCards = await db
@@ -82,6 +106,7 @@ export async function deleteDeck(formData: FormData) {
 // ---- Cards -----------------------------------------------------------------
 
 export async function createCard(formData: FormData) {
+  await requireSession();
   const deckId = String(formData.get("deckId"));
   const front = String(formData.get("front") ?? "");
   const back = String(formData.get("back") ?? "");
@@ -106,6 +131,7 @@ export async function createCard(formData: FormData) {
 }
 
 export async function updateCard(formData: FormData) {
+  await requireSession();
   const id = String(formData.get("id"));
   const deckId = String(formData.get("deckId"));
   const front = String(formData.get("front") ?? "");
@@ -132,6 +158,7 @@ export async function updateCard(formData: FormData) {
 }
 
 export async function deleteCard(formData: FormData) {
+  await requireSession();
   const id = String(formData.get("id"));
   const deckId = String(formData.get("deckId"));
   if (!id) return;
@@ -152,6 +179,7 @@ export async function deleteCard(formData: FormData) {
 }
 
 export async function resetCardProgress(formData: FormData) {
+  await requireSession();
   const id = String(formData.get("id"));
   const deckId = String(formData.get("deckId"));
   if (!id || !deckId) return;
@@ -169,6 +197,7 @@ export async function resetCardProgress(formData: FormData) {
 }
 
 export async function resetDeckProgress(formData: FormData) {
+  await requireSession();
   const deckId = String(formData.get("deckId"));
   if (!deckId) return;
   const deckIds = await getDeckAndDescendantIds(deckId);
@@ -194,6 +223,7 @@ export async function resetDeckProgress(formData: FormData) {
 
 /** Bulk-create cards from pasted delimited text, each with fresh FSRS state. */
 export async function importCards(formData: FormData) {
+  await requireSession();
   const deckId = String(formData.get("deckId"));
   const text = String(formData.get("text") ?? "");
   const separator = String(formData.get("separator") ?? "tab") as SeparatorKey;
@@ -240,6 +270,7 @@ export async function importLadders(
   _prev: LadderImportState,
   formData: FormData,
 ): Promise<LadderImportState> {
+  await requireSession();
   const text = String(formData.get("text") ?? "");
   const fallbackDeckId = String(formData.get("deckId") ?? "") || null;
 

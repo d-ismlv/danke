@@ -37,6 +37,7 @@ export default function StatTile({
   icon,
   tone,
   hint,
+  align = "start",
 }: {
   value: string | number;
   label: string;
@@ -44,9 +45,14 @@ export default function StatTile({
   tone?: Tone;
   /** A second line under the label: the denominator, the comparison, the unit. */
   hint?: string;
+  /** `center` spaces a short row of tiles evenly across its panel instead of
+   *  letting the first hug the left edge and the last trail off. */
+  align?: "start" | "center";
 }) {
   return (
-    <div className="flex items-start gap-2.5">
+    <div
+      className={`flex items-start gap-2.5 ${align === "center" ? "sm:justify-center" : ""}`}
+    >
       <span className={`shrink-0 ${tone ? TONE[tone] : "text-muted"}`}>
         <Icon name={icon} size={19} />
       </span>

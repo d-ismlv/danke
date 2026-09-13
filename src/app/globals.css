@@ -241,853 +241,929 @@
 }
 
 /* ==================================================================
-   Base
-   ================================================================== */
-
-html {
-  /* Every length in the app is in rem, so this one number sets the density of
-     the whole interface. 14px, not the browser's 16px: at 16 the controls,
-     labels and headings all land a step larger than they need to be, and the
-     page reads as though it were zoomed. */
-  font-size: 14px;
-  /* Always reserve the scrollbar gutter so the centered layout doesn't
-     shift horizontally between short pages and tall ones. */
-  scrollbar-gutter: stable;
-  -webkit-text-size-adjust: 100%;
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
-  font-size: 1rem;
-  line-height: 1.5;
-  /* On the 2x panels this is read on, unhinted greyscale smoothing is what
-     the rest of macOS and iOS draw; subpixel rendering made the same weight
-     look heavier than the system UI beside it. */
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  /* Counts, intervals and due numbers change in place all over the app;
-     proportional digits made them jitter as they did. */
-  font-variant-numeric: tabular-nums;
-  /* Guard against stray horizontal overflow. `clip` (not `hidden`) keeps the
-     sticky header working, since it doesn't create a scroll container. */
-  overflow-x: clip;
-}
-
-/* A 1px border on a 2x panel is two device pixels — twice the line the
-   design asks for, and on a 4K desktop the frames become the loudest thing
-   on the page. Hairlines go to the surfaces that draw a lot of them. */
-@media (min-resolution: 2dppx) {
-  :root {
-    --line: 0.5px;
-  }
-}
-
-::selection {
-  background: color-mix(in srgb, var(--accent) 24%, transparent);
-}
-
-/* Scrollbars. A box that genuinely scrolls should say so quietly; the default
-   OS bar draws a chunky light track straight across a dark panel, which is
-   what made the code samples look broken rather than scrollable. */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-strong) transparent;
-}
-::-webkit-scrollbar {
-  width: 9px;
-  height: 9px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background-color: var(--border-strong);
-  border: 2px solid transparent;
-  border-radius: var(--radius-pill);
-  background-clip: content-box;
-}
-::-webkit-scrollbar-thumb:hover {
-  background-color: var(--muted);
-}
-::-webkit-scrollbar-corner {
-  background: transparent;
-}
-
-button,
-a,
-input,
-select,
-textarea {
-  -webkit-tap-highlight-color: transparent;
-}
-
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-/* ==================================================================
-   Motion
+   Components
    ==================================================================
-   Three entrances, shared by everything that appears. Each is written
-   with `from` alone, so the animation runs to whatever the element's own
-   rules already say, and nothing drifts when one of those changes.
+   Everything below sits in `@layer components`, and it has to.
 
-   The travel is 4px. Displacement and duration are spent together: 16px
-   needs a third of a second to avoid looking snatched, and by then it is
-   a slide rather than an arrival.
+   `@import "tailwindcss"` puts its utilities in `@layer utilities`. CSS ranks
+   unlayered rules above every layered one, whatever the specificity — so while
+   these classes were unlayered, a `pl-9` or a `text-xs` written next to one in
+   the markup lost silently. Not overridden with a warning: dropped. The search
+   glyph sat on top of its own placeholder for that reason, and the band-pass
+   buttons rendered at 0.8125rem while their markup asked for 0.75rem.
+
+   Inside the layer the ordinary rules apply again: a utility in the markup
+   beats the component class, which is what anyone writing `p-0` on a button
+   expects, and these classes still beat Tailwind's `base` resets.
+
+   The tokens above stay outside the layer — `@theme` and the `:root` palettes
+   are variable declarations, not rules to be outranked.
    ================================================================== */
 
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
+@layer components {
+  /* ==================================================================
+     Base
+     ================================================================== */
+
+  html {
+    /* Every length in the app is in rem, so this one number sets the density of
+       the whole interface. 14px, not the browser's 16px: at 16 the controls,
+       labels and headings all land a step larger than they need to be, and the
+       page reads as though it were zoomed. */
+    font-size: 14px;
+    /* Always reserve the scrollbar gutter so the centered layout doesn't
+       shift horizontally between short pages and tall ones. */
+    scrollbar-gutter: stable;
+    -webkit-text-size-adjust: 100%;
   }
-}
-@keyframes settle {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-size: 1rem;
+    line-height: 1.5;
+    /* On the 2x panels this is read on, unhinted greyscale smoothing is what
+       the rest of macOS and iOS draw; subpixel rendering made the same weight
+       look heavier than the system UI beside it. */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    /* Counts, intervals and due numbers change in place all over the app;
+       proportional digits made them jitter as they did. */
+    font-variant-numeric: tabular-nums;
+    /* Guard against stray horizontal overflow. `clip` (not `hidden`) keeps the
+       sticky header working, since it doesn't create a scroll container. */
+    overflow-x: clip;
   }
-}
-@keyframes fade {
-  from {
-    opacity: 0;
+
+  /* A 1px border on a 2x panel is two device pixels — twice the line the
+     design asks for, and on a 4K desktop the frames become the loudest thing
+     on the page. Hairlines go to the surfaces that draw a lot of them. */
+  @media (min-resolution: 2dppx) {
+    :root {
+      --line: 0.5px;
+    }
   }
-}
 
-.anim-rise {
-  animation: rise var(--t-enter) var(--ease-out);
-}
-.anim-settle {
-  animation: settle var(--t-enter) var(--ease-out);
-}
-.anim-fade {
-  animation: fade var(--t-enter) var(--ease-out);
-}
+  ::selection {
+    background: color-mix(in srgb, var(--accent) 24%, transparent);
+  }
 
-/* The one transition used by markup that isn't a button or a field: rows,
-   nav items, links, chips. Named for the tokens rather than the properties,
-   so nothing in the JSX has to spell out a duration or a curve. */
-.transition-state {
-  transition:
-    background-color var(--t-state) var(--ease-out),
-    border-color var(--t-state) var(--ease-out),
-    color var(--t-state) var(--ease-out),
-    opacity var(--t-state) var(--ease-out),
-    transform var(--t-state) var(--ease-out);
-}
+  /* Scrollbars. A box that genuinely scrolls should say so quietly; the default
+     OS bar draws a chunky light track straight across a dark panel, which is
+     what made the code samples look broken rather than scrollable. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--border-strong);
+    border: 2px solid transparent;
+    border-radius: var(--radius-pill);
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--muted);
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 
-/* ==================================================================
-   Typography
-   ================================================================== */
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
 
-.eyebrow {
-  color: var(--info);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 
-.label {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
+  /* ==================================================================
+     Motion
+     ==================================================================
+     Three entrances, shared by everything that appears. Each is written
+     with `from` alone, so the animation runs to whatever the element's own
+     rules already say, and nothing drifts when one of those changes.
 
-.display-title {
-  font-family: var(--font-sans), system-ui, sans-serif;
-  font-weight: 680;
-  letter-spacing: -0.03em;
-  line-height: 1.12;
-}
+     The travel is 4px. Displacement and duration are spent together: 16px
+     needs a third of a second to avoid looking snatched, and by then it is
+     a slide rather than an arrival.
+     ================================================================== */
 
-.numeral {
-  font-variant-numeric: tabular-nums lining-nums;
-  letter-spacing: -0.02em;
-}
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+  }
+  @keyframes settle {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+  }
 
-/* ==================================================================
-   Surfaces
-   ================================================================== */
+  .anim-rise {
+    animation: rise var(--t-enter) var(--ease-out);
+  }
+  .anim-settle {
+    animation: settle var(--t-enter) var(--ease-out);
+  }
+  .anim-fade {
+    animation: fade var(--t-enter) var(--ease-out);
+  }
 
-.app-header {
-  background: color-mix(in srgb, var(--surface) 86%, transparent);
-  box-shadow: 0 var(--line) 0 var(--border);
-}
+  /* The one transition used by markup that isn't a button or a field: rows,
+     nav items, links, chips. Named for the tokens rather than the properties,
+     so nothing in the JSX has to spell out a duration or a curve. */
+  .transition-state {
+    transition:
+      background-color var(--t-state) var(--ease-out),
+      border-color var(--t-state) var(--ease-out),
+      color var(--t-state) var(--ease-out),
+      opacity var(--t-state) var(--ease-out),
+      transform var(--t-state) var(--ease-out);
+  }
 
-.panel {
-  border: var(--line) solid var(--border);
-  border-radius: var(--radius-panel);
-  background: var(--surface);
-  box-shadow: var(--shadow-soft);
-}
+  /* ==================================================================
+     Typography
+     ================================================================== */
 
-.panel-quiet {
-  border: var(--line) solid var(--border);
-  border-radius: var(--radius-card);
-  background-color: color-mix(in srgb, var(--surface) 55%, transparent);
-}
+  .eyebrow {
+    color: var(--info);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
 
-/* A row in a list of decks, concepts or cards. The whole row answers the
-   pointer, not just the link inside it. */
-.row {
-  transition: background-color var(--t-state) var(--ease-out);
-}
-.row:hover {
-  background-color: color-mix(in srgb, var(--surface-hover) 65%, transparent);
-}
+  .label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
 
-/* ==================================================================
-   Buttons
-   ==================================================================
-   Controls transition `background-color`, never the `background`
-   shorthand: the shorthand carries the image and its position too, so a
-   hover that sets one silently resets the other.
-   ================================================================== */
+  .display-title {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-weight: 680;
+    letter-spacing: -0.03em;
+    line-height: 1.12;
+  }
 
-.button-primary,
-.button-secondary,
-.button-quiet,
-.button-danger,
-.button-icon {
-  display: inline-flex;
-  min-height: 2.125rem;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  border: var(--line) solid transparent;
-  border-radius: var(--radius-control);
-  padding: 0.4rem 0.7rem;
-  font-size: 0.8125rem;
-  font-weight: 650;
-  line-height: 1;
-  cursor: pointer;
-  transition:
-    background-color var(--t-state) var(--ease-out),
-    border-color var(--t-state) var(--ease-out),
-    color var(--t-state) var(--ease-out),
-    box-shadow var(--t-state) var(--ease-out),
-    transform var(--t-press) var(--ease-out);
-}
+  .numeral {
+    font-variant-numeric: tabular-nums lining-nums;
+    letter-spacing: -0.02em;
+  }
 
-/* Only the controls that draw a face at rest get the 1px press. The other
-   three are transparent until hover, so displacing the box displaced nothing
-   but the glyph inside it: the press read as the icon floating free of its
-   button rather than the button giving way — and on touch, where there is no
-   hover to paint a face first, floating was all there ever was. Those press
-   in colour instead, which is the step the palette already reserves for it. */
-.button-primary:active:not(:disabled),
-.button-secondary:active:not(:disabled) {
-  transform: translateY(1px);
-}
+  /* ==================================================================
+     Surfaces
+     ================================================================== */
 
-.button-quiet:active:not(:disabled),
-.button-icon:active:not(:disabled) {
-  color: var(--foreground);
-  background-color: var(--surface-press);
-}
+  .app-header {
+    background: color-mix(in srgb, var(--surface) 86%, transparent);
+    box-shadow: 0 var(--line) 0 var(--border);
+  }
 
-.button-primary {
-  color: var(--accent-fg);
-  background-color: var(--accent);
-  box-shadow: var(--shadow-accent);
-}
-.button-primary:hover:not(:disabled) {
-  background-color: var(--accent-hover);
-}
-.button-primary:active:not(:disabled) {
-  background-color: var(--accent-press);
-  box-shadow: none;
-}
+  .panel {
+    border: var(--line) solid var(--border);
+    border-radius: var(--radius-panel);
+    background: var(--surface);
+    box-shadow: var(--shadow-soft);
+  }
 
-.button-secondary {
-  border-color: var(--border);
-  color: var(--foreground);
-  background-color: var(--surface);
-}
-.button-secondary:hover:not(:disabled) {
-  border-color: var(--border-strong);
-  background-color: var(--surface-hover);
-}
-.button-secondary:active:not(:disabled) {
-  background-color: var(--surface-press);
-}
+  .panel-quiet {
+    border: var(--line) solid var(--border);
+    border-radius: var(--radius-card);
+    background-color: color-mix(in srgb, var(--surface) 55%, transparent);
+  }
 
-.button-quiet {
-  color: var(--muted);
-  background-color: transparent;
-}
-.button-quiet:hover:not(:disabled) {
-  color: var(--foreground);
-  background-color: var(--surface-hover);
-}
+  /* A row in a list of decks, concepts or cards. The whole row answers the
+     pointer, not just the link inside it. */
+  .row {
+    transition: background-color var(--t-state) var(--ease-out);
+  }
+  .row:hover {
+    background-color: color-mix(in srgb, var(--surface-hover) 65%, transparent);
+  }
 
-.button-danger {
-  color: var(--again);
-  background-color: transparent;
-}
-.button-danger:hover:not(:disabled) {
-  background-color: var(--again-tint);
-  border-color: color-mix(in srgb, var(--again) 30%, transparent);
-}
-.button-danger:active:not(:disabled) {
-  background-color: color-mix(in srgb, var(--again) 18%, var(--surface));
-}
+  /* ==================================================================
+     Buttons
+     ==================================================================
+     Controls transition `background-color`, never the `background`
+     shorthand: the shorthand carries the image and its position too, so a
+     hover that sets one silently resets the other.
+     ================================================================== */
 
-.button-icon {
-  padding: 0.4rem;
-  min-width: 2.125rem;
-  color: var(--muted);
-  background-color: transparent;
-}
-.button-icon:hover:not(:disabled) {
-  color: var(--foreground);
-  background-color: var(--surface-hover);
-}
+  .button-primary,
+  .button-secondary,
+  .button-quiet,
+  .button-danger,
+  .button-danger-solid,
+  .button-icon {
+    display: inline-flex;
+    min-height: 2.125rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    border: var(--line) solid transparent;
+    border-radius: var(--radius-control);
+    padding: 0.4rem 0.7rem;
+    font-size: 0.8125rem;
+    font-weight: 650;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+      background-color var(--t-state) var(--ease-out),
+      border-color var(--t-state) var(--ease-out),
+      color var(--t-state) var(--ease-out),
+      box-shadow var(--t-state) var(--ease-out),
+      transform var(--t-press) var(--ease-out);
+  }
 
-button:disabled,
-.button-primary:disabled,
-.button-secondary:disabled {
-  pointer-events: none;
-  opacity: 0.5;
-}
+  /* Only the controls that draw a face at rest get the 1px press. The other
+     three are transparent until hover, so displacing the box displaced nothing
+     but the glyph inside it: the press read as the icon floating free of its
+     button rather than the button giving way — and on touch, where there is no
+     hover to paint a face first, floating was all there ever was. Those press
+     in colour instead, which is the step the palette already reserves for it. */
+  .button-primary:active:not(:disabled),
+  .button-secondary:active:not(:disabled),
+  .button-danger-solid:active:not(:disabled) {
+    transform: translateY(1px);
+  }
 
-/* ==================================================================
-   Fields
-   ================================================================== */
+  .button-quiet:active:not(:disabled),
+  .button-icon:active:not(:disabled) {
+    color: var(--foreground);
+    background-color: var(--surface-press);
+  }
 
-.input,
-.textarea,
-.select {
-  width: 100%;
-  min-height: 2.25rem;
-  border: var(--line) solid var(--border);
-  border-radius: var(--radius-control);
-  background-color: var(--surface);
-  color: var(--foreground);
-  padding: 0.4rem 0.6rem;
-  font-size: 0.85rem;
-  outline: none;
-  transition:
-    border-color var(--t-state) var(--ease-out),
-    box-shadow var(--t-state) var(--ease-out),
-    background-color var(--t-state) var(--ease-out);
-}
+  .button-primary {
+    color: var(--accent-fg);
+    background-color: var(--accent);
+    box-shadow: var(--shadow-accent);
+  }
+  .button-primary:hover:not(:disabled) {
+    background-color: var(--accent-hover);
+  }
+  .button-primary:active:not(:disabled) {
+    background-color: var(--accent-press);
+    box-shadow: none;
+  }
 
-/* A field with a glyph sitting in its leading edge.
-   The inset is declared here rather than as a `pl-9` in the markup, and it has
-   to be: everything in this file is unlayered, while Tailwind's utilities sit
-   in `@layer utilities`, and an unlayered rule beats a layered one whatever
-   its specificity. A padding utility on `.input` is therefore dropped without
-   a word — which is how the search glyph came to sit on top of its own
-   placeholder. The same is true of every utility in the markup that collides
-   with a property one of these classes sets. */
-.input-icon {
-  padding-inline-start: 2.25rem;
-}
-.input::placeholder,
-.textarea::placeholder {
-  color: var(--faint);
-}
-.input:hover,
-.textarea:hover,
-.select:hover {
-  border-color: var(--border-strong);
-}
-.input:focus,
-.textarea:focus,
-.select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
-}
-.textarea {
-  min-height: 7rem;
-  resize: vertical;
-  line-height: 1.55;
-}
-.mono {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 0.8125rem;
-}
+  .button-secondary {
+    border-color: var(--border);
+    color: var(--foreground);
+    background-color: var(--surface);
+  }
+  .button-secondary:hover:not(:disabled) {
+    border-color: var(--border-strong);
+    background-color: var(--surface-hover);
+  }
+  .button-secondary:active:not(:disabled) {
+    background-color: var(--surface-press);
+  }
 
-/* ==================================================================
-   Chips
-   ================================================================== */
+  .button-quiet {
+    color: var(--muted);
+    background-color: transparent;
+  }
+  .button-quiet:hover:not(:disabled) {
+    color: var(--foreground);
+    background-color: var(--surface-hover);
+  }
 
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  border-radius: 4px;
-  padding: 0.15rem 0.4rem;
-  font-size: 0.7rem;
-  font-weight: 650;
-  white-space: nowrap;
-  background-color: var(--surface-2);
-  color: var(--muted);
-}
-.chip-accent {
-  background-color: var(--accent-tint);
-  color: color-mix(in srgb, var(--accent) 82%, var(--foreground));
-}
-/* What is waiting on you, wherever it is counted. Amber rather than violet:
-   a due count is a fact about time, and the button beside it is the action. */
-.chip-due {
-  background-color: var(--due-tint);
-  color: color-mix(in srgb, var(--due) 86%, var(--foreground));
-}
-/* What a thing *is* — a deck's size, a ladder's length, a card's rung. */
-.chip-info {
-  background-color: var(--info-tint);
-  color: color-mix(in srgb, var(--info) 86%, var(--foreground));
-}
-.chip-good {
-  background-color: var(--good-tint);
-  color: var(--good);
-}
-.chip-again {
-  background-color: var(--again-tint);
-  color: var(--again);
-}
+  .button-danger {
+    color: var(--again);
+    background-color: transparent;
+  }
+  /* The one place a destructive action is the confirmed choice rather than the
+     quiet one, so it is the only place it gets a solid face. */
+  .button-danger-solid {
+    color: var(--accent-fg);
+    background-color: var(--again);
+  }
+  .button-danger-solid:hover:not(:disabled) {
+    background-color: color-mix(in srgb, var(--again) 88%, black);
+  }
+  .button-danger-solid:active:not(:disabled) {
+    background-color: color-mix(in srgb, var(--again) 78%, black);
+  }
+  .button-danger:hover:not(:disabled) {
+    background-color: var(--again-tint);
+    border-color: color-mix(in srgb, var(--again) 30%, transparent);
+  }
+  .button-danger:active:not(:disabled) {
+    background-color: color-mix(in srgb, var(--again) 18%, var(--surface));
+  }
 
-/* ==================================================================
-   Ladder
-   ==================================================================
-   A concept is drilled through seven rungs, and three screens need the
-   same vocabulary for one: passed, the edge (the first rung missed), and
-   not yet reached.
-   ================================================================== */
+  .button-icon {
+    padding: 0.4rem;
+    min-width: 2.125rem;
+    color: var(--muted);
+    background-color: transparent;
+  }
+  .button-icon:hover:not(:disabled) {
+    color: var(--foreground);
+    background-color: var(--surface-hover);
+  }
 
-.rung-dot {
-  display: block;
-  height: 0.375rem;
-  border-radius: var(--radius-pill);
-  background-color: var(--surface-2);
-  transition:
-    background-color var(--t-state) var(--ease-out),
-    box-shadow var(--t-state) var(--ease-out);
-}
-.rung-dot[data-state="passed"] {
-  background-color: var(--good);
-}
-.rung-dot[data-state="edge"] {
-  background-color: var(--again);
-}
-.rung-dot[data-state="current"] {
-  background-color: var(--accent);
-}
+  button:disabled,
+  .button-primary:disabled,
+  .button-secondary:disabled {
+    pointer-events: none;
+    opacity: 0.5;
+  }
 
-.rung-cell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 1.5rem;
-  min-width: 1.5rem;
-  border-radius: 4px;
-  border: var(--line) solid transparent;
-  font-size: 0.72rem;
-  font-weight: 700;
-  background-color: var(--surface-2);
-  color: var(--faint);
-  transition:
-    background-color var(--t-state) var(--ease-out),
-    color var(--t-state) var(--ease-out),
-    border-color var(--t-state) var(--ease-out);
-}
-.rung-cell[data-state="passed"] {
-  background-color: var(--good-tint);
-  border-color: color-mix(in srgb, var(--good) 34%, transparent);
-  color: var(--good);
-}
-.rung-cell[data-state="edge"] {
-  background-color: var(--again-tint);
-  border-color: color-mix(in srgb, var(--again) 40%, transparent);
-  color: var(--again);
-}
-.rung-cell[data-state="current"] {
-  background-color: var(--accent-tint);
-  border-color: var(--accent-tint-border);
-  color: color-mix(in srgb, var(--accent) 80%, var(--foreground));
-}
+  /* A modal that belongs to the app rather than to the browser. `::backdrop`
+     is the platform's own dim layer, so nothing here has to manage scroll
+     locking or a stacking context. */
+  .confirm-dialog {
+    /* A dialog is centred by `margin: auto` in the UA stylesheet, and
+       Tailwind's preflight zeroes every margin — so without this it pins to
+       the top-left corner of the viewport. */
+    margin: auto;
+    max-width: min(26rem, calc(100vw - 2rem));
+    border: var(--line) solid var(--border);
+    border-radius: var(--radius-panel);
+    background: var(--surface);
+    color: var(--foreground);
+    padding: 1.25rem;
+    box-shadow: var(--shadow-raised);
+  }
+  .confirm-dialog::backdrop {
+    background: rgb(10 12 20 / 0.5);
+    backdrop-filter: blur(2px);
+  }
+  .confirm-dialog[open] {
+    animation: rise var(--t-enter) var(--ease-out);
+  }
 
-/* ==================================================================
-   Review stage
-   ================================================================== */
+  /* ==================================================================
+     Fields
+     ================================================================== */
 
-.stage {
-  border: var(--line) solid var(--border);
-  border-radius: var(--radius-panel);
-  background: var(--surface);
-  box-shadow: var(--shadow-raised);
-}
+  .input,
+  .textarea,
+  .select {
+    width: 100%;
+    min-height: 2.25rem;
+    border: var(--line) solid var(--border);
+    border-radius: var(--radius-control);
+    background-color: var(--surface);
+    color: var(--foreground);
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+    outline: none;
+    transition:
+      border-color var(--t-state) var(--ease-out),
+      box-shadow var(--t-state) var(--ease-out),
+      background-color var(--t-state) var(--ease-out);
+  }
 
-.stage-question {
-  font-size: clamp(1rem, 0.9rem + 0.45vw, 1.25rem);
-  line-height: 1.45;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
+  /* A field with a glyph sitting in its leading edge.
+     The inset is declared here rather than as a `pl-9` in the markup, and it has
+     to be: everything in this file is unlayered, while Tailwind's utilities sit
+     in `@layer utilities`, and an unlayered rule beats a layered one whatever
+     its specificity. A padding utility on `.input` is therefore dropped without
+     a word — which is how the search glyph came to sit on top of its own
+     placeholder. The same is true of every utility in the markup that collides
+     with a property one of these classes sets. */
+  .input-icon {
+    padding-inline-start: 2.25rem;
+  }
+  .input::placeholder,
+  .textarea::placeholder {
+    color: var(--faint);
+  }
+  .input:hover,
+  .textarea:hover,
+  .select:hover {
+    border-color: var(--border-strong);
+  }
+  .input:focus,
+  .textarea:focus,
+  .select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+  .textarea {
+    min-height: 7rem;
+    resize: vertical;
+    line-height: 1.55;
+  }
+  .mono {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 0.8125rem;
+  }
 
-.progress-track {
-  height: 0.25rem;
-  border-radius: var(--radius-pill);
-  background-color: var(--surface-2);
-  overflow: hidden;
-}
-.progress-fill {
-  height: 100%;
-  border-radius: var(--radius-pill);
-  background-color: var(--accent);
-  transition: width var(--t-enter) var(--ease-out);
-}
+  /* ==================================================================
+     Chips
+     ================================================================== */
 
-/* The four grade buttons: a tinted face each, so the choice is legible
-   before the labels are read, and a keycap that says what to press. */
-.grade {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.2rem;
-  /* A real thumb target on a phone; the review screen is used one-handed.
-     Relaxes on wider screens where the pointer is precise. */
-  min-height: 4.25rem;
-  border-radius: var(--radius-card);
-  border: var(--line) solid var(--border);
-  border-bottom: 3px solid var(--grade-color);
-  background-color: var(--surface);
-  font-size: 0.875rem;
-  font-weight: 650;
-  cursor: pointer;
-  transition:
-    background-color var(--t-state) var(--ease-out),
-    border-color var(--t-state) var(--ease-out),
-    transform var(--t-press) var(--ease-out);
-}
-.grade:hover:not(:disabled) {
-  background-color: var(--grade-tint);
-}
-.grade:active:not(:disabled) {
-  transform: translateY(1px);
-}
-@media (min-width: 640px) {
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border-radius: 4px;
+    padding: 0.15rem 0.4rem;
+    font-size: 0.7rem;
+    font-weight: 650;
+    white-space: nowrap;
+    background-color: var(--surface-2);
+    color: var(--muted);
+  }
+  .chip-accent {
+    background-color: var(--accent-tint);
+    color: color-mix(in srgb, var(--accent) 82%, var(--foreground));
+  }
+  /* What is waiting on you, wherever it is counted. Amber rather than violet:
+     a due count is a fact about time, and the button beside it is the action. */
+  .chip-due {
+    background-color: var(--due-tint);
+    color: color-mix(in srgb, var(--due) 86%, var(--foreground));
+  }
+  /* What a thing *is* — a deck's size, a ladder's length, a card's rung. */
+  .chip-info {
+    background-color: var(--info-tint);
+    color: color-mix(in srgb, var(--info) 86%, var(--foreground));
+  }
+  .chip-good {
+    background-color: var(--good-tint);
+    color: var(--good);
+  }
+  .chip-again {
+    background-color: var(--again-tint);
+    color: var(--again);
+  }
+
+  /* ==================================================================
+     Ladder
+     ==================================================================
+     A concept is drilled through seven rungs, and three screens need the
+     same vocabulary for one: passed, the edge (the first rung missed), and
+     not yet reached.
+     ================================================================== */
+
+  .rung-dot {
+    display: block;
+    height: 0.375rem;
+    border-radius: var(--radius-pill);
+    background-color: var(--surface-2);
+    transition:
+      background-color var(--t-state) var(--ease-out),
+      box-shadow var(--t-state) var(--ease-out);
+  }
+  .rung-dot[data-state="passed"] {
+    background-color: var(--good);
+  }
+  .rung-dot[data-state="edge"] {
+    background-color: var(--again);
+  }
+  .rung-dot[data-state="current"] {
+    background-color: var(--accent);
+  }
+
+  .rung-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 1.5rem;
+    min-width: 1.5rem;
+    border-radius: 4px;
+    border: var(--line) solid transparent;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background-color: var(--surface-2);
+    color: var(--faint);
+    transition:
+      background-color var(--t-state) var(--ease-out),
+      color var(--t-state) var(--ease-out),
+      border-color var(--t-state) var(--ease-out);
+  }
+  .rung-cell[data-state="passed"] {
+    background-color: var(--good-tint);
+    border-color: color-mix(in srgb, var(--good) 34%, transparent);
+    color: var(--good);
+  }
+  .rung-cell[data-state="edge"] {
+    background-color: var(--again-tint);
+    border-color: color-mix(in srgb, var(--again) 40%, transparent);
+    color: var(--again);
+  }
+  .rung-cell[data-state="current"] {
+    background-color: var(--accent-tint);
+    border-color: var(--accent-tint-border);
+    color: color-mix(in srgb, var(--accent) 80%, var(--foreground));
+  }
+
+  /* ==================================================================
+     Review stage
+     ================================================================== */
+
+  .stage {
+    border: var(--line) solid var(--border);
+    border-radius: var(--radius-panel);
+    background: var(--surface);
+    box-shadow: var(--shadow-raised);
+  }
+
+  .stage-question {
+    font-size: clamp(1rem, 0.9rem + 0.45vw, 1.25rem);
+    line-height: 1.45;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .progress-track {
+    height: 0.25rem;
+    border-radius: var(--radius-pill);
+    background-color: var(--surface-2);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: var(--radius-pill);
+    background-color: var(--accent);
+    transition: width var(--t-enter) var(--ease-out);
+  }
+
+  /* The four grade buttons: a tinted face each, so the choice is legible
+     before the labels are read, and a keycap that says what to press. */
   .grade {
-    min-height: 3.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    /* A real thumb target on a phone; the review screen is used one-handed.
+       Relaxes on wider screens where the pointer is precise. */
+    min-height: 4.25rem;
+    border-radius: var(--radius-card);
+    border: var(--line) solid var(--border);
+    border-bottom: 3px solid var(--grade-color);
+    background-color: var(--surface);
+    font-size: 0.875rem;
+    font-weight: 650;
+    cursor: pointer;
+    transition:
+      background-color var(--t-state) var(--ease-out),
+      border-color var(--t-state) var(--ease-out),
+      transform var(--t-press) var(--ease-out);
   }
-}
-.grade-label {
-  color: var(--grade-color);
-}
-.grade-hint {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--muted);
-}
-.keycap {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.15rem;
-  height: 1.15rem;
-  padding: 0 0.25rem;
-  border-radius: 3px;
-  border: var(--line) solid var(--border);
-  background-color: var(--surface-2);
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
+  .grade:hover:not(:disabled) {
+    background-color: var(--grade-tint);
+  }
+  .grade:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  @media (min-width: 640px) {
+    .grade {
+      min-height: 3.5rem;
+    }
+  }
+  .grade-label {
+    color: var(--grade-color);
+  }
+  .grade-hint {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .keycap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.15rem;
+    height: 1.15rem;
+    padding: 0 0.25rem;
+    border-radius: 3px;
+    border: var(--line) solid var(--border);
+    background-color: var(--surface-2);
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
 
-/* ==================================================================
-   Heatmap
-   ================================================================== */
+  /* ==================================================================
+     Heatmap
+     ================================================================== */
 
-/* The heatmap shrinks to fit a phone and stops growing at a legible cell.
-   Stretching it to fill a desktop panel gave 40px squares — a calendar drawn
-   in floor tiles. The columns are `minmax(0, 0.72rem)`: they give way on a
-   narrow screen and never exceed ten-odd pixels on a wide one. */
-.heat-grid {
-  display: grid;
-  grid-auto-flow: column;
-  grid-template-rows: repeat(7, minmax(0, 1fr));
-  gap: 2px;
-  justify-content: start;
-  min-width: 0;
-}
-.heat-cell {
-  width: 100%;
-  aspect-ratio: 1;
-  border-radius: 2px;
-  transition: transform var(--t-state) var(--ease-out);
-}
-.heat-cell:hover {
-  transform: scale(1.25);
-}
-/* ---- Proportion bars ----------------------------------------------
-   Two shapes carry every small chart on the stats page. A `.meter` is one
-   row split into shares — how the last month was graded, how deep the
-   collection is — and it is the place the four grade colours finally do
-   some work outside the four grade buttons. `.bar` is a column, for the
-   fortnight ahead and the seven rungs.
+  /* The heatmap shrinks to fit a phone and stops growing at a legible cell.
+     Stretching it to fill a desktop panel gave 40px squares — a calendar drawn
+     in floor tiles. The columns are `minmax(0, 0.72rem)`: they give way on a
+     narrow screen and never exceed ten-odd pixels on a wide one. */
+  .heat-grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(7, minmax(0, 1fr));
+    gap: 2px;
+    justify-content: start;
+    min-width: 0;
+  }
+  .heat-cell {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 2px;
+    transition: transform var(--t-state) var(--ease-out);
+  }
+  .heat-cell:hover {
+    transform: scale(1.25);
+  }
+  /* ---- Proportion bars ----------------------------------------------
+     Two shapes carry every small chart on the stats page. A `.meter` is one
+     row split into shares — how the last month was graded, how deep the
+     collection is — and it is the place the four grade colours finally do
+     some work outside the four grade buttons. `.bar` is a column, for the
+     fortnight ahead and the seven rungs.
 
-   Neither draws an axis. At this size an axis costs more room than it
-   returns; the number that matters is written beside the chart instead. */
-.meter {
-  display: flex;
-  height: 0.5rem;
-  overflow: hidden;
-  border-radius: var(--radius-pill);
-  background-color: var(--surface-2);
-}
-.meter > span {
-  display: block;
-  height: 100%;
-  transition: width var(--t-enter) var(--ease-out);
-}
+     Neither draws an axis. At this size an axis costs more room than it
+     returns; the number that matters is written beside the chart instead. */
+  .meter {
+    display: flex;
+    height: 0.5rem;
+    overflow: hidden;
+    border-radius: var(--radius-pill);
+    background-color: var(--surface-2);
+  }
+  .meter > span {
+    display: block;
+    height: 100%;
+    transition: width var(--t-enter) var(--ease-out);
+  }
 
-.bar-track {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-}
-.bar {
-  width: 100%;
-  min-height: 2px;
-  border-radius: 3px 3px 0 0;
-  background-color: var(--surface-2);
-  transition:
-    background-color var(--t-state) var(--ease-out),
-    height var(--t-enter) var(--ease-out);
-}
+  .bar-track {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
+  .bar {
+    width: 100%;
+    min-height: 2px;
+    border-radius: 3px 3px 0 0;
+    background-color: var(--surface-2);
+    transition:
+      background-color var(--t-state) var(--ease-out),
+      height var(--t-enter) var(--ease-out);
+  }
 
-/* A column that is a share of something fixed — a percentage — is drawn
-   inside its own track, so the empty part is visible. Without it, seven
-   readings between 83 and 94 fill the panel almost to the top and the chart
-   says "all high" where the whole point was which one is lowest. Counts, with
-   no ceiling to be a share of, keep the bare baseline. */
-.gauge {
-  background-color: var(--surface-2);
-  border-radius: 3px;
-  overflow: hidden;
-}
+  /* A column that is a share of something fixed — a percentage — is drawn
+     inside its own track, so the empty part is visible. Without it, seven
+     readings between 83 and 94 fill the panel almost to the top and the chart
+     says "all high" where the whole point was which one is lowest. Counts, with
+     no ceiling to be a share of, keep the bare baseline. */
+  .gauge {
+    background-color: var(--surface-2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
 
-/* The legend's own swatches aren't in the grid, so they need a size. */
-.heat-key {
-  width: 0.65rem;
-  height: 0.65rem;
-  border-radius: 2px;
-}
+  /* ---- Skeletons ----------------------------------------------------
+     The placeholder a route shows while its queries run. It breathes rather
+     than sweeps: a gradient travelling across a dozen bars at once reads as
+     something happening *to* the page, where a slow fade reads as the page
+     not being there yet, which is the truth. */
+  .skeleton {
+    border-radius: var(--radius-control);
+    background-color: var(--surface-2);
+    animation: pulse 1.4s var(--ease-out) infinite;
+  }
+  @keyframes pulse {
+    50% {
+      opacity: 0.45;
+    }
+  }
 
-/* ==================================================================
-   Markdown
-   ================================================================== */
+  /* The legend's own swatches aren't in the grid, so they need a size. */
+  .heat-key {
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 2px;
+  }
 
-.markdown {
-  line-height: 1.65;
-  word-break: break-word;
-}
-.markdown > :first-child {
-  margin-top: 0;
-}
-.markdown > :last-child {
-  margin-bottom: 0;
-}
-.markdown h1,
-.markdown h2,
-.markdown h3 {
-  font-weight: 650;
-  line-height: 1.25;
-  letter-spacing: -0.015em;
-  margin: 1.2em 0 0.5em;
-}
-.markdown h1 {
-  font-size: 1.5em;
-}
-.markdown h2 {
-  font-size: 1.28em;
-}
-.markdown h3 {
-  font-size: 1.12em;
-}
-.markdown p,
-.markdown ul,
-.markdown ol,
-.markdown blockquote,
-.markdown pre,
-.markdown table {
-  margin: 0.7em 0;
-}
-.markdown ul,
-.markdown ol {
-  padding-left: 1.3em;
-}
-.markdown ul {
-  list-style: disc;
-}
-.markdown ol {
-  list-style: decimal;
-}
-.markdown li {
-  margin: 0.3em 0;
-  padding-left: 0.15em;
-}
-.markdown li::marker {
-  color: var(--faint);
-}
-.markdown strong {
-  font-weight: 680;
-}
-.markdown a {
-  color: var(--info);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  text-decoration-thickness: from-font;
-}
-.markdown code {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 0.88em;
-  background: var(--surface-2);
-  padding: 0.15em 0.4em;
-  border-radius: 4px;
-}
-.markdown pre {
-  background: var(--surface-2);
-  padding: 0.9em 1em;
-  border-radius: var(--radius-card);
-  overflow-x: auto;
-}
-.markdown pre code {
-  background: none;
-  padding: 0;
-}
-.markdown blockquote {
-  border-left: 3px solid var(--info-tint-border);
-  padding-left: 1em;
-  color: var(--muted);
-}
-.markdown table {
-  border-collapse: collapse;
-  width: 100%;
-  font-size: 0.95em;
-}
-.markdown th,
-.markdown td {
-  border: var(--line) solid var(--border);
-  padding: 0.45em 0.7em;
-  text-align: left;
-}
-.markdown th {
-  background: var(--surface-2);
-}
-.markdown hr {
-  border: none;
-  border-top: var(--line) solid var(--border);
-  margin: 1.2em 0;
-}
-.markdown input[type="checkbox"] {
-  margin-right: 0.4em;
-}
+  /* ==================================================================
+     Markdown
+     ================================================================== */
 
-/* ---- Images ------------------------------------------------------ */
+  .markdown {
+    line-height: 1.65;
+    word-break: break-word;
+  }
+  .markdown > :first-child {
+    margin-top: 0;
+  }
+  .markdown > :last-child {
+    margin-bottom: 0;
+  }
+  .markdown h1,
+  .markdown h2,
+  .markdown h3 {
+    font-weight: 650;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    margin: 1.2em 0 0.5em;
+  }
+  .markdown h1 {
+    font-size: 1.5em;
+  }
+  .markdown h2 {
+    font-size: 1.28em;
+  }
+  .markdown h3 {
+    font-size: 1.12em;
+  }
+  .markdown p,
+  .markdown ul,
+  .markdown ol,
+  .markdown blockquote,
+  .markdown pre,
+  .markdown table {
+    margin: 0.7em 0;
+  }
+  .markdown ul,
+  .markdown ol {
+    padding-left: 1.3em;
+  }
+  .markdown ul {
+    list-style: disc;
+  }
+  .markdown ol {
+    list-style: decimal;
+  }
+  .markdown li {
+    margin: 0.3em 0;
+    padding-left: 0.15em;
+  }
+  .markdown li::marker {
+    color: var(--faint);
+  }
+  .markdown strong {
+    font-weight: 680;
+  }
+  .markdown a {
+    color: var(--info);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: from-font;
+  }
+  .markdown code {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 0.88em;
+    background: var(--surface-2);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+  }
+  .markdown pre {
+    background: var(--surface-2);
+    padding: 0.9em 1em;
+    border-radius: var(--radius-card);
+    overflow-x: auto;
+  }
+  .markdown pre code {
+    background: none;
+    padding: 0;
+  }
+  .markdown blockquote {
+    border-left: 3px solid var(--info-tint-border);
+    padding-left: 1em;
+    color: var(--muted);
+  }
+  .markdown table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.95em;
+  }
+  .markdown th,
+  .markdown td {
+    border: var(--line) solid var(--border);
+    padding: 0.45em 0.7em;
+    text-align: left;
+  }
+  .markdown th {
+    background: var(--surface-2);
+  }
+  .markdown hr {
+    border: none;
+    border-top: var(--line) solid var(--border);
+    margin: 1.2em 0;
+  }
+  .markdown input[type="checkbox"] {
+    margin-right: 0.4em;
+  }
 
-.markdown-image-trigger {
-  display: block;
-  width: max-content;
-  max-width: 100%;
-  margin: 0.8em auto;
-  cursor: zoom-in;
-  border-radius: var(--radius-card);
-  outline: none;
-  transition: transform var(--t-state) var(--ease-out);
-}
-.markdown-image-trigger:hover {
-  transform: scale(1.01);
-}
-.markdown-image-trigger:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
-}
-.markdown-image {
-  display: block;
-  width: auto;
-  max-width: 100%;
-  max-height: 28rem;
-  border-radius: var(--radius-card);
-  object-fit: contain;
-}
-.markdown-compact .markdown-image-trigger {
-  margin: 0.35em 0;
-}
-.markdown-compact .markdown-image {
-  max-height: 6rem;
-}
-.markdown-preview .markdown-image {
-  max-height: 18rem;
-}
-.markdown-review .markdown-image {
-  max-height: min(48vh, 32rem);
-}
-.image-lightbox {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3.5rem 1rem 1rem;
-  background: rgb(0 0 0 / 0.88);
-  backdrop-filter: blur(8px);
-  cursor: zoom-out;
-  animation: fade var(--t-enter) var(--ease-out);
-}
-.image-lightbox-content {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  border-radius: var(--radius-card);
-  cursor: default;
-}
-.image-lightbox-close {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  border: 1px solid rgb(255 255 255 / 0.22);
-  border-radius: var(--radius-control);
-  padding: 0.45rem 0.8rem;
-  color: white;
-  background-color: rgb(255 255 255 / 0.1);
-  font-size: 0.8rem;
-  font-weight: 600;
-  transition: background-color var(--t-state) var(--ease-out);
-}
-.image-lightbox-close:hover {
-  background-color: rgb(255 255 255 / 0.2);
-}
+  /* ---- Images ------------------------------------------------------ */
 
-/* ==================================================================
-   Reduced motion
-   ==================================================================
-   A system setting, and for some readers a medical one. Nothing here
-   carries its meaning in the movement — every animation is a colour
-   change or a 4px settle — so taking the movement away costs nothing.
-   ================================================================== */
+  .markdown-image-trigger {
+    display: block;
+    width: max-content;
+    max-width: 100%;
+    margin: 0.8em auto;
+    cursor: zoom-in;
+    border-radius: var(--radius-card);
+    outline: none;
+    transition: transform var(--t-state) var(--ease-out);
+  }
+  .markdown-image-trigger:hover {
+    transform: scale(1.01);
+  }
+  .markdown-image-trigger:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+  .markdown-image {
+    display: block;
+    width: auto;
+    max-width: 100%;
+    max-height: 28rem;
+    border-radius: var(--radius-card);
+    object-fit: contain;
+  }
+  .markdown-compact .markdown-image-trigger {
+    margin: 0.35em 0;
+  }
+  .markdown-compact .markdown-image {
+    max-height: 6rem;
+  }
+  .markdown-preview .markdown-image {
+    max-height: 18rem;
+  }
+  .markdown-review .markdown-image {
+    max-height: min(48vh, 32rem);
+  }
+  .image-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3.5rem 1rem 1rem;
+    background: rgb(0 0 0 / 0.88);
+    backdrop-filter: blur(8px);
+    cursor: zoom-out;
+    animation: fade var(--t-enter) var(--ease-out);
+  }
+  .image-lightbox-content {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: var(--radius-card);
+    cursor: default;
+  }
+  .image-lightbox-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    border: 1px solid rgb(255 255 255 / 0.22);
+    border-radius: var(--radius-control);
+    padding: 0.45rem 0.8rem;
+    color: white;
+    background-color: rgb(255 255 255 / 0.1);
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: background-color var(--t-state) var(--ease-out);
+  }
+  .image-lightbox-close:hover {
+    background-color: rgb(255 255 255 / 0.2);
+  }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 1ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 1ms !important;
-    scroll-behavior: auto !important;
+  /* ==================================================================
+     Reduced motion
+     ==================================================================
+     A system setting, and for some readers a medical one. Nothing here
+     carries its meaning in the movement — every animation is a colour
+     change or a 4px settle — so taking the movement away costs nothing.
+     ================================================================== */
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

@@ -158,15 +158,15 @@ export default async function EdgePage({
       ) : (
         <>
           <div className="panel grid grid-cols-2 gap-x-6 gap-y-5 px-4 py-5 sm:grid-cols-4 sm:px-6">
-            <StatTile value={concepts} label="Concepts" icon="ladder" tone="info" />
+            <StatTile value={concepts} label="Concepts" icon="ladder" tone="info" align="center" />
             <StatTile
               value={`${climbed}/${rungs}`}
               label="Rungs standing"
               icon="target"
-              hint={`${Math.round((climbed / Math.max(1, rungs)) * 100)}% of the set`}
+              align="center"
             />
-            <StatTile value={complete} label="Full ladders" icon="check" tone="good" />
-            <StatTile value={due} label="Due now" icon="clock" tone="due" />
+            <StatTile value={complete} label="Full ladders" icon="check" tone="good" align="center" />
+            <StatTile value={due} label="Due now" icon="clock" tone="due" align="center" />
           </div>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted">

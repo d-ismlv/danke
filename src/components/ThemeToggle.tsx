@@ -20,9 +20,12 @@ const LABEL: Record<Theme, string> = {
  * document had already started arriving.
  *
  * The value is still read through an external store rather than an effect, so
- * SSR and hydration agree: both read the same stamped attribute. A second tab
- * picks the change up on its next navigation, which is when the server reads
- * the cookie again — cookies fire no storage event of their own.
+ * SSR and hydration agree: both read the same stamped attribute.
+ *
+ * Cookies fire no event when they change, so the choice is mirrored into
+ * localStorage as well — not as a second source of truth, only as the thing
+ * that wakes other tabs. Without it a second tab kept the old theme until its
+ * next navigation, which the localStorage version it replaced did not do.
  */
 const listeners = new Set<() => void>();
 
@@ -39,10 +42,19 @@ function apply(theme: Theme) {
   else root.setAttribute("data-theme", theme);
 }
 
+const SIGNAL_KEY = "danke-theme";
+
 function subscribe(cb: () => void) {
   listeners.add(cb);
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== SIGNAL_KEY) return;
+    apply(asTheme(event.newValue ?? undefined));
+    cb();
+  };
+  window.addEventListener("storage", onStorage);
   return () => {
     listeners.delete(cb);
+    window.removeEventListener("storage", onStorage);
   };
 }
 
@@ -50,6 +62,11 @@ function setTheme(next: Theme) {
   // A year, lax, path-wide: it is a display preference, not a credential.
   const age = next === "system" ? 0 : 60 * 60 * 24 * 365;
   document.cookie = `${THEME_COOKIE}=${next}; path=/; max-age=${age}; samesite=lax`;
+  // Storage can throw in private modes; the theme still works without it, the
+  // other tabs just won't hear about it.
+  try {
+    localStorage.setItem(SIGNAL_KEY, next);
+  } catch {}
   apply(next);
   for (const cb of listeners) cb();
 }

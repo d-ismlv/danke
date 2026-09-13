@@ -11,10 +11,15 @@ import {
   safeOriginalName,
 } from "@/lib/media";
 import { cleanupStaleMedia } from "@/lib/media-cleanup";
+import { isAuthed } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  if (!(await isAuthed())) {
+    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  }
+
   await cleanupStaleMedia().catch((error) =>
     console.error("Failed to clean abandoned images", error),
   );

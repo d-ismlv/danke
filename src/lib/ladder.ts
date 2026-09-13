@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, eq, isNotNull, inArray } from "drizzle-orm";
+import { and, asc, eq, isNotNull, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { cards, decks, reviewLogs, reviewState } from "@/db/schema";
 import { MAX_RUNG, RUNG_NAMES } from "@/lib/import";
@@ -60,23 +60,31 @@ function deriveEdge(rungs: LadderRung[]): { highest: number; edge: number | null
 }
 
 /** Most recent grade per card, for the ladder cards only. */
-async function lastRatings(
-  cardIds: string[],
-): Promise<Map<string, { rating: number; at: number }>> {
-  const out = new Map<string, { rating: number; at: number }>();
-  if (cardIds.length === 0) return out;
-  const rows = await db
-    .select({
-      cardId: reviewLogs.cardId,
-      rating: reviewLogs.rating,
-      reviewedAt: reviewLogs.reviewedAt,
-    })
-    .from(reviewLogs)
-    .where(inArray(reviewLogs.cardId, cardIds))
-    .orderBy(asc(reviewLogs.reviewedAt));
-  // Ascending, so the last write per card wins.
-  for (const row of rows) out.set(row.cardId, { rating: row.rating, at: row.reviewedAt });
-  return out;
+/**
+ * The most recent grade on each ladder card.
+ *
+ * A window function, because the alternative is what this used to do: select
+ * every log row for every ladder card — the whole history, not the last of it —
+ * and let the last write win as they were folded in JS. That is one row per
+ * review ever recorded, on a page that only ever wanted one row per card.
+ */
+async function lastRatings(): Promise<Map<string, { rating: number; at: number }>> {
+  const rows = await db.all<{ cardId: string; rating: number; at: number }>(sql`
+    SELECT cardId, rating, at FROM (
+      SELECT
+        ${reviewLogs.cardId} AS cardId,
+        ${reviewLogs.rating} AS rating,
+        ${reviewLogs.reviewedAt} AS at,
+        ROW_NUMBER() OVER (
+          PARTITION BY ${reviewLogs.cardId}
+          ORDER BY ${reviewLogs.reviewedAt} DESC, ${reviewLogs}.rowid DESC
+        ) AS rn
+      FROM ${reviewLogs}
+      JOIN ${cards} ON ${cards.id} = ${reviewLogs.cardId}
+      WHERE ${cards.conceptId} IS NOT NULL
+    ) WHERE rn = 1
+  `);
+  return new Map(rows.map((r) => [r.cardId, { rating: r.rating, at: r.at }]));
 }
 
 /** Every concept that has ladder cards, weakest edge first. */
@@ -98,7 +106,7 @@ export async function getConceptLadders(now = Date.now()): Promise<ConceptLadder
     .where(isNotNull(cards.conceptId))
     .orderBy(asc(cards.conceptId), asc(cards.rung));
 
-  const ratings = await lastRatings(rows.map((r) => r.cardId));
+  const ratings = await lastRatings();
 
   const byConcept = new Map<string, ConceptLadder>();
   for (const row of rows) {

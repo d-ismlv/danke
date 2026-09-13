@@ -24,4 +24,6 @@ if [ -z "$AUTH_SESSION_TOKEN" ]; then
 fi
 
 node scripts/migrate.mjs
-exec node_modules/.bin/next start -p "$PORT" -H 0.0.0.0
+# The standalone bundle is its own server; PORT and HOSTNAME are how it listens.
+export HOSTNAME=0.0.0.0
+exec node server.js

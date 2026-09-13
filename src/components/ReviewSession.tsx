@@ -26,14 +26,22 @@ export type QueueItem = {
  */
 export type SessionMode = "review" | "practice" | "drill";
 
-async function gradeCard(cardId: string, rating: Grade): Promise<ReviewResult | null> {
+type GradeOutcome =
+  | { ok: true; result: ReviewResult }
+  | { ok: false; reason: "signed-out" | "failed" };
+
+async function gradeCard(cardId: string, rating: Grade): Promise<GradeOutcome> {
   const res = await fetch("/api/review", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ cardId, rating }),
   });
-  if (!res.ok) return null;
-  return res.json();
+  // A signed-out session is worth its own message: the old code reported it as
+  // "could not reach the app", which sends you to check the network for a
+  // problem that a click on Sign in would fix.
+  if (res.status === 401) return { ok: false, reason: "signed-out" };
+  if (!res.ok) return { ok: false, reason: "failed" };
+  return { ok: true, result: await res.json() };
 }
 
 const BUTTONS: { rating: Grade; label: string; key: string; color: string; tint: string }[] = [
@@ -50,6 +58,7 @@ export default function ReviewSession({
   initialQueue,
   mode = "review",
   conceptId,
+  truncated = false,
 }: {
   title: string;
   subtitle?: string;
@@ -58,6 +67,8 @@ export default function ReviewSession({
   mode?: SessionMode;
   /** Drill only — the concept being climbed. */
   conceptId?: string;
+  /** More cards were due than the queue holds; say so instead of looking done. */
+  truncated?: boolean;
 }) {
   const practice = mode === "practice";
   const drill = mode === "drill";
@@ -113,11 +124,16 @@ export default function ReviewSession({
       setPending(true);
       setError(null);
       try {
-        const result = await gradeCard(current.id, rating);
-        if (!result) {
-          setError("Could not save that review. Your card is still here—try again.");
+        const outcome = await gradeCard(current.id, rating);
+        if (!outcome.ok) {
+          setError(
+            outcome.reason === "signed-out"
+              ? "Your session has expired. Sign in again and this card will still be here."
+              : "Could not save that review. Your card is still here—try again.",
+          );
           return;
         }
+        const result = outcome.result;
         setReviewed((n) => n + 1);
         setRevealed(false);
 
@@ -158,6 +174,18 @@ export default function ReviewSession({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (done) return;
+      /* Cmd/Ctrl/Alt+1 is "switch to the first browser tab", and this handler
+         was matching on `e.key` alone and calling preventDefault — so leaving
+         the app graded the card Again on the way out. A typing target is not a
+         shortcut context either, even though this screen has no field today. */
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target?.isContentEditable ||
+        (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))
+      ) {
+        return;
+      }
       if (!revealed && (e.key === " " || e.key === "Enter")) {
         e.preventDefault();
         setRevealed(true);
@@ -217,6 +245,13 @@ export default function ReviewSession({
             </>
           )}
         </p>
+
+        {truncated && !stopped && (
+          <p className="max-w-md text-pretty text-sm text-due">
+            More cards were due than one session holds. Start another round to
+            carry on.
+          </p>
+        )}
 
         {drill && rungs.length > 0 && (
           <ol className="mt-2 flex flex-wrap justify-center gap-1.5">

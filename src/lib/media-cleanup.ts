@@ -56,9 +56,23 @@ export async function cleanupUnreferencedMedia(
 }
 
 /** Clear abandoned uploads after a grace period, normally during a new upload. */
+/** When the sweep below last ran, so uploads don't each pay for one. */
+let lastSweep = 0;
+const SWEEP_INTERVAL_MS = 60 * 60 * 1000;
+
+/**
+ * Drop images that were uploaded but never saved onto a card.
+ *
+ * It ran on every single upload — a scan of every card's text, before each
+ * file was written — to collect things that only become collectable after a
+ * day. Once an hour finds them just as surely.
+ */
 export async function cleanupStaleMedia(
   olderThan = Date.now() - 24 * 60 * 60 * 1000,
+  now = Date.now(),
 ): Promise<void> {
+  if (now - lastSweep < SWEEP_INTERVAL_MS) return;
+  lastSweep = now;
   const stale = await db
     .select({ id: mediaAssets.id })
     .from(mediaAssets)
