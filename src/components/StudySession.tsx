@@ -33,15 +33,23 @@ const LEARNING = new Set([1, 3]);
  */
 const MAX_RETURNS = 2;
 
-/** Again. The only grade that puts a card back in the queue. */
+/** Again: the only grade that puts a card back in the queue. */
 const AGAIN = 1;
+/** Again and Hard. Neither counts as getting the card. */
+const SHAKY = new Set([1, 2]);
 
 /** More marks than this and the bar stops being a row of cards and starts
  * being a haze; past it one mark stands for several. */
 const MAX_MARKS = 30;
 
-/** What has become of a card this session. Unanswered cards have no entry. */
-type Outcome = "solved" | "failed";
+/**
+ * What has become of a card this session. Unanswered cards have no entry.
+ *
+ * "Shaky" is Again or Hard: neither is an answer you got cleanly, and the bar
+ * should not paint them the same green as one you did. Only Again brings the
+ * card back — Hard is recorded, not repeated.
+ */
+type Outcome = "solved" | "shaky";
 
 export default function StudySession({
   what,
@@ -65,8 +73,8 @@ export default function StudySession({
 }) {
   const [cards, setCards] = useState(queue);
   const [revealed, setRevealed] = useState(false);
-  /** How each card has gone so far. A card you failed stays failed until you
-   * get it right, which is what keeps its mark orange while it waits. */
+  /** How each card has gone so far. A card you did not get cleanly stays that
+   * way until you do, which is what keeps its mark orange. */
   const [outcomes, setOutcomes] = useState<Record<string, Outcome>>({});
   /** How many times each card has already come back this session. A card that
    * appears here was failed at least once, whatever became of it later. */
@@ -84,7 +92,7 @@ export default function StudySession({
      position for a card you have already seen. */
   const place = current ? queue.findIndex((card) => card.id === current.id) : total;
   const answered = Object.keys(outcomes).length;
-  const lapsed = Object.keys(returns).length;
+  const shaky = Object.values(outcomes).filter((o) => o === "shaky").length;
 
   const answer = useCallback(
     async (rating: number) => {
@@ -114,7 +122,10 @@ export default function StudySession({
           (returns[current.id] ?? 0) < MAX_RETURNS;
         setRevealed(false);
         setCards(([, ...rest]) => (comesBack ? [...rest, current] : rest));
-        setOutcomes((all) => ({ ...all, [current.id]: rating === AGAIN ? "failed" : "solved" }));
+        setOutcomes((all) => ({
+          ...all,
+          [current.id]: SHAKY.has(rating) ? "shaky" : "solved",
+        }));
         if (comesBack) {
           setReturns((seen) => ({ ...seen, [current.id]: (seen[current.id] ?? 0) + 1 }));
         }
@@ -175,7 +186,7 @@ export default function StudySession({
         <h1>Session complete</h1>
         <p>
           You answered {answered} card{answered === 1 ? "" : "s"} in {what}.
-          {lapsed > 0 && ` ${lapsed} came back for a second look.`}
+          {shaky > 0 && ` ${shaky} did not come cleanly.`}
           {remaining > 0 && ` ${remaining} more are waiting.`}
         </p>
         <div className="centered-message__actions">
@@ -280,8 +291,8 @@ export default function StudySession({
 /**
  * The session as a row of marks: what you got, what you did not, where you
  * are, and what is left. Past `MAX_MARKS` one mark stands for several cards,
- * and the worst news among them wins — a mark you failed should not be hidden
- * by the two beside it that you did not.
+ * and the worst news among them wins — a card you struggled with should not be
+ * hidden by the two beside it that you did not.
  */
 function sessionMarks(
   queue: StudyItem[],
@@ -291,12 +302,12 @@ function sessionMarks(
   const total = queue.length;
   const n = Math.min(total, MAX_MARKS);
   const slots: string[] = Array.from({ length: n }, () => "");
-  const rank = { "": 0, "is-complete": 1, "is-failed": 2, "is-current": 3 } as const;
+  const rank = { "": 0, "is-complete": 1, "is-shaky": 2, "is-current": 3 } as const;
 
   queue.forEach((card, i) => {
     const slot = Math.min(n - 1, Math.floor((i * n) / total));
     const state =
-      i === place ? "is-current" : outcomes[card.id] === "failed" ? "is-failed"
+      i === place ? "is-current" : outcomes[card.id] === "shaky" ? "is-shaky"
       : outcomes[card.id] === "solved" ? "is-complete" : "";
     if (rank[state] > rank[slots[slot] as keyof typeof rank]) slots[slot] = state;
   });

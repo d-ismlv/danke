@@ -97,7 +97,8 @@
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   --hairline: 1px;
   --rail-width: 5rem;
-  --topbar-height: 3.75rem;
+  --rail-size: 5rem;
+  --topbar-height: 2.9rem;
   --content-width: 82rem;
   --page-pad: clamp(1.1rem, 2.25vw, 2.5rem);
   --radius-panel: 0.375rem;
@@ -383,7 +384,8 @@ svg {
   inset: 0 auto 0 0;
   z-index: 20;
   display: flex;
-  width: var(--rail-width);
+  width: var(--rail-size);
+  transition: transform 180ms cubic-bezier(0.33, 0, 0.15, 1);
   flex-direction: column;
   align-items: stretch;
   border-inline-end: var(--hairline) solid var(--line);
@@ -393,7 +395,7 @@ svg {
 
 .side-nav__brand {
   display: grid;
-  min-height: var(--topbar-height);
+  min-height: 3.4rem;
   place-items: center;
   border: 0;
   border-block-end: var(--hairline) solid var(--line);
@@ -618,8 +620,12 @@ svg {
 }
 
 /* A filled button is a shape, not a line of text: dropped onto the baseline it
-   reads as sagging. */
-.page-heading__row .primary-action {
+   reads as sagging. The facts that travel with it ride at its height too, so
+   the streak and the due count sit in the middle of the button rather than
+   four pixels under it. */
+.page-heading__row .primary-action,
+.streak-note,
+.library-due {
   align-self: center;
 }
 
@@ -638,15 +644,16 @@ svg {
 /* The flame has no baseline of its own — left to participate it would hang its
    bottom edge on the text baseline, and it would also become the group's
    baseline, since it is the first item. So it centres instead.
-   Centring alone is not enough: it is half again as tall as the number beside
-   it, and a line box reserves descender space the flame has no use for, so its
-   middle lands below the digit's. The shift is a share of its own height, and
-   lifts it onto the cap. */
+   The negative margins keep it out of the group's height as well. At full size
+   it made the streak taller than the due count beside it, which left the two
+   on different lines once both were centred against the button. It still draws
+   at full size; it just stops deciding how tall the group is, and centring it
+   on the text then puts it on the digit's cap without any nudging. */
 .streak-note svg {
   width: 1.7rem;
   height: 1.7rem;
   align-self: center;
-  transform: translateY(-16%);
+  margin-block: -0.35rem;
   fill: currentColor;
   stroke: none;
   color: var(--streak);
@@ -1502,9 +1509,98 @@ svg {
    Study
    ========================================================================== */
 
+/* ==========================================================================
+   Studying takes the window
+
+   The session is the one screen that should never need the page to scroll.
+   The card takes what is left of the viewport and scrolls its own answer when
+   there is more of it than fits, so the grades stay where you last saw them
+   instead of moving below the fold behind a six-point answer.
+   ========================================================================== */
+
+/* The column is sized from the viewport rather than from a guess at how tall
+   the chrome is: the content area takes what the top bar leaves, the session
+   fills the content area, and the card takes what the toolbar and the grades
+   leave. Nothing here needs a magic number, and the page never scrolls. */
+body:has(.study-screen) .content {
+  display: flex;
+  /* A definite height, not a minimum: with a minimum the column simply grows
+     past it and the page scrolls again, because flex only hands out space it
+     knows it has. */
+  height: calc(100dvh - var(--topbar-height));
+  flex-direction: column;
+}
+
 .study-screen {
+  display: flex;
   max-width: 92rem;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
   margin-inline: auto;
+}
+
+.study-screen .review-card {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+/* The rail slides out of the way while a card is up, and comes back when the
+   pointer — or a tap — reaches the edge it left from. Nothing depends on
+   finding it: the back link and the wordmark are both still there. */
+body:has(.study-screen) {
+  --rail-width: 0rem;
+}
+
+body:has(.study-screen) .side-nav {
+  transform: translateX(-100%);
+}
+
+body:has(.study-screen) .content {
+  padding-block-end: 1.5rem;
+}
+
+.nav-peek {
+  display: none;
+}
+
+body:has(.study-screen) .nav-peek {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-start: 0;
+  z-index: 21;
+  display: grid;
+  width: 0.85rem;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* A handle rather than an invisible strip: something has to say the rail is
+   still there. */
+body:has(.study-screen) .nav-peek::before {
+  content: "";
+  width: 0.19rem;
+  height: 2.4rem;
+  border-radius: 0 0.2rem 0.2rem 0;
+  background: var(--line-strong);
+  transition: background-color 150ms ease;
+}
+
+body:has(.study-screen) .nav-peek:hover::before {
+  background: var(--blue);
+}
+
+body:has(.study-screen) .nav-peek:hover ~ .side-nav,
+body:has(.study-screen) .nav-peek:focus ~ .side-nav,
+body:has(.study-screen) .side-nav:hover,
+body:has(.study-screen) .side-nav:focus-within {
+  transform: none;
 }
 
 .review-toolbar {
@@ -1529,6 +1625,10 @@ svg {
   font-variant-numeric: tabular-nums;
 }
 
+.review-progress > span {
+  white-space: nowrap;
+}
+
 .review-progress > div {
   display: grid;
   grid-template-columns: repeat(var(--n, 5), minmax(0.3rem, 2rem));
@@ -1546,8 +1646,8 @@ svg {
   background: var(--mature);
 }
 
-/* Answered Again: you got to it, but you have not got past it. */
-.review-progress i.is-failed {
+/* Answered Again or Hard: you got to it, but you did not get it cleanly. */
+.review-progress i.is-shaky {
   background: var(--warm);
 }
 
@@ -2549,6 +2649,27 @@ textarea.text-field {
     flex-direction: row;
     border: 0;
     border-block-start: var(--hairline) solid var(--line);
+  }
+
+  body:has(.study-screen) .side-nav {
+    transform: translateY(100%);
+  }
+
+  body:has(.study-screen) .nav-peek {
+    inset: auto 0 0 0;
+    width: auto;
+    height: 0.85rem;
+  }
+
+  body:has(.study-screen) .nav-peek::before {
+    width: 2.4rem;
+    height: 0.19rem;
+    border-radius: 0.2rem 0.2rem 0 0;
+  }
+
+  /* No bar to clear once it has dropped away. */
+  body:has(.study-screen) .content {
+    padding-block-end: 1rem;
   }
 
   .side-nav__brand {

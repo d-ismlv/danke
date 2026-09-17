@@ -41,6 +41,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         {authed ? (
           <div className="application">
+            {/* A sliver at the edge the rail retreats to while a card is up.
+                Hover or tap brings it back; it is inert on every other screen. */}
+            <button className="nav-peek" type="button" aria-label="Show navigation" />
+
             <aside className="side-nav">
               <Link href="/" className="side-nav__brand" aria-label="danke — library">
                 <Logo />
