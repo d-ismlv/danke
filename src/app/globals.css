@@ -871,12 +871,14 @@ svg {
   gap: 0.35rem;
 }
 
+/* The same small square a card's state wears in a topic list, so one shape
+   means "state of a card" everywhere. */
 .tiny-legend i,
 .memory-keys i {
-  width: 0.45rem;
-  height: 0.45rem;
+  width: 0.4rem;
+  height: 0.4rem;
   flex: 0 0 auto;
-  border-radius: 50%;
+  border-radius: 0.08rem;
   background: var(--unseen);
 }
 
@@ -1363,9 +1365,25 @@ svg {
    lines. Everything the parser can emit stays inline. */
 .question-prompt > strong {
   display: block;
+  color: var(--ink-2);
   font-size: 0.98rem;
-  font-weight: 620;
+  font-weight: 520;
   letter-spacing: -0.018em;
+}
+
+/* A question was already semibold, so `bolder` landed a hair above it and the
+   emphasis vanished — and at fifteen pixels a weight step alone is hard to
+   read anyway. The bold a card was written with gets the step in brightness
+   too, which is how a point's emphasis already reads on the study card. */
+.question-prompt > strong strong {
+  color: var(--ink);
+  font-weight: 760;
+}
+
+/* Large enough that weight alone carries it. */
+.review-card h1 strong,
+.import-card-preview h3 strong {
+  font-weight: 800;
 }
 
 .question-state {
@@ -1528,6 +1546,11 @@ svg {
   background: var(--mature);
 }
 
+/* Answered Again: you got to it, but you have not got past it. */
+.review-progress i.is-failed {
+  background: var(--warm);
+}
+
 .review-progress i.is-current {
   background: var(--young);
 }
@@ -1558,8 +1581,8 @@ svg {
    this size — a long line for a heading, but the card has the room. */
 .review-card h1 {
   max-width: 64rem;
-  font-size: clamp(1.9rem, 3vw, 3.4rem);
-  font-weight: 645;
+  font-size: clamp(1.7rem, 2.5vw, 2.9rem);
+  font-weight: 620;
   line-height: 1.05;
   text-wrap: pretty;
 }
@@ -1775,14 +1798,15 @@ svg {
   background: linear-gradient(90deg, var(--unseen-start), var(--unseen-end));
 }
 
-/* Four fixed columns, in the bar's order. Sizing a key to its own segment put
-   every label somewhere different on every screen — and sent one of them to
-   the far edge as soon as a bucket was empty. The dot carries the association;
-   the position stays put. */
+/* Spread across the box, first flush left and last flush right, in the bar's
+   order. Sizing a key to its own segment put every label somewhere different
+   on every screen, and sent one to the far edge as soon as a bucket emptied.
+   The marker carries the association; the position stays put. */
 .memory-keys {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1.25rem;
   margin-block-start: 0.7rem;
 }
 
@@ -2737,6 +2761,8 @@ textarea.text-field {
     padding-inline: 0.75rem;
   }
 
+  /* Two rows of two rather than four across, and a grid again so the second
+     pair lines up under the first. */
   .memory-keys {
     display: grid;
     grid-template-columns: repeat(2, 1fr);

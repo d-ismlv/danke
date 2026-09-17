@@ -36,9 +36,12 @@ const MAX_RETURNS = 2;
 /** Again. The only grade that puts a card back in the queue. */
 const AGAIN = 1;
 
-/** More marks than this and the session bar stops being a row of cards and
- * starts being a haze; past it each mark stands for a share of the queue. */
+/** More marks than this and the bar stops being a row of cards and starts
+ * being a haze; past it one mark stands for several. */
 const MAX_MARKS = 30;
+
+/** What has become of a card this session. Unanswered cards have no entry. */
+type Outcome = "solved" | "failed";
 
 export default function StudySession({
   what,
@@ -62,19 +65,26 @@ export default function StudySession({
 }) {
   const [cards, setCards] = useState(queue);
   const [revealed, setRevealed] = useState(false);
-  /** Distinct cards finished — not answers given. A card that comes back has
-   * not been finished, so seeing it again does not move this. */
-  const [done, setDone] = useState(0);
-  /** How many times each card has already come back this session. */
+  /** How each card has gone so far. A card you failed stays failed until you
+   * get it right, which is what keeps its mark orange while it waits. */
+  const [outcomes, setOutcomes] = useState<Record<string, Outcome>>({});
+  /** How many times each card has already come back this session. A card that
+   * appears here was failed at least once, whatever became of it later. */
   const [returns, setReturns] = useState<Record<string, number>>({});
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const current = cards[0];
   /* Fixed for the life of the session: the cards the server dealt. Deriving it
-     from done + remaining made the denominator climb every time a card was
+     from answers + remaining made the denominator climb every time a card was
      re-queued, which is where "14 / 17" in a five-card topic came from. */
   const total = queue.length;
+  /* A card's place is its place in the queue it was dealt from, so coming back
+     to one you failed takes the count back to it rather than inventing a new
+     position for a card you have already seen. */
+  const place = current ? queue.findIndex((card) => card.id === current.id) : total;
+  const answered = Object.keys(outcomes).length;
+  const lapsed = Object.keys(returns).length;
 
   const answer = useCallback(
     async (rating: number) => {
@@ -104,10 +114,9 @@ export default function StudySession({
           (returns[current.id] ?? 0) < MAX_RETURNS;
         setRevealed(false);
         setCards(([, ...rest]) => (comesBack ? [...rest, current] : rest));
+        setOutcomes((all) => ({ ...all, [current.id]: rating === AGAIN ? "failed" : "solved" }));
         if (comesBack) {
           setReturns((seen) => ({ ...seen, [current.id]: (seen[current.id] ?? 0) + 1 }));
-        } else {
-          setDone((n) => n + 1);
         }
       } catch {
         setError("Couldn't reach the app. The card is still here; try again.");
@@ -143,41 +152,46 @@ export default function StudySession({
   }, [revealed, current, answer]);
 
   if (!current) {
+    if (answered === 0) {
+      return (
+        <div className="centered-message">
+          <h1>Nothing to study</h1>
+          <p>{what} has no cards yet.</p>
+          <div className="centered-message__actions">
+            <Link href={backHref} className="ghost-action">
+              Back to {backLabel}
+            </Link>
+            <Link href="/import" className="primary-action">
+              <Icon name="import" />
+              Import cards
+            </Link>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="centered-message">
-        <h1>{done > 0 ? "Session complete" : "Nothing to study"}</h1>
+        <h1>Session complete</h1>
         <p>
-          {done > 0 ? (
-            <>
-              You answered {done} card{done === 1 ? "" : "s"} in {what}.
-              {remaining > 0 && ` ${remaining} more are waiting.`}
-            </>
-          ) : (
-            <>{what} has no cards yet.</>
-          )}
+          You answered {answered} card{answered === 1 ? "" : "s"} in {what}.
+          {lapsed > 0 && ` ${lapsed} came back for a second look.`}
+          {remaining > 0 && ` ${remaining} more are waiting.`}
         </p>
         <div className="centered-message__actions">
           <Link href={backHref} className="ghost-action">
             Back to {backLabel}
           </Link>
-          {remaining > 0 && nextRoundHref && (
-            <Link href={nextRoundHref} className="primary-action">
-              <Icon name="play" />
-              Keep going
-            </Link>
-          )}
-          {done === 0 && (
-            <Link href="/import" className="primary-action">
-              <Icon name="import" />
-              Import cards
-            </Link>
-          )}
+          <Link href={nextRoundHref ?? backHref} className="primary-action">
+            <Icon name="play" />
+            {remaining > 0 ? "Keep going" : "Study again"}
+          </Link>
         </div>
       </div>
     );
   }
 
-  const marks = sessionMarks(done, total);
+  const marks = sessionMarks(queue, outcomes, place);
 
   return (
     <section className="study-screen">
@@ -185,9 +199,9 @@ export default function StudySession({
         <Link href={backHref} className="back-link">
           ← {backLabel}
         </Link>
-        <div className="review-progress" aria-label={`Card ${done + 1} / ${total}`}>
+        <div className="review-progress" aria-label={`Card ${place + 1} of ${total}`}>
           <span>
-            {done + 1} / {total}
+            {place + 1} / {total}
           </span>
           <div style={{ "--n": marks.length } as React.CSSProperties} aria-hidden="true">
             {marks.map((mark, i) => (
@@ -200,7 +214,7 @@ export default function StudySession({
       <article className="review-card">
         <div className="review-card__meta">
           <span>
-            Card {done + 1} / {total}
+            Card {place + 1} / {total}
           </span>
         </div>
         <h1>
@@ -264,14 +278,27 @@ export default function StudySession({
 }
 
 /**
- * The session as a row of marks: what is behind you, where you are, what is
- * left. Past `MAX_MARKS` each mark stands for a share of the queue rather than
- * one card, so a long session still reads as one glance.
+ * The session as a row of marks: what you got, what you did not, where you
+ * are, and what is left. Past `MAX_MARKS` one mark stands for several cards,
+ * and the worst news among them wins — a mark you failed should not be hidden
+ * by the two beside it that you did not.
  */
-function sessionMarks(done: number, total: number): string[] {
+function sessionMarks(
+  queue: StudyItem[],
+  outcomes: Record<string, Outcome>,
+  place: number,
+): string[] {
+  const total = queue.length;
   const n = Math.min(total, MAX_MARKS);
-  const current = Math.floor((done / total) * n);
-  return Array.from({ length: n }, (_, i) =>
-    i < current ? "is-complete" : i === current ? "is-current" : "",
-  );
+  const slots: string[] = Array.from({ length: n }, () => "");
+  const rank = { "": 0, "is-complete": 1, "is-failed": 2, "is-current": 3 } as const;
+
+  queue.forEach((card, i) => {
+    const slot = Math.min(n - 1, Math.floor((i * n) / total));
+    const state =
+      i === place ? "is-current" : outcomes[card.id] === "failed" ? "is-failed"
+      : outcomes[card.id] === "solved" ? "is-complete" : "";
+    if (rank[state] > rank[slots[slot] as keyof typeof rank]) slots[slot] = state;
+  });
+  return slots;
 }
