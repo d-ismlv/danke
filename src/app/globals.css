@@ -632,11 +632,17 @@ svg {
 }
 
 /* The flame has no baseline of its own — left to participate it would hang its
-   bottom edge on the text baseline. It centres against the number instead. */
+   bottom edge on the text baseline, and it would also become the group's
+   baseline, since it is the first item. So it centres instead.
+   Centring alone is not enough: it is half again as tall as the number beside
+   it, and a line box reserves descender space the flame has no use for, so its
+   middle lands below the digit's. The shift is a share of its own height, and
+   lifts it onto the cap. */
 .streak-note svg {
   width: 1.7rem;
   height: 1.7rem;
   align-self: center;
+  transform: translateY(-16%);
   fill: currentColor;
   stroke: none;
   color: var(--streak);
