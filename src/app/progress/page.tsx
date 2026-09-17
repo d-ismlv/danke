@@ -101,12 +101,15 @@ export default async function ProgressPage() {
             <h2 id="memory-title">Memory state</h2>
           </div>
         </header>
+        {/* Only the buckets that have cards in them. An empty one still took
+            its share of the row's gaps, which pushed the whole bar in from the
+            edge the heading above it is aligned to. */}
         <div
           className="large-segments"
           role="img"
           aria-label={MEMORY.map((m) => `${memory[m.key]} ${m.label.toLowerCase()}`).join(", ")}
         >
-          {MEMORY.map((m) => (
+          {MEMORY.filter((m) => memory[m.key] > 0).map((m) => (
             <span
               key={m.key}
               className={`large-segments__${m.key}`}
@@ -114,11 +117,9 @@ export default async function ProgressPage() {
             />
           ))}
         </div>
-        {/* The keys carry the same shares as the bar above them, so a label
-            sits under the segment it names rather than beside a swatch. */}
         <div className="memory-keys">
           {MEMORY.map((m) => (
-            <div key={m.key} style={{ "--share": share(memory[m.key]) } as React.CSSProperties}>
+            <div key={m.key}>
               <i className={m.key === "unseen" ? undefined : `state-${m.key}`} />
               <span>{m.label}</span>
               <strong>{memory[m.key]}</strong>

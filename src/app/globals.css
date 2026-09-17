@@ -269,6 +269,10 @@ body {
 }
 
 html {
+  /* The one number that sets the scale of the interface. Every size below is a
+     rem, so type, spacing, radii and the content cap move together and the
+     proportions hold. 93.75% of the browser's 16px default. */
+  font-size: 93.75%;
   /* Reserved always, so expanding a row or changing page never shifts the
      centred layout sideways. */
   scrollbar-gutter: stable;
@@ -277,7 +281,7 @@ html {
 body {
   color: var(--ink);
   font-family: var(--font-text);
-  font-size: 15px;
+  font-size: 1rem;
   line-height: 1.42;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -322,14 +326,14 @@ strong {
 }
 
 h1 {
-  font-size: clamp(2.2rem, 3.2vw, 3.65rem);
+  font-size: clamp(2.2rem, 3vw, 3.65rem);
   font-weight: 680;
   letter-spacing: -0.055em;
   line-height: 1;
 }
 
 h2 {
-  font-size: clamp(1.35rem, 1.7vw, 1.9rem);
+  font-size: clamp(1.35rem, 1.594vw, 1.9rem);
   font-weight: 650;
   letter-spacing: -0.035em;
   line-height: 1.08;
@@ -607,7 +611,7 @@ svg {
 
 .page-heading__row h1 {
   min-width: 0;
-  font-size: clamp(2rem, 2.6vw, 2.8rem);
+  font-size: clamp(2rem, 2.438vw, 2.8rem);
   font-weight: 680;
   letter-spacing: -0.055em;
   line-height: 1;
@@ -750,7 +754,7 @@ svg {
 }
 
 .section-heading h2 {
-  font-size: clamp(1.4rem, 1.7vw, 1.9rem);
+  font-size: clamp(1.4rem, 1.594vw, 1.9rem);
 }
 
 .section-heading > span {
@@ -1146,7 +1150,7 @@ svg {
 
 .mastery-dial strong {
   color: var(--ink-2);
-  font-size: clamp(1.16rem, 1.35vw, 1.38rem);
+  font-size: clamp(1.16rem, 1.266vw, 1.38rem);
   font-weight: 680;
   letter-spacing: -0.035em;
   font-variant-numeric: tabular-nums;
@@ -1167,7 +1171,7 @@ svg {
 
 .deck-overview__copy h2 {
   max-width: 26rem;
-  font-size: clamp(1.25rem, 1.6vw, 1.65rem);
+  font-size: clamp(1.25rem, 1.5vw, 1.65rem);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
@@ -1549,9 +1553,12 @@ svg {
   font-variant-numeric: tabular-nums;
 }
 
+/* The card is 92rem wide; a question capped at 54 wrapped early and left the
+   right third of the surface empty. 64rem is about forty-five characters at
+   this size — a long line for a heading, but the card has the room. */
 .review-card h1 {
-  max-width: 54rem;
-  font-size: clamp(1.9rem, 3.2vw, 3.4rem);
+  max-width: 64rem;
+  font-size: clamp(1.9rem, 3vw, 3.4rem);
   font-weight: 645;
   line-height: 1.05;
   text-wrap: pretty;
@@ -1569,7 +1576,7 @@ svg {
   list-style: disc;
   padding-inline-start: 1.35rem;
   color: var(--ink-2);
-  font-size: clamp(1rem, 1.3vw, 1.25rem);
+  font-size: clamp(1rem, 1.219vw, 1.25rem);
   line-height: 1.55;
 }
 
@@ -1714,7 +1721,7 @@ svg {
 .progress-hero strong {
   display: block;
   margin-block: 0.25rem;
-  font-size: clamp(1.85rem, 2.6vw, 2.8rem);
+  font-size: clamp(1.85rem, 2.438vw, 2.8rem);
   font-weight: 690;
   letter-spacing: -0.055em;
   line-height: 1;
@@ -1768,22 +1775,22 @@ svg {
   background: linear-gradient(90deg, var(--unseen-start), var(--unseen-end));
 }
 
-/* The keys sit under the bar they describe, in the same order and the same
-   proportions, so a colour never has to be looked up. */
+/* Four fixed columns, in the bar's order. Sizing a key to its own segment put
+   every label somewhere different on every screen — and sent one of them to
+   the far edge as soon as a bucket was empty. The dot carries the association;
+   the position stays put. */
 .memory-keys {
-  display: flex;
-  gap: 0.38rem;
-  margin-block-start: 0.55rem;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem 0.75rem;
+  margin-block-start: 0.7rem;
 }
 
 .memory-keys div {
   display: flex;
-  flex: 1 1 var(--share);
   align-items: center;
   gap: 0.4rem;
-  /* Proportional to its segment, but never narrower than its own label: a
-     three-percent slice still has to be readable. */
-  min-width: min-content;
+  min-width: 0;
 }
 
 .memory-keys span {
@@ -2131,7 +2138,7 @@ svg {
 
 .import-card-preview h3 {
   margin-block: 0.7rem 1rem;
-  font-size: clamp(1.2rem, 1.7vw, 1.55rem);
+  font-size: clamp(1.2rem, 1.594vw, 1.55rem);
   letter-spacing: -0.035em;
   text-wrap: pretty;
 }
@@ -2439,7 +2446,7 @@ textarea.text-field {
 }
 
 .centered-message h1 {
-  font-size: clamp(1.75rem, 3vw, 2.4rem);
+  font-size: clamp(1.75rem, 2.812vw, 2.4rem);
 }
 
 .centered-message p {
@@ -2613,7 +2620,7 @@ textarea.text-field {
 
 @media (max-width: 620px) {
   h1 {
-    font-size: clamp(2rem, 10vw, 2.8rem);
+    font-size: clamp(2rem, 9.375vw, 2.8rem);
   }
 
   /* The title takes its own line and the rest wraps beneath it — on every

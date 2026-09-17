@@ -24,14 +24,17 @@ const LEARNING = new Set([1, 3]);
 /**
  * How many times one card may come back inside a single session.
  *
- * A card graded Again or Hard stays in learning, and seeing it again a few
- * minutes later is the whole point of short-term steps. But "still learning"
- * is a state a card can hold indefinitely, so answering Hard forever kept
- * putting the same card back on the end of the queue forever. Past this it is
- * left where it is: its schedule is already saved, it will be due again in
- * minutes, and the next session picks it up.
+ * Only an **Again** brings a card back. Learning state alone will not do it:
+ * a brand-new card graded Good is still in learning — that is what the first
+ * learning step *is* — so re-queueing on state meant that after a fresh
+ * import nothing ever left the queue, and a session of nine cards showed
+ * "Card 1 / 9" for all nine of them. Good and Hard move a card on; Again is
+ * the answer that means you have not got past it yet.
  */
 const MAX_RETURNS = 2;
+
+/** Again. The only grade that puts a card back in the queue. */
+const AGAIN = 1;
 
 /** More marks than this and the session bar stops being a row of cards and
  * starts being a haze; past it each mark stands for a share of the queue. */
@@ -93,11 +96,12 @@ export default function StudySession({
           return;
         }
         const result: { state: number } = await res.json();
-        // A card still in learning hasn't earned an interval yet, so it comes
-        // back before the session ends rather than tomorrow — but only so many
-        // times, or a card answered Hard never leaves.
+        // Only so many times, or a card you keep failing never lets the
+        // session end.
         const comesBack =
-          LEARNING.has(result.state) && (returns[current.id] ?? 0) < MAX_RETURNS;
+          rating === AGAIN &&
+          LEARNING.has(result.state) &&
+          (returns[current.id] ?? 0) < MAX_RETURNS;
         setRevealed(false);
         setCards(([, ...rest]) => (comesBack ? [...rest, current] : rest));
         if (comesBack) {
