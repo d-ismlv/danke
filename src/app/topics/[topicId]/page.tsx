@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTopicLabel, getTopicView, now } from "@/lib/queries";
 import { renameTopic, deleteTopic } from "@/lib/actions";
-import { cardMark, markClass, MATURE_DAYS } from "@/lib/status";
+import { cardMark, markClass, markSegments, MATURE_DAYS } from "@/lib/status";
 import Icon from "@/components/Icon";
 import ConfirmButton from "@/components/ConfirmButton";
 import RenameField from "@/components/RenameField";
@@ -34,6 +34,10 @@ export default async function TopicPage({
   const { topic, deck, cards, counts } = view;
 
   const marks = cards.map((card) => cardMark(card, at));
+  /* One mark per card while they still fit; past that each stands for a share.
+     Two hundred of them at a two-pixel floor overran the panel and were cut
+     off, which made a long topic look like a short one. */
+  const segments = markSegments(marks, 48);
   const mature = cards.filter(
     (card) => card.state === 2 && (card.stability ?? 0) >= MATURE_DAYS,
   ).length;
@@ -78,10 +82,10 @@ export default async function TopicPage({
           </div>
           <div
             className="topic-progress__segments"
-            style={{ "--n": marks.length } as React.CSSProperties}
+            style={{ "--n": segments.length } as React.CSSProperties}
             aria-hidden="true"
           >
-            {marks.map((mark, i) => (
+            {segments.map((mark, i) => (
               <i key={i} className={markClass(mark)} />
             ))}
           </div>

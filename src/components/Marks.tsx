@@ -1,5 +1,6 @@
 import {
   markClass,
+  markSegments,
   memorySegments,
   statusClass,
   statusLabel,
@@ -30,11 +31,17 @@ export function StatusMark({
   );
 }
 
-/** One mark per card, in the order the topic holds them. */
+/** How many marks fit in a topic row's column and still read as marks. */
+const PIP_LIMIT = 10;
+
+/** A topic's cards, one mark each until there are too many to draw. */
 export function StatePips({ marks }: { marks: CardMark[] }) {
+  const shown = markSegments(marks, PIP_LIMIT);
   return (
+    // The label counts the cards, not the marks: over the limit a mark stands
+    // for several, and it is the real tally that should be read out.
     <span className="state-pips" aria-label={describe(marks)}>
-      {marks.map((mark, i) => (
+      {shown.map((mark, i) => (
         <i key={i} className={markClass(mark)} />
       ))}
     </span>

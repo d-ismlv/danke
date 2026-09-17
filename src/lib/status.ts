@@ -133,37 +133,40 @@ export const MARK_LABEL: Record<CardMark, string> = {
 };
 
 /**
- * One mark per card, in memory order, capped so a large library stays a row of
- * marks rather than a haze of hairlines. Over the cap the marks are shares
- * rather than cards, allocated by largest remainder so the total is exact and
- * no non-empty bucket is rounded away to nothing.
+ * At most `max` marks for a set of cards, in the given order.
+ *
+ * Under the cap every card gets its own mark. Over it, a mark stands for a
+ * share of the set rather than for one card — allocated by largest remainder
+ * so the total is exact, and so no bucket that has cards in it is rounded away
+ * to nothing. Without this a two-hundred-card topic drew two hundred marks
+ * into a hundred-and-twenty-pixel column: each one hit its two-pixel floor and
+ * all but the first twenty were clipped, leaving a row that looked like the
+ * whole topic but showed a tenth of it.
  */
-export function memorySegments(
-  memory: Record<MemoryState, number>,
+export function proportionalSegments<T extends string>(
+  counts: Record<T, number>,
+  order: readonly T[],
   max: number,
-): MemoryState[] {
-  const order: MemoryState[] = ["mature", "young", "learning", "unseen"];
-  const total = order.reduce((sum, key) => sum + memory[key], 0);
+): T[] {
+  const total = order.reduce((sum, key) => sum + (counts[key] ?? 0), 0);
   if (total === 0) return [];
-  if (total <= max) return order.flatMap((key) => Array<MemoryState>(memory[key]).fill(key));
+  if (total <= max) return order.flatMap((key) => Array<T>(counts[key] ?? 0).fill(key));
 
-  const exact = order.map((key) => ({ key, want: (memory[key] / total) * max }));
-  const counts = exact.map((e) => ({
-    key: e.key,
-    // A bucket with any cards in it gets at least one mark; the rest floor.
-    n: e.want > 0 ? Math.max(1, Math.floor(e.want)) : 0,
-    rest: e.want - Math.floor(e.want),
-  }));
+  const shares = order.map((key) => {
+    const want = ((counts[key] ?? 0) / total) * max;
+    // Any bucket with cards in it keeps at least one mark.
+    return { key, n: want > 0 ? Math.max(1, Math.floor(want)) : 0, rest: want - Math.floor(want) };
+  });
 
-  let assigned = counts.reduce((sum, c) => sum + c.n, 0);
-  const byRest = [...counts].sort((a, b) => b.rest - a.rest);
+  let assigned = shares.reduce((sum, c) => sum + c.n, 0);
+  const byRest = [...shares].sort((a, b) => b.rest - a.rest);
   for (let i = 0; assigned < max; i = (i + 1) % byRest.length) {
     byRest[i].n += 1;
     assigned += 1;
   }
-  // Overshoot is possible once every non-empty bucket has been floored up. It
-  // stops when nothing can give a mark back without disappearing entirely,
-  // which is the one case where the total is allowed to exceed the cap.
+  // Overshoot happens once every non-empty bucket has been floored up. It stops
+  // when nothing can give a mark back without disappearing, which is the one
+  // case where the total may exceed the cap.
   for (let progress = true; assigned > max && progress; ) {
     progress = false;
     for (const c of byRest) {
@@ -176,5 +179,28 @@ export function memorySegments(
     }
   }
 
-  return counts.flatMap((c) => Array<MemoryState>(c.n).fill(c.key));
+  return shares.flatMap((c) => Array<T>(c.n).fill(c.key));
+}
+
+const MEMORY_ORDER = ["mature", "young", "learning", "unseen"] as const;
+const MARK_ORDER = ["mature", "young", "learning", "due", "unseen"] as const;
+
+/** The memory distribution of a collection, as a row of at most `max` marks. */
+export function memorySegments(
+  memory: Record<MemoryState, number>,
+  max: number,
+): MemoryState[] {
+  return proportionalSegments(memory, MEMORY_ORDER, max);
+}
+
+/**
+ * A topic's cards as a row of at most `max` marks. Under the cap it is one
+ * mark per card in the topic's own order; over it the marks are grouped by
+ * state, because at that size their order says nothing anyway.
+ */
+export function markSegments(marks: CardMark[], max: number): CardMark[] {
+  if (marks.length <= max) return marks;
+  const counts = { mature: 0, young: 0, learning: 0, due: 0, unseen: 0 };
+  for (const mark of marks) counts[mark] += 1;
+  return proportionalSegments(counts, MARK_ORDER, max);
 }
