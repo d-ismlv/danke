@@ -260,30 +260,34 @@ export default function StudySession({
         )}
       </article>
 
-      {revealed && (
-        <>
-          <div className="rating-grid" aria-label="Rate this answer">
-            {GRADES.map((grade) => (
-              <button
-                key={grade.rating}
-                type="button"
-                className={`rating rating--${grade.tone}`}
-                disabled={pending}
-                onClick={() => answer(grade.rating)}
-                aria-keyshortcuts={String(grade.rating)}
-              >
-                <span className="rating-label">
-                  <span className="rating-key">{grade.rating}</span>
-                  <strong>{grade.name}</strong>
-                </span>
-              </button>
-            ))}
-          </div>
-          <p aria-live="polite" className="review-error">
-            {error}
-          </p>
-        </>
-      )}
+      {/* The grades are always in the layout, hidden until the answer is. If
+          they only appeared on reveal the card would be one height before it
+          and another after, and a different height again on the next card —
+          which is the card resizing between questions. `visibility` keeps the
+          space and still takes them out of the tab order and the a11y tree. */}
+      <div className={`rating-slot${revealed ? "" : " is-waiting"}`} aria-hidden={!revealed}>
+        <div className="rating-grid" aria-label="Rate this answer">
+          {GRADES.map((grade) => (
+            <button
+              key={grade.rating}
+              type="button"
+              className={`rating rating--${grade.tone}`}
+              disabled={pending || !revealed}
+              tabIndex={revealed ? undefined : -1}
+              onClick={() => answer(grade.rating)}
+              aria-keyshortcuts={String(grade.rating)}
+            >
+              <span className="rating-label">
+                <span className="rating-key">{grade.rating}</span>
+                <strong>{grade.name}</strong>
+              </span>
+            </button>
+          ))}
+        </div>
+        <p aria-live="polite" className="review-error">
+          {error}
+        </p>
+      </div>
     </section>
   );
 }
