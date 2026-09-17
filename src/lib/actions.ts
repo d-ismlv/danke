@@ -2,26 +2,21 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db } from "@/db";
-import { decks, cards, reviewState, reviewLogs } from "@/db/schema";
+import { decks, topics, cards, reviewState } from "@/db/schema";
 import { emptyState, fsrsCardToRow } from "@/lib/fsrs";
-import { parseCards, parseLadders, type SeparatorKey } from "@/lib/import";
+import { parseCards, MIN_POINTS, MAX_POINTS } from "@/lib/parse";
 import { grantSession, clearSession, clientAddress, requireSession } from "@/lib/auth";
 import { secretsMatch } from "@/lib/session";
 import { retryAfter, recordFailure, recordSuccess } from "@/lib/throttle";
-import { cleanupUnreferencedMedia, extractMediaIds } from "@/lib/media-cleanup";
-import { getDeckAndDescendantIds } from "@/lib/queries";
 
 // ---- Auth ------------------------------------------------------------------
 
 export type LoginState = { error: string | null };
 
-export async function login(
-  _prev: LoginState,
-  formData: FormData,
-): Promise<LoginState> {
+export async function login(_prev: LoginState, formData: FormData): Promise<LoginState> {
   const caller = await clientAddress();
   const wait = retryAfter(caller);
   if (wait > 0) {
@@ -36,8 +31,8 @@ export async function login(
   const password = String(formData.get("password") ?? "");
   const expected = process.env.AUTH_PASSWORD;
   // `secretsMatch` compares digests, not the strings: `!==` returns as soon as
-  // two characters differ, which tells a patient caller how much of a guess
-  // was right. Unlimited guesses is the bigger half of that problem, and the
+  // two characters differ, which tells a patient caller how much of a guess was
+  // right. Unlimited guesses is the bigger half of that problem, and the
   // throttle above is what answers it.
   if (!expected || !(await secretsMatch(password, expected))) {
     recordFailure(caller);
@@ -54,360 +49,249 @@ export async function logout() {
   redirect("/login");
 }
 
-// ---- Decks -----------------------------------------------------------------
+// ---- Import ----------------------------------------------------------------
 
-export async function createDeck(formData: FormData) {
-  await requireSession();
-  const name = String(formData.get("name") ?? "").trim();
-  const parentId = (formData.get("parentId") as string) || null;
-  if (!name) return;
-  await db.insert(decks).values({
-    id: nanoid(),
-    name,
-    parentId,
-    createdAt: Date.now(),
-  });
-  revalidatePath("/");
-}
-
-export async function renameDeck(formData: FormData) {
-  await requireSession();
-  const id = String(formData.get("id"));
-  const name = String(formData.get("name") ?? "").trim();
-  if (!id || !name) return;
-  await db.update(decks).set({ name }).where(eq(decks.id, id));
-  revalidatePath("/");
-  revalidatePath(`/decks/${id}`);
-}
-
-export async function deleteDeck(formData: FormData) {
-  await requireSession();
-  const id = String(formData.get("id"));
-  if (!id) return;
-  const removedCards = await db
-    .select({ front: cards.front, back: cards.back })
-    .from(cards)
-    .where(eq(cards.deckId, id));
-  const removedMedia = new Set<string>();
-  for (const card of removedCards) {
-    for (const mediaId of extractMediaIds(`${card.front}\n${card.back}`)) {
-      removedMedia.add(mediaId);
-    }
-  }
-  // Cascades to child decks' cards via FK; re-parent child decks to root first
-  // so they aren't orphaned (child decks have no cascade on parent_id).
-  await db.update(decks).set({ parentId: null }).where(eq(decks.parentId, id));
-  await db.delete(decks).where(eq(decks.id, id));
-  await cleanupUnreferencedMedia(removedMedia);
-  revalidatePath("/");
-  redirect("/");
-}
-
-// ---- Cards -----------------------------------------------------------------
-
-export async function createCard(formData: FormData) {
-  await requireSession();
-  const deckId = String(formData.get("deckId"));
-  const front = String(formData.get("front") ?? "");
-  const back = String(formData.get("back") ?? "");
-  const again = formData.get("addAnother") === "1";
-  if (!deckId || (!front.trim() && !back.trim())) return;
-
-  const id = nanoid();
-  const now = Date.now();
-  await db.transaction((tx) => {
-    tx.insert(cards)
-      .values({ id, deckId, front, back, createdAt: now, updatedAt: now })
-      .run();
-    tx.insert(reviewState)
-      .values({ cardId: id, ...fsrsCardToRow(emptyState(new Date(now))) })
-      .run();
-  });
-
-  revalidatePath(`/decks/${deckId}`);
-  revalidatePath("/");
-  if (again) redirect(`/decks/${deckId}/cards/new?added=1`);
-  redirect(`/decks/${deckId}?created=1`);
-}
-
-export async function updateCard(formData: FormData) {
-  await requireSession();
-  const id = String(formData.get("id"));
-  const deckId = String(formData.get("deckId"));
-  const front = String(formData.get("front") ?? "");
-  const back = String(formData.get("back") ?? "");
-  if (!id) return;
-  const [previous] = await db
-    .select({ front: cards.front, back: cards.back })
-    .from(cards)
-    .where(eq(cards.id, id))
-    .limit(1);
-  await db
-    .update(cards)
-    .set({ front, back, updatedAt: Date.now() })
-    .where(eq(cards.id, id));
-  if (previous) {
-    const oldMedia = extractMediaIds(`${previous.front}\n${previous.back}`);
-    const currentMedia = extractMediaIds(`${front}\n${back}`);
-    await cleanupUnreferencedMedia(
-      [...oldMedia].filter((mediaId) => !currentMedia.has(mediaId)),
-    );
-  }
-  revalidatePath(`/decks/${deckId}`);
-  redirect(`/decks/${deckId}?updated=1`);
-}
-
-export async function deleteCard(formData: FormData) {
-  await requireSession();
-  const id = String(formData.get("id"));
-  const deckId = String(formData.get("deckId"));
-  if (!id) return;
-  const [removed] = await db
-    .select({ front: cards.front, back: cards.back })
-    .from(cards)
-    .where(eq(cards.id, id))
-    .limit(1);
-  await db.delete(cards).where(eq(cards.id, id));
-  if (removed) {
-    await cleanupUnreferencedMedia(
-      extractMediaIds(`${removed.front}\n${removed.back}`),
-    );
-  }
-  revalidatePath(`/decks/${deckId}`);
-  revalidatePath("/");
-  revalidatePath("/stats");
-}
-
-export async function resetCardProgress(formData: FormData) {
-  await requireSession();
-  const id = String(formData.get("id"));
-  const deckId = String(formData.get("deckId"));
-  if (!id || !deckId) return;
-  const nextState = fsrsCardToRow(emptyState(new Date()));
-  await db.transaction((tx) => {
-    tx.update(reviewState)
-      .set(nextState)
-      .where(eq(reviewState.cardId, id))
-      .run();
-    tx.delete(reviewLogs).where(eq(reviewLogs.cardId, id)).run();
-  });
-  revalidatePath(`/decks/${deckId}`);
-  revalidatePath("/");
-  revalidatePath("/stats");
-}
-
-export async function resetDeckProgress(formData: FormData) {
-  await requireSession();
-  const deckId = String(formData.get("deckId"));
-  if (!deckId) return;
-  const deckIds = await getDeckAndDescendantIds(deckId);
-  const cardRows = await db
-    .select({ id: cards.id })
-    .from(cards)
-    .where(inArray(cards.deckId, deckIds));
-  const cardIds = cardRows.map((card) => card.id);
-  if (cardIds.length === 0) return;
-
-  const nextState = fsrsCardToRow(emptyState(new Date()));
-  await db.transaction((tx) => {
-    tx.update(reviewState)
-      .set(nextState)
-      .where(inArray(reviewState.cardId, cardIds))
-      .run();
-    tx.delete(reviewLogs).where(inArray(reviewLogs.cardId, cardIds)).run();
-  });
-  revalidatePath(`/decks/${deckId}`);
-  revalidatePath("/");
-  revalidatePath("/stats");
-}
-
-/** Bulk-create cards from pasted delimited text, each with fresh FSRS state. */
-export async function importCards(formData: FormData) {
-  await requireSession();
-  const deckId = String(formData.get("deckId"));
-  const text = String(formData.get("text") ?? "");
-  const separator = String(formData.get("separator") ?? "tab") as SeparatorKey;
-  if (!deckId) return;
-
-  const parsed = parseCards(text, separator);
-  if (parsed.length === 0) return;
-
-  const now = Date.now();
-  db.transaction((tx) => {
-    for (const { front, back } of parsed) {
-      const id = nanoid();
-      tx.insert(cards)
-        .values({ id, deckId, front, back, createdAt: now, updatedAt: now })
-        .run();
-      tx.insert(reviewState)
-        .values({ cardId: id, ...fsrsCardToRow(emptyState(new Date(now))) })
-        .run();
-    }
-  });
-
-  revalidatePath(`/decks/${deckId}`);
-  revalidatePath("/");
-  redirect(`/decks/${deckId}`);
-}
-
-// ---- Ladders ---------------------------------------------------------------
-
-export type LadderImportState = {
+export type ImportState = {
   error: string | null;
-  /** Problems worth showing but not worth blocking on. */
-  warnings?: string[];
+  /** Line-level problems, exactly as the preview showed them. */
+  issues?: { line: number | null; message: string }[];
 };
 
 /**
- * Import one or more concept files (see `parseLadders`).
+ * Write a paste of cards into one topic.
  *
- * Every card carries a `sourceKey`, and the write is an upsert on it: editing a
- * typo in a concept file and re-importing updates `front`/`back` and leaves
- * `review_state` untouched. Losing an FSRS history to a typo fix would undo the
- * point of drilling in the first place.
+ * The whole thing is re-parsed here rather than trusted from the browser, and a
+ * single problem stops the write: a half-imported topic is worse than a failed
+ * import, because nothing on screen afterwards says which half.
+ *
+ * A card is identified by its question within its topic. Importing a corrected
+ * file updates the points of the questions it already has and adds the ones it
+ * doesn't — scheduling and review history survive, which is the entire reason
+ * the identity is the question rather than a row id.
  */
-export async function importLadders(
-  _prev: LadderImportState,
+export async function importCards(
+  _prev: ImportState,
   formData: FormData,
-): Promise<LadderImportState> {
+): Promise<ImportState> {
   await requireSession();
+
   const text = String(formData.get("text") ?? "");
-  const fallbackDeckId = String(formData.get("deckId") ?? "") || null;
+  const deckId = String(formData.get("deckId") ?? "").trim();
+  const newDeck = String(formData.get("newDeck") ?? "").trim();
+  const topicId = String(formData.get("topicId") ?? "").trim();
+  const newTopic = String(formData.get("newTopic") ?? "").trim();
 
-  const { ladders, errors, warnings } = parseLadders(text);
-  if (errors.length > 0) {
-    return { error: errors.slice(0, 4).join("  "), warnings };
+  if (!deckId && !newDeck) return { error: "Choose a deck, or name a new one." };
+  if (!topicId && !newTopic) return { error: "Choose a topic, or name a new one." };
+
+  const { cards: parsed, issues } = parseCards(text);
+  if (issues.length > 0) {
+    return { error: "Fix the problems below, then import.", issues };
   }
-  if (ladders.length === 0) {
-    return { error: "Nothing to import.", warnings };
-  }
 
-  const now = Date.now();
-  const touchedDecks = new Set<string>();
-  const replaced: { front: string; back: string }[] = [];
-  let created = 0;
-  let updated = 0;
-  let missingDeck = false;
+  const at = Date.now();
+  let targetTopic = topicId;
+  let targetDeck = deckId;
 
-  db.transaction((tx) => {
-    // Deck paths are created as needed: "AD / Kerberos" is a Kerberos deck
-    // under an AD deck, either of which may already exist.
-    const deckCache = new Map<string, string>();
-    const resolveDeck = (path: string[]): string | null => {
-      if (path.length === 0) return fallbackDeckId;
-      let parentId: string | null = null;
-      let key = "";
-      for (const name of path) {
-        key = key ? `${key} / ${name}` : name;
-        const cached = deckCache.get(key);
-        if (cached) {
-          parentId = cached;
-          continue;
-        }
-        // Annotated: inside a transaction callback the inferred type of a
-        // `.get()` result loops back through the callback's own return type.
-        const found: { id: string } | undefined = tx
+  try {
+    db.transaction((tx) => {
+      if (!targetDeck) {
+        const existing: { id: string } | undefined = tx
           .select({ id: decks.id })
           .from(decks)
+          .where(sql`${decks.name} = ${newDeck} COLLATE NOCASE`)
+          .limit(1)
+          .get();
+        targetDeck = existing?.id ?? nanoid();
+        if (!existing) {
+          tx.insert(decks).values({ id: targetDeck, name: newDeck, createdAt: at }).run();
+        }
+      }
+
+      if (!targetTopic) {
+        const existing: { id: string } | undefined = tx
+          .select({ id: topics.id })
+          .from(topics)
           .where(
-            and(
-              eq(decks.name, name),
-              parentId === null ? isNull(decks.parentId) : eq(decks.parentId, parentId),
-            ),
+            and(eq(topics.deckId, targetDeck), sql`${topics.name} = ${newTopic} COLLATE NOCASE`),
           )
           .limit(1)
           .get();
-        let id: string | undefined = found?.id;
-        if (!id) {
-          id = nanoid();
-          tx.insert(decks).values({ id, name, parentId, createdAt: now }).run();
+        targetTopic = existing?.id ?? nanoid();
+        if (!existing) {
+          tx.insert(topics)
+            .values({ id: targetTopic, deckId: targetDeck, name: newTopic, createdAt: at })
+            .run();
         }
-        deckCache.set(key, id);
-        parentId = id;
       }
-      return parentId;
-    };
 
-    for (const ladder of ladders) {
-      const deckId = resolveDeck(ladder.deckPath);
-      if (!deckId) {
-        missingDeck = true;
-        continue;
-      }
-      touchedDecks.add(deckId);
-
-      for (const card of ladder.cards) {
-        const existing: { id: string; front: string; back: string } | undefined = tx
-          .select({ id: cards.id, front: cards.front, back: cards.back })
+      parsed.forEach((card, index) => {
+        const existing: { id: string } | undefined = tx
+          .select({ id: cards.id })
           .from(cards)
-          .where(eq(cards.sourceKey, card.sourceKey))
+          .where(and(eq(cards.topicId, targetTopic), eq(cards.title, card.title)))
           .limit(1)
           .get();
 
         if (existing) {
-          if (existing.front !== card.front || existing.back !== card.back) {
-            replaced.push({ front: existing.front, back: existing.back });
-          }
           tx.update(cards)
-            .set({
-              deckId,
-              front: card.front,
-              back: card.back,
-              conceptId: card.conceptId,
-              rung: card.rung,
-              updatedAt: now,
-            })
+            .set({ points: card.points, position: index, updatedAt: at })
             .where(eq(cards.id, existing.id))
             .run();
-          updated += 1;
-          continue;
+          return;
         }
 
         const id = nanoid();
         tx.insert(cards)
           .values({
             id,
-            deckId,
-            front: card.front,
-            back: card.back,
-            conceptId: card.conceptId,
-            rung: card.rung,
-            sourceKey: card.sourceKey,
-            createdAt: now,
-            updatedAt: now,
+            topicId: targetTopic,
+            title: card.title,
+            points: card.points,
+            position: index,
+            createdAt: at,
+            updatedAt: at,
           })
           .run();
         tx.insert(reviewState)
-          .values({ cardId: id, ...fsrsCardToRow(emptyState(new Date(now))) })
+          .values({ cardId: id, ...fsrsCardToRow(emptyState(new Date(at))) })
           .run();
-        created += 1;
-      }
-    }
-  });
-
-  if (missingDeck) {
-    return {
-      error:
-        "A concept has no deck. Add a “deck:” line to its front-matter, or import from inside a deck.",
-      warnings,
-    };
+      });
+    });
+  } catch {
+    return { error: "Could not write those cards. Nothing was imported." };
   }
 
-  // An edited card may have dropped the only reference to an uploaded image.
-  if (replaced.length > 0) {
-    const candidates = new Set<string>();
-    for (const card of replaced) {
-      for (const id of extractMediaIds(`${card.front}\n${card.back}`)) candidates.add(id);
-    }
-    await cleanupUnreferencedMedia(candidates);
-  }
-
-  revalidatePath("/");
-  revalidatePath("/edge");
-  for (const deckId of touchedDecks) revalidatePath(`/decks/${deckId}`);
-  redirect(`/edge?created=${created}&updated=${updated}`);
+  revalidatePath("/", "layout");
+  redirect(`/topics/${targetTopic}?imported=${parsed.length}`);
 }
 
-// Review grading lives in a route handler (src/app/api/review) rather than a
-// Server Action, so it doesn't refresh the review route mid-session. See
-// src/lib/review.ts.
+// ---- Cards -----------------------------------------------------------------
+
+export type CardState = { error: string | null };
+
+/** Edit one card in place. The same two-to-six rule the importer enforces. */
+export async function saveCard(_prev: CardState, formData: FormData): Promise<CardState> {
+  await requireSession();
+  const id = String(formData.get("id") ?? "");
+  const title = String(formData.get("title") ?? "").trim();
+  const points = String(formData.get("points") ?? "")
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^\s*[-*+]\s+/, "").trim())
+    .filter(Boolean);
+
+  if (!id) return { error: "That card no longer exists." };
+  if (!title) return { error: "A card needs a question." };
+  if (points.length < MIN_POINTS || points.length > MAX_POINTS) {
+    return { error: `A card needs between ${MIN_POINTS} and ${MAX_POINTS} points.` };
+  }
+
+  const [card] = await db
+    .select({ topicId: cards.topicId })
+    .from(cards)
+    .where(eq(cards.id, id))
+    .limit(1);
+  if (!card) return { error: "That card no longer exists." };
+
+  // Two cards in a topic cannot ask the same question — the importer relies on
+  // it, so the editor cannot be the thing that breaks it.
+  const clash = await db
+    .select({ id: cards.id })
+    .from(cards)
+    .where(and(eq(cards.topicId, card.topicId), eq(cards.title, title)))
+    .limit(1);
+  if (clash[0] && clash[0].id !== id) {
+    return { error: "Another card in this topic already asks that question." };
+  }
+
+  await db.update(cards).set({ title, points, updatedAt: Date.now() }).where(eq(cards.id, id));
+  revalidatePath(`/topics/${card.topicId}`);
+  return { error: null };
+}
+
+export async function deleteCard(formData: FormData) {
+  await requireSession();
+  const id = String(formData.get("id") ?? "");
+  const topicId = String(formData.get("topicId") ?? "");
+  if (!id) return;
+  await db.delete(cards).where(eq(cards.id, id));
+  revalidatePath("/", "layout");
+  revalidatePath(`/topics/${topicId}`);
+}
+
+// ---- Decks and topics ------------------------------------------------------
+
+/**
+ * Deck names are unique, and topic names are unique within their deck — the
+ * importer resolves a name to a row, so two of the same name is not a thing
+ * that can exist. Renaming onto a name already taken therefore fails at the
+ * database, and it fails here rather than on the error page: the heading snaps
+ * back to what it was, which is what "that name is taken" looks like on a
+ * control that is just the heading.
+ */
+export async function renameDeck(formData: FormData) {
+  await requireSession();
+  const id = String(formData.get("id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  if (!id || !name) return;
+  try {
+    await db.update(decks).set({ name }).where(eq(decks.id, id));
+  } catch {
+    return;
+  }
+  revalidatePath("/", "layout");
+}
+
+export async function renameTopic(formData: FormData) {
+  await requireSession();
+  const id = String(formData.get("id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  if (!id || !name) return;
+  try {
+    await db.update(topics).set({ name }).where(eq(topics.id, id));
+  } catch {
+    return;
+  }
+  revalidatePath("/", "layout");
+}
+
+/** Deletes the deck, its topics, their cards, and all of their history. */
+export async function deleteDeck(formData: FormData) {
+  await requireSession();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await db.delete(decks).where(eq(decks.id, id));
+  revalidatePath("/", "layout");
+  redirect("/");
+}
+
+export async function deleteTopic(formData: FormData) {
+  await requireSession();
+  const id = String(formData.get("id") ?? "");
+  const deckId = String(formData.get("deckId") ?? "");
+  if (!id) return;
+  await db.delete(topics).where(eq(topics.id, id));
+  revalidatePath("/", "layout");
+  redirect(deckId ? `/decks/${deckId}` : "/");
+}
+
+// Grading lives in a route handler (src/app/api/review) rather than a Server
+// Action, so answering a card doesn't refresh the study route underneath the
+// session queue. See src/lib/review.ts.
+
+/**
+ * The questions a topic already asks.
+ *
+ * The import preview uses it to split a paste into what it will update and
+ * what it will add — the difference between "12 cards" and "9 of these you
+ * already have" is the difference between a preview and a guess.
+ */
+export async function topicTitles(topicId: string): Promise<string[]> {
+  await requireSession();
+  if (!topicId) return [];
+  const rows = await db
+    .select({ title: cards.title })
+    .from(cards)
+    .where(eq(cards.topicId, topicId));
+  return rows.map((r) => r.title);
+}

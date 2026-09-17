@@ -32,7 +32,7 @@ export default function Logo({ className = "size-7" }: { className?: string }) {
       {/* Recall. */}
       <path
         d="M19 9 20.77 14.23 26 16 20.77 17.77 19 23 17.23 17.77 12 16 17.23 14.23Z"
-        fill="var(--accent-fg)"
+        fill="var(--accent-on)"
       />
     </svg>
   );

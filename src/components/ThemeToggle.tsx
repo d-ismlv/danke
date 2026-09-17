@@ -81,7 +81,7 @@ export default function ThemeToggle({ initial }: { initial: Theme }) {
       onClick={() => setTheme(next)}
       title={LABEL[theme]}
       aria-label={LABEL[theme]}
-      className="button-quiet size-12 justify-center p-0 sm:size-9"
+      className="btn-ghost size-10 px-0 sm:size-9"
     >
       <Icon name={ICON[theme]} size={19} className="sm:size-[17px]" />
     </button>

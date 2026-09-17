@@ -3,37 +3,26 @@ import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db } from "@/db";
 import { reviewState, reviewLogs } from "@/db/schema";
-import {
-  fsrsCardToRow,
-  rowToFsrsCard,
-  grade,
-  intervalPreviews,
-  type Grade,
-} from "@/lib/fsrs";
+import { fsrsCardToRow, rowToFsrsCard, grade, intervalPreviews, type Grade } from "@/lib/fsrs";
 
 export type ReviewResult = {
-  /** When the card is next due (epoch ms). */
-  nextDue: number;
   /** Card state after grading (0 New, 1 Learning, 2 Review, 3 Relearning). */
   state: number;
-  /** Fresh interval previews for the new state (for re-queuing). */
+  /** Fresh interval previews for the new state, for a re-queued card. */
   previews: Record<number, string>;
 };
 
 /**
- * Apply a self-grade to a card: advance its FSRS state, persist it, and append
- * a review log. Returns the new due time, state, and previews so the client can
- * re-queue cards that lapse back into the current session.
+ * Apply a self-grade: advance the card's FSRS state, persist it, and append a
+ * log. Returns the new state and previews so the client can re-queue a card
+ * that lapsed back into the session it is in.
  *
- * Deliberately NOT a Server Action: it's called from the review UI via fetch so
- * that grading a card doesn't trigger an RSC refresh of the review route (which
- * would discard the client-managed session queue).
+ * Deliberately not a Server Action — it is called over fetch so that grading
+ * doesn't trigger an RSC refresh of the study route and discard the queue the
+ * client is holding.
  */
-export async function applyReview(
-  cardId: string,
-  rating: Grade,
-): Promise<ReviewResult | null> {
-  const now = new Date();
+export async function applyReview(cardId: string, rating: Grade): Promise<ReviewResult | null> {
+  const at = new Date();
   const [row] = await db
     .select()
     .from(reviewState)
@@ -41,8 +30,7 @@ export async function applyReview(
     .limit(1);
   if (!row) return null;
 
-  const current = rowToFsrsCard(row);
-  const { card: next, log } = grade(current, rating, now);
+  const { card: next } = grade(rowToFsrsCard(row), rating, at);
 
   db.transaction((tx) => {
     tx.update(reviewState)
@@ -50,22 +38,9 @@ export async function applyReview(
       .where(eq(reviewState.cardId, cardId))
       .run();
     tx.insert(reviewLogs)
-      .values({
-        id: nanoid(),
-        cardId,
-        rating: log.rating,
-        state: log.state,
-        stability: log.stability,
-        difficulty: log.difficulty,
-        due: log.due.getTime(),
-        reviewedAt: now.getTime(),
-      })
+      .values({ id: nanoid(), cardId, rating, reviewedAt: at.getTime() })
       .run();
   });
 
-  return {
-    nextDue: next.due.getTime(),
-    state: next.state,
-    previews: intervalPreviews(next, now),
-  };
+  return { state: next.state, previews: intervalPreviews(next, at) };
 }

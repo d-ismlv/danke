@@ -13,15 +13,15 @@ import type { ReviewStateRow } from "@/db/schema";
  * Scheduler instance. `enable_fuzz` spreads due dates slightly so large decks
  * don't pile every card onto the same day.
  */
-export const scheduler = fsrs(
+const scheduler = fsrs(
   generatorParameters({ enable_fuzz: true, enable_short_term: true }),
 );
 
-export { Rating, State };
+export { Rating };
 export type { Grade };
 
-/** The four self-grading choices, in display order. */
-export const GRADES: { rating: Grade; label: string }[] = [
+/** The four grades, in the order intervals are previewed for. */
+const GRADES: { rating: Grade; label: string }[] = [
   { rating: Rating.Again, label: "Again" },
   { rating: Rating.Hard, label: "Hard" },
   { rating: Rating.Good, label: "Good" },

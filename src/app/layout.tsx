@@ -3,20 +3,18 @@ import { cookies } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
-import "katex/dist/katex.min.css";
 import { isAuthed } from "@/lib/auth";
 import { logout } from "@/lib/actions";
 import Logo from "@/components/Logo";
-import MainNav from "@/components/MainNav";
+import Nav from "@/components/Nav";
 import Icon from "@/components/Icon";
 import ThemeToggle from "@/components/ThemeToggle";
 import { asTheme, THEME_COOKIE, type Theme } from "@/lib/theme";
 
-/** The saved theme, read on the server so `data-theme` is already on <html>
- * in the HTML we send. This is what keeps a forced light/dark choice from
- * flashing the OS theme on load — it used to take an inline script racing the
- * first paint, which React 19 will not run anyway. "system" is the absence of
- * the attribute, so the CSS falls through to prefers-color-scheme. */
+/** The saved theme, read on the server so `data-theme` is already on <html> in
+ * the HTML we send. That is what keeps a forced light/dark choice from flashing
+ * the OS theme on load. "system" is the absence of the attribute, so the CSS
+ * falls through to prefers-color-scheme. */
 async function savedTheme(): Promise<Theme> {
   return asTheme((await cookies()).get(THEME_COOKIE)?.value);
 }
@@ -25,80 +23,59 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  /* Every page names only where you are; the template puts danke in front of
-     it. With several tabs open on the same app, the tab strip is the only
-     place that says which is the drill and which is the deck you were
-     editing. */
-  title: {
-    default: "danke",
-    template: "danke: %s",
-  },
-  description: "A markdown-first, self-hosted flashcard app.",
-  /* Kept on a home screen, the icon comes from `apple-icon.png` beside this
-     file — iOS will not use an SVG for one, which is why it had been drawing
-     its own grey letter tile instead. `title` is what goes under it: without
-     it the label is whichever page was open when the site was saved, so an
-     app added from the stats page would be called "danke: Stats". */
-  appleWebApp: {
-    capable: true,
-    title: "danke",
-    statusBarStyle: "default",
-  },
+  title: { default: "danke", template: "danke · %s" },
+  description: "A self-hosted study app for cards you write yourself.",
+  appleWebApp: { capable: true, title: "danke", statusBarStyle: "default" },
 };
 
-/* The browser paints its own chrome from this: the header colour in each
-   theme, so the address bar doesn't sit on a white band above a dark app. */
 export const viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f1f3f8" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f1015" },
+    { media: "(prefers-color-scheme: light)", color: "#f4f5f9" },
+    { media: "(prefers-color-scheme: dark)", color: "#0e0f14" },
   ],
 };
 
-export default async function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const authed = await isAuthed();
   const theme = await savedTheme();
 
   return (
-    // suppressHydrationWarning: dark-mode browser extensions (e.g. DarkReader)
-    // mutate <html> attributes before React hydrates, which is harmless here.
+    // suppressHydrationWarning: dark-mode browser extensions mutate <html>
+    // before React hydrates, which is harmless here.
     <html
       lang="en"
       suppressHydrationWarning
       data-theme={theme === "system" ? undefined : theme}
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full`}
     >
-      <body className="min-h-full flex flex-col">
-        <header className="app-header sticky top-0 z-10 backdrop-blur-xl">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2.5 sm:px-6 lg:px-8">
+      <body className="flex min-h-full flex-col antialiased">
+        <header className="sticky top-0 z-20 border-b bg-bg/85 backdrop-blur-xl">
+          <div className="mx-auto flex h-14 max-w-[var(--page-width)] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
             <Link
               href="/"
-              className="transition-state flex items-center gap-2.5 rounded-md px-1 py-1 font-semibold hover:opacity-80"
+              className="flex items-center gap-2.5 rounded-md py-1 transition-opacity hover:opacity-75"
             >
-              <Logo className="size-7" />
-              <span className="text-base tracking-[-0.025em]">danke</span>
+              <Logo className="size-[1.6rem]" />
+              <span className="text-[1.02rem] font-semibold tracking-[-0.03em]">danke</span>
             </Link>
-            <div className="flex items-center gap-1 sm:gap-2">
-              {authed && <MainNav />}
+            <div className="flex items-center gap-1">
+              {authed && <Nav />}
               <ThemeToggle initial={theme} />
               {authed && (
                 <form action={logout}>
                   <button
-                    className="button-quiet size-12 justify-center p-0 sm:size-auto sm:min-h-9 sm:px-2.5"
+                    className="btn-ghost size-10 px-0 sm:size-9"
                     title="Lock danke"
+                    aria-label="Lock danke"
                   >
-                    <Icon name="lock" size={19} className="sm:hidden" />
-                    <Icon name="lock" size={16} className="hidden sm:block" />
-                    <span className="hidden sm:inline">Lock</span>
+                    <Icon name="lock" size={17} />
                   </button>
                 </form>
               )}
             </div>
           </div>
         </header>
-        <main className="anim-fade mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
+        <main className="anim-fade mx-auto w-full max-w-[var(--page-width)] flex-1 px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
           {children}
         </main>
       </body>

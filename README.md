@@ -2,9 +2,10 @@
 
 # 🗂️ danke
 
-**Self-hosted, markdown-first spaced repetition.**
+**A self-hosted study app for cards you write yourself.**
 
 <a href="#quick-start">Quick start</a> ·
+<a href="#the-card-format">Card format</a> ·
 <a href="docs/ARCHITECTURE.md">Architecture</a> ·
 <a href="https://github.com/d-ismlv/danke/pkgs/container/danke">Container image</a>
 
@@ -14,28 +15,30 @@
 ![Tailwind](https://img.shields.io/badge/Tailwind-06B6D4?logo=tailwindcss&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
 
-<img src="docs/screenshot.png" alt="danke" width="640" />
+<img src="docs/screenshot.png" alt="A study card in danke" width="760" />
 
 </div>
 
-A flashcard app you host yourself — an Anki alternative that's actually pleasant
-on desktop and mobile. Write cards in Markdown, review them with a modern
-scheduler (FSRS), and keep everything in one SQLite file you own. Built because
-Anki's engine is great but its app gets in the way.
+Decks hold topics, topics hold cards, and a card is a question with two to six
+points that answer it. You paste your content in, you press Study, and a modern
+scheduler (FSRS) decides what comes back and when. Everything lives in one
+SQLite file you own.
 
 ## Features
 
-- ✍️ **Markdown cards** — GFM, code, math (KaTeX), and local images with a live-preview editor
-- 🖼️ **Image uploads** — choose, drag, or paste JPEG, PNG, WebP, and GIF images into either side
-- 🗂️ **Decks & sub-decks** to organize by topic
+- 🗂️ **Deck → Topic → Card**, two levels deep and no deeper
+- 🎯 **One study button** — due cards first, then anything unseen, then the rest.
+  No practice mode, no drill mode, no modes at all
+- 📥 **Import with a live preview** that says what will be added and what will be
+  updated, and refuses to write anything while a single line is wrong
+- ♻️ **Re-import safely** — a corrected paste updates the questions it already
+  has and keeps their schedules
 - 🧠 **FSRS scheduling** — Again / Hard / Good / Easy, with interval previews
-- 🔁 **Practice anytime** — revisit a completed deck or one card without changing its schedule
-- ↺ **Progress reset** — explicitly reset one card or a whole deck when you want a fresh start
-- 📥 **Bulk import** — paste delimited text, or [generate cards from any URL](docs/flashcard-prompt.md)
-- 📈 **Progress** — due counts, streak, and an activity heatmap
+- 📈 **Progress** — how much is holding, whether you're showing up, which deck is
+  weakest
 - 🔒 **Password login** for the whole app
-- 📱 **Responsive** light/dark UI
-- 🐳 **One container, one SQLite file** — trivial to self-host
+- 📱 **Responsive** light/dark UI, keyboard-driven on desktop
+- 🐳 **One container, one SQLite file**
 
 ## Quick start
 
@@ -58,13 +61,12 @@ volumes:
 ```
 
 ```bash
-docker compose up -d          # then open http://localhost:32323
+docker compose up -d
 ```
 
-Set a password, that's it — the session secret is generated on first run. Put it
-behind a TLS-terminating reverse proxy (nginx-proxy-manager, Caddy, …) pointed at
-port `32323`. All state lives in the `danke-data` volume — the SQLite database
-and uploaded images are backed up together.
+Then open http://localhost:32323. Set a password and that's it — the session
+secret is generated on first run. Put it behind a TLS-terminating reverse proxy
+pointed at port `32323`. All state lives in the `danke-data` volume.
 
 ### Local
 
@@ -73,6 +75,39 @@ npm install
 npm run migrate   # create the local SQLite database
 npm run dev       # http://localhost:3000
 ```
+
+## The card format
+
+Import takes a plain-text paste. A card is a `#` question line followed by its
+points; repeat for every card. Blank lines are ignored, and a point may wrap onto
+an indented line.
+
+```markdown
+# What is **deconfliction** during an offensive exercise?
+
+- A controlled process for **separating exercise activity from real malicious activity**
+- It gives incident responders authoritative context without dismissing evidence
+- It protects production response and exercise credibility
+- It remains active from preparation through cleanup
+
+# Which ticket does `mimikatz` forge for a **Golden Ticket**?
+
+- A **TGT** signed with the `krbtgt` account hash
+- Any service ticket can then be requested from it normally
+```
+
+Rules, all enforced before anything is written:
+
+| | |
+|---|---|
+| Points per card | between **2** and **6** |
+| Question | one line, starting with a single `#` |
+| Duplicate questions | not allowed within a topic |
+| Formatting | `**bold**`, `*italic*`, `` `code` ``, ``**`bold code`**`` — and nothing else |
+
+One paste goes into one topic, which you pick — or name, to create — on the
+import screen. The format is on that screen too, behind **Show format**, so it is
+never something you have to remember.
 
 ## Configuration
 
@@ -83,11 +118,10 @@ npm run dev       # http://localhost:3000
 | `DANKE_DATA_DIR` | Database location (default `/app/data`) |
 | `TZ` | Timezone (optional) |
 
-## How it works
+## Upgrading from v1
 
-One Next.js (App Router) process serves the UI and API; cards and scheduling
-live in SQLite via Drizzle, driven by [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs).
-The data model, review loop, and layout are in
-**[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+The content model changed and nothing maps across. On first boot the migration
+copies your old database to `danke.db.pre-v2-<date>.bak` beside itself, then
+rebuilds for the new model — import your content again afterwards.
 
-<sub>*danke — “thanks” in German.*</sub>
+<sub>*danke — "thanks" in German.*</sub>

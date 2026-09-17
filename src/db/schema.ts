@@ -1,70 +1,65 @@
-import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, index, unique } from "drizzle-orm/sqlite-core";
 
 /**
- * Decks double as categories: a deck with a `parentId` is a sub-deck.
- * Deleting a deck cascades to its cards (and their review state / logs).
+ * The hierarchy is exactly two levels deep — deck, then topic — and it is
+ * spelled out in the tables rather than left to a convention. The old schema
+ * had one self-referencing `decks` table, so "how deep can this go" was
+ * whatever the data happened to contain, and every screen had to answer it at
+ * runtime. Two tables make the depth a fact of the model: a deck holds topics,
+ * a topic holds cards, and there is nowhere else for a card to be.
  */
-export const decks = sqliteTable(
-  "decks",
-  {
-    id: text("id").primaryKey(),
-    name: text("name").notNull(),
-    parentId: text("parent_id"),
-    createdAt: integer("created_at").notNull(),
-  },
-  (t) => [index("decks_parent_idx").on(t.parentId)],
-);
+export const decks = sqliteTable("decks", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  createdAt: integer("created_at").notNull(),
+});
 
-/**
- * Card content only. Scheduling lives in `reviewState` so authoring and
- * spaced-repetition concerns stay decoupled.
- *
- * The last three columns describe a *ladder*: a set of cards that walk one
- * concept through progressively harder questions (rungs). They are nullable
- * throughout — an ordinary card leaves all three empty — and only the ladder
- * importer, drill mode, and the edge map read them.
- */
-export const cards = sqliteTable(
-  "cards",
+export const topics = sqliteTable(
+  "topics",
   {
     id: text("id").primaryKey(),
     deckId: text("deck_id")
       .notNull()
       .references(() => decks.id, { onDelete: "cascade" }),
-    front: text("front").notNull().default(""),
-    back: text("back").notNull().default(""),
+    name: text("name").notNull(),
     createdAt: integer("created_at").notNull(),
-    updatedAt: integer("updated_at").notNull(),
-    /** Groups one ladder, e.g. `kerberos.roasting`. */
-    conceptId: text("concept_id"),
-    /** Position on the ladder, 1-7. */
-    rung: integer("rung"),
-    /** Stable import identity, e.g. `kerberos.roasting#2`, so re-importing
-     * edited content updates the card instead of duplicating it. */
-    sourceKey: text("source_key").unique(),
   },
   (t) => [
-    index("cards_deck_idx").on(t.deckId),
-    index("cards_concept_idx").on(t.conceptId),
+    index("topics_deck_idx").on(t.deckId),
+    // Two topics of the same name inside one deck are the same topic. The
+    // importer relies on this to resolve "Golden Ticket" to a single row.
+    unique("topics_deck_name_unique").on(t.deckId, t.name),
   ],
 );
 
 /**
- * Metadata for user-uploaded images. The binary files live in
- * `DANKE_DATA_DIR/media`; keeping them out of SQLite avoids inflating the
- * database while still letting a backup of the data directory capture both.
+ * A card is a question and the two-to-six points that answer it. `points` is a
+ * JSON array of strings, each one line of inline markup — which is the whole
+ * content model, so it is stored as the shape it is authored and rendered in
+ * rather than as a blob of markdown to be re-parsed on every render.
+ *
+ * `(topic_id, title)` is the card's identity for import: re-importing a
+ * corrected file updates the points of a card with the same title and leaves
+ * its schedule alone.
  */
-export const mediaAssets = sqliteTable(
-  "media_assets",
+export const cards = sqliteTable(
+  "cards",
   {
     id: text("id").primaryKey(),
-    storageName: text("storage_name").notNull().unique(),
-    originalName: text("original_name").notNull(),
-    mimeType: text("mime_type").notNull(),
-    size: integer("size").notNull(),
+    topicId: text("topic_id")
+      .notNull()
+      .references(() => topics.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    points: text("points", { mode: "json" }).notNull().$type<string[]>(),
+    /** Authoring order within the topic, so an import reads back as written. */
+    position: integer("position").notNull().default(0),
     createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
   },
-  (t) => [index("media_assets_created_idx").on(t.createdAt)],
+  (t) => [
+    index("cards_topic_idx").on(t.topicId),
+    unique("cards_topic_title_unique").on(t.topicId, t.title),
+  ],
 );
 
 /**
@@ -93,7 +88,8 @@ export const reviewState = sqliteTable(
 );
 
 /**
- * Append-only history of every grading, used for progress/heatmap/stats.
+ * Append-only history of every grading. It is what the Progress page reads,
+ * and the only table here that grows without bound.
  * `rating`: 1 Again, 2 Hard, 3 Good, 4 Easy.
  */
 export const reviewLogs = sqliteTable(
@@ -104,10 +100,6 @@ export const reviewLogs = sqliteTable(
       .notNull()
       .references(() => cards.id, { onDelete: "cascade" }),
     rating: integer("rating").notNull(),
-    state: integer("state").notNull(),
-    stability: real("stability").notNull(),
-    difficulty: real("difficulty").notNull(),
-    due: integer("due").notNull(),
     reviewedAt: integer("reviewed_at").notNull(),
   },
   (t) => [
@@ -117,7 +109,6 @@ export const reviewLogs = sqliteTable(
 );
 
 export type Deck = typeof decks.$inferSelect;
+export type Topic = typeof topics.$inferSelect;
 export type Card = typeof cards.$inferSelect;
-export type MediaAsset = typeof mediaAssets.$inferSelect;
 export type ReviewStateRow = typeof reviewState.$inferSelect;
-export type ReviewLogRow = typeof reviewLogs.$inferSelect;

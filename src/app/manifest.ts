@@ -12,14 +12,14 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "danke",
     short_name: "danke",
-    description: "A markdown-first, self-hosted flashcard app.",
+    description: "A self-hosted study app for cards you write yourself.",
     start_url: "/",
     display: "standalone",
     // The page behind the splash, and the bar Android tints around it. Both
     // are the light palette's, which is what `:root` renders before any theme
     // cookie is read.
-    background_color: "#f1f3f8",
-    theme_color: "#f1f3f8",
+    background_color: "#f4f5f9",
+    theme_color: "#f4f5f9",
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },

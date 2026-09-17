@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "d160d00f-8228-457e-bc18-01b6ba5a954d",
+  "id": "b1152c75-8967-489e-a662-851f577bff32",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "cards": {
@@ -14,28 +14,34 @@
           "notNull": true,
           "autoincrement": false
         },
-        "deck_id": {
-          "name": "deck_id",
+        "topic_id": {
+          "name": "topic_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "front": {
-          "name": "front",
+        "title": {
+          "name": "title",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "''"
+          "autoincrement": false
         },
-        "back": {
-          "name": "back",
+        "points": {
+          "name": "points",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
           "autoincrement": false,
-          "default": "''"
+          "default": 0
         },
         "created_at": {
           "name": "created_at",
@@ -53,21 +59,29 @@
         }
       },
       "indexes": {
-        "cards_deck_idx": {
-          "name": "cards_deck_idx",
+        "cards_topic_idx": {
+          "name": "cards_topic_idx",
           "columns": [
-            "deck_id"
+            "topic_id"
           ],
           "isUnique": false
+        },
+        "cards_topic_title_unique": {
+          "name": "cards_topic_title_unique",
+          "columns": [
+            "topic_id",
+            "title"
+          ],
+          "isUnique": true
         }
       },
       "foreignKeys": {
-        "cards_deck_id_decks_id_fk": {
-          "name": "cards_deck_id_decks_id_fk",
+        "cards_topic_id_topics_id_fk": {
+          "name": "cards_topic_id_topics_id_fk",
           "tableFrom": "cards",
-          "tableTo": "decks",
+          "tableTo": "topics",
           "columnsFrom": [
-            "deck_id"
+            "topic_id"
           ],
           "columnsTo": [
             "id"
@@ -97,13 +111,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "parent_id": {
-          "name": "parent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -113,12 +120,12 @@
         }
       },
       "indexes": {
-        "decks_parent_idx": {
-          "name": "decks_parent_idx",
+        "decks_name_unique": {
+          "name": "decks_name_unique",
           "columns": [
-            "parent_id"
+            "name"
           ],
-          "isUnique": false
+          "isUnique": true
         }
       },
       "foreignKeys": {},
@@ -145,34 +152,6 @@
         },
         "rating": {
           "name": "rating",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "state": {
-          "name": "state",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "stability": {
-          "name": "stability",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "difficulty": {
-          "name": "difficulty",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "due": {
-          "name": "due",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -318,6 +297,74 @@
           "tableTo": "cards",
           "columnsFrom": [
             "card_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "topics": {
+      "name": "topics",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "deck_id": {
+          "name": "deck_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "topics_deck_idx": {
+          "name": "topics_deck_idx",
+          "columns": [
+            "deck_id"
+          ],
+          "isUnique": false
+        },
+        "topics_deck_name_unique": {
+          "name": "topics_deck_name_unique",
+          "columns": [
+            "deck_id",
+            "name"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "topics_deck_id_decks_id_fk": {
+          "name": "topics_deck_id_decks_id_fk",
+          "tableFrom": "topics",
+          "tableTo": "decks",
+          "columnsFrom": [
+            "deck_id"
           ],
           "columnsTo": [
             "id"
