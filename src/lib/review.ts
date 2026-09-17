@@ -3,19 +3,17 @@ import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db } from "@/db";
 import { reviewState, reviewLogs } from "@/db/schema";
-import { fsrsCardToRow, rowToFsrsCard, grade, intervalPreviews, type Grade } from "@/lib/fsrs";
+import { fsrsCardToRow, rowToFsrsCard, grade, type Grade } from "@/lib/fsrs";
 
 export type ReviewResult = {
   /** Card state after grading (0 New, 1 Learning, 2 Review, 3 Relearning). */
   state: number;
-  /** Fresh interval previews for the new state, for a re-queued card. */
-  previews: Record<number, string>;
 };
 
 /**
  * Apply a self-grade: advance the card's FSRS state, persist it, and append a
- * log. Returns the new state and previews so the client can re-queue a card
- * that lapsed back into the session it is in.
+ * log. Returns the new state so the client can re-queue a card that lapsed
+ * back into the session it is in.
  *
  * Deliberately not a Server Action — it is called over fetch so that grading
  * doesn't trigger an RSC refresh of the study route and discard the queue the
@@ -42,5 +40,5 @@ export async function applyReview(cardId: string, rating: Grade): Promise<Review
       .run();
   });
 
-  return { state: next.state, previews: intervalPreviews(next, at) };
+  return { state: next.state };
 }

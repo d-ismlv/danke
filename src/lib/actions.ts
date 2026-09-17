@@ -278,20 +278,3 @@ export async function deleteTopic(formData: FormData) {
 // Grading lives in a route handler (src/app/api/review) rather than a Server
 // Action, so answering a card doesn't refresh the study route underneath the
 // session queue. See src/lib/review.ts.
-
-/**
- * The questions a topic already asks.
- *
- * The import preview uses it to split a paste into what it will update and
- * what it will add — the difference between "12 cards" and "9 of these you
- * already have" is the difference between a preview and a guess.
- */
-export async function topicTitles(topicId: string): Promise<string[]> {
-  await requireSession();
-  if (!topicId) return [];
-  const rows = await db
-    .select({ title: cards.title })
-    .from(cards)
-    .where(eq(cards.topicId, topicId));
-  return rows.map((r) => r.title);
-}

@@ -3,10 +3,16 @@ import { asc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { decks, topics, cards, reviewState, reviewLogs } from "@/db/schema";
 import type { Card, Deck, ReviewStateRow, Topic } from "@/db/schema";
+import {
+  learningStatusForScope,
+  MATURE_DAYS,
+  type LearningStatus,
+  type MemoryState,
+} from "@/lib/status";
 
 const DAY_MS = 86_400_000;
-/** A card whose memory has held this long is counted as learned for good. */
-const MATURE_DAYS = 21;
+/** The window every recall figure and every "recently" judgement reads. */
+const RECENT_DAYS = 30;
 
 /** Read the clock outside render, which React's purity lint requires. */
 export function now(): number {
@@ -16,11 +22,11 @@ export function now(): number {
 /* ==========================================================================
    Counts
 
-   Every screen asks the same three questions of a collection — how many cards,
-   how many are due, how much of it is holding — so they are answered once,
-   in one shape, and rolled up from topic to deck to library. "Learned" means
-   FSRS has graduated the card out of learning (state 2); it is the single
-   definition behind every percentage and progress bar in the app.
+   Every screen asks the same questions of a collection — how many cards, how
+   many are due, how much of it is holding, and how is it actually going — so
+   they are answered once, in one shape, and rolled up from topic to deck to
+   library. "Learned" means FSRS has graduated the card out of learning
+   (state 2); it is the single definition behind every percentage in the app.
    ========================================================================== */
 
 export type Counts = {
@@ -31,21 +37,64 @@ export type Counts = {
   percent: number;
   /** Epoch ms of the most recent review here, or null. */
   lastStudied: number | null;
+  memory: Record<MemoryState, number>;
+  /** Cards answered at least once, and those the scheduler is not holding. */
+  reviewed: number;
+  unstable: number;
+  /** Answers in the trailing window, and how many of them were Again. */
+  recentTotal: number;
+  recentAgain: number;
+  /** Share of those answers that were not Again. Null until something is graded. */
+  recall: number | null;
+  status: LearningStatus;
 };
 
 function empty(): Counts {
-  return { cards: 0, due: 0, learned: 0, percent: 0, lastStudied: null };
+  return {
+    cards: 0,
+    due: 0,
+    learned: 0,
+    percent: 0,
+    lastStudied: null,
+    memory: { mature: 0, young: 0, learning: 0, unseen: 0 },
+    reviewed: 0,
+    unstable: 0,
+    recentTotal: 0,
+    recentAgain: 0,
+    recall: null,
+    status: "new",
+  };
 }
 
 function add(into: Counts, from: Counts): void {
   into.cards += from.cards;
   into.due += from.due;
   into.learned += from.learned;
+  into.reviewed += from.reviewed;
+  into.unstable += from.unstable;
+  into.recentTotal += from.recentTotal;
+  into.recentAgain += from.recentAgain;
+  for (const key of ["mature", "young", "learning", "unseen"] as const) {
+    into.memory[key] += from.memory[key];
+  }
   into.lastStudied = Math.max(into.lastStudied ?? 0, from.lastStudied ?? 0) || null;
 }
 
+/** Derive everything that is a function of the sums, once the sums are final. */
 function sealed(c: Counts): Counts {
   c.percent = c.cards === 0 ? 0 : Math.round((c.learned / c.cards) * 100);
+  c.recall =
+    c.recentTotal === 0
+      ? null
+      : Math.round(((c.recentTotal - c.recentAgain) / c.recentTotal) * 100);
+  c.status = learningStatusForScope({
+    cards: c.cards,
+    reviewed: c.reviewed,
+    unstable: c.unstable,
+    mature: c.memory.mature,
+    recentTotal: c.recentTotal,
+    recentAgain: c.recentAgain,
+  });
   return c;
 }
 
@@ -57,13 +106,41 @@ type TopicRow = {
   cards: number;
   due: number;
   learned: number;
+  mature: number;
+  young: number;
+  learningCards: number;
+  unseen: number;
+  reviewed: number;
+  unstable: number;
   lastStudied: number | null;
 };
 
+function toCounts(row: Partial<TopicRow> & { recentTotal?: number; recentAgain?: number }): Counts {
+  const c = empty();
+  c.cards = row.cards ?? 0;
+  c.due = row.due ?? 0;
+  c.learned = row.learned ?? 0;
+  c.lastStudied = row.lastStudied ?? null;
+  c.memory = {
+    mature: row.mature ?? 0,
+    young: row.young ?? 0,
+    learning: row.learningCards ?? 0,
+    unseen: row.unseen ?? 0,
+  };
+  c.reviewed = row.reviewed ?? 0;
+  c.unstable = row.unstable ?? 0;
+  c.recentTotal = row.recentTotal ?? 0;
+  c.recentAgain = row.recentAgain ?? 0;
+  return c;
+}
+
 /**
  * One row per topic, counts included — the whole library in a single query.
- * The old home page joined every card to its schedule to count them, on the
- * screen that is also the app's front door.
+ *
+ * A card with no schedule row at all counts as unseen, which is why the
+ * `unseen` bucket tests for a null state rather than for state 0 alone.
+ * "Unstable" is the scheduler saying it is not holding this card: relearning
+ * now, or lapsed more than once and still on a short interval.
  */
 async function topicRows(at: number): Promise<TopicRow[]> {
   return db.all<TopicRow>(sql`
@@ -75,6 +152,14 @@ async function topicRows(at: number): Promise<TopicRow[]> {
       COUNT(${cards.id}) AS cards,
       COALESCE(SUM(CASE WHEN ${reviewState.due} <= ${at} THEN 1 ELSE 0 END), 0) AS due,
       COALESCE(SUM(CASE WHEN ${reviewState.state} = 2 THEN 1 ELSE 0 END), 0) AS learned,
+      COALESCE(SUM(CASE WHEN ${reviewState.state} = 2 AND ${reviewState.stability} >= ${MATURE_DAYS} THEN 1 ELSE 0 END), 0) AS mature,
+      COALESCE(SUM(CASE WHEN ${reviewState.state} = 2 AND ${reviewState.stability} < ${MATURE_DAYS} THEN 1 ELSE 0 END), 0) AS young,
+      COALESCE(SUM(CASE WHEN ${reviewState.state} IN (1, 3) THEN 1 ELSE 0 END), 0) AS learningCards,
+      COALESCE(SUM(CASE WHEN ${reviewState.state} IS NULL OR ${reviewState.state} = 0 THEN 1 ELSE 0 END), 0) AS unseen,
+      COALESCE(SUM(CASE WHEN ${reviewState.state} IS NOT NULL AND ${reviewState.state} <> 0 THEN 1 ELSE 0 END), 0) AS reviewed,
+      COALESCE(SUM(CASE WHEN ${reviewState.state} = 3
+        OR (${reviewState.lapses} >= 2 AND ${reviewState.stability} < ${MATURE_DAYS} AND ${reviewState.state} <> 0)
+        THEN 1 ELSE 0 END), 0) AS unstable,
       MAX(${reviewState.lastReview}) AS lastStudied
     FROM ${topics}
     JOIN ${decks} ON ${decks.id} = ${topics.deckId}
@@ -85,28 +170,65 @@ async function topicRows(at: number): Promise<TopicRow[]> {
   `);
 }
 
+type RecentRow = { topicId: string; total: number; again: number };
+
+/**
+ * The trailing window's answers, per topic.
+ *
+ * Its own query rather than another join on the one above: `review_logs` is
+ * the table that grows without bound, and joining it into a per-card
+ * aggregate multiplies every other count by the number of times that card has
+ * been answered.
+ */
+async function recentRows(at: number): Promise<Map<string, RecentRow>> {
+  const rows = await db.all<RecentRow>(sql`
+    SELECT
+      ${cards.topicId} AS topicId,
+      COUNT(*) AS total,
+      COALESCE(SUM(CASE WHEN ${reviewLogs.rating} = 1 THEN 1 ELSE 0 END), 0) AS again
+    FROM ${reviewLogs}
+    JOIN ${cards} ON ${cards.id} = ${reviewLogs.cardId}
+    WHERE ${reviewLogs.reviewedAt} >= ${at - RECENT_DAYS * DAY_MS}
+    GROUP BY ${cards.topicId}
+  `);
+  return new Map(rows.map((r) => [r.topicId, r]));
+}
+
+/** Topic rows and their recent answers, merged into finished Counts. */
+async function scopedCounts(at: number): Promise<{ row: TopicRow; counts: Counts }[]> {
+  const [rows, recent] = await Promise.all([topicRows(at), recentRows(at)]);
+  return rows.map((row) => {
+    const seen = recent.get(row.topicId);
+    return {
+      row,
+      counts: sealed(
+        toCounts({ ...row, recentTotal: seen?.total ?? 0, recentAgain: seen?.again ?? 0 }),
+      ),
+    };
+  });
+}
+
 export type TopicSummary = Topic & { counts: Counts };
 export type DeckSummary = Deck & { counts: Counts; topicCount: number };
 
-/** Every deck with its rolled-up counts, alphabetical. The home grid. */
+/** Every deck with its rolled-up counts, alphabetical. The library list. */
 export async function getLibrary(at = Date.now()): Promise<{
   decks: DeckSummary[];
   totals: Counts;
 }> {
-  const [all, rows] = await Promise.all([
+  const [all, scoped] = await Promise.all([
     db.select().from(decks).orderBy(asc(sql`${decks.name} COLLATE NOCASE`)),
-    topicRows(at),
+    scopedCounts(at),
   ]);
 
   const byDeck = new Map<string, { counts: Counts; topicCount: number }>();
   for (const deck of all) byDeck.set(deck.id, { counts: empty(), topicCount: 0 });
 
   const totals = empty();
-  for (const row of rows) {
+  for (const { row, counts } of scoped) {
     const entry = byDeck.get(row.deckId);
     if (!entry) continue;
     entry.topicCount += 1;
-    const counts = { ...empty(), ...row, percent: 0 };
     add(entry.counts, counts);
     add(totals, counts);
   }
@@ -120,36 +242,62 @@ export async function getLibrary(at = Date.now()): Promise<{
   };
 }
 
-/** One deck, its topics, and the counts for both. */
+/** One mark per card, keyed by topic — the fragmented state row on a deck. */
+export type CardState = { state: number | null; stability: number | null; due: number | null };
+
+async function cardStatesByTopic(deckId: string): Promise<Map<string, CardState[]>> {
+  const rows = await db
+    .select({
+      topicId: cards.topicId,
+      state: reviewState.state,
+      stability: reviewState.stability,
+      due: reviewState.due,
+    })
+    .from(cards)
+    .innerJoin(topics, eq(topics.id, cards.topicId))
+    .leftJoin(reviewState, eq(reviewState.cardId, cards.id))
+    .where(eq(topics.deckId, deckId))
+    .orderBy(asc(cards.position), asc(cards.createdAt));
+
+  const out = new Map<string, CardState[]>();
+  for (const row of rows) {
+    const list = out.get(row.topicId) ?? [];
+    list.push({ state: row.state, stability: row.stability, due: row.due });
+    out.set(row.topicId, list);
+  }
+  return out;
+}
+
+/** One deck, its topics, the counts for both, and each topic's card states. */
 export async function getDeckView(
   deckId: string,
   at = Date.now(),
-): Promise<{ deck: Deck; topics: TopicSummary[]; counts: Counts } | null> {
+): Promise<{ deck: Deck; topics: TopicSummary[]; marks: Map<string, CardState[]>; counts: Counts } | null> {
   const [deck] = await db.select().from(decks).where(eq(decks.id, deckId)).limit(1);
   if (!deck) return null;
 
-  const [rows, all] = await Promise.all([
-    topicRows(at),
+  const [scoped, all, marks] = await Promise.all([
+    scopedCounts(at),
     db
       .select()
       .from(topics)
       .where(eq(topics.deckId, deckId))
       .orderBy(asc(sql`${topics.name} COLLATE NOCASE`)),
+    cardStatesByTopic(deckId),
   ]);
 
-  const counted = new Map(rows.map((r) => [r.topicId, r]));
+  const counted = new Map(scoped.map((s) => [s.row.topicId, s.counts]));
   const counts = empty();
   const summaries = all.map((topic) => {
-    const row = counted.get(topic.id);
-    const own = sealed({ ...empty(), ...(row ?? {}), percent: 0 });
+    const own = counted.get(topic.id) ?? sealed(empty());
     add(counts, own);
     return { ...topic, counts: own };
   });
 
-  return { deck, topics: summaries, counts: sealed(counts) };
+  return { deck, topics: summaries, marks, counts: sealed(counts) };
 }
 
-export type CardRow = Card & { state: number | null; due: number | null };
+export type CardRow = Card & CardState;
 
 /** One topic, its deck, and every card in it — the topic screen. */
 export async function getTopicView(
@@ -164,31 +312,28 @@ export async function getTopicView(
     .limit(1);
   if (!found) return null;
 
-  const rows = await db
-    .select({
-      id: cards.id,
-      topicId: cards.topicId,
-      title: cards.title,
-      points: cards.points,
-      position: cards.position,
-      createdAt: cards.createdAt,
-      updatedAt: cards.updatedAt,
-      state: reviewState.state,
-      due: reviewState.due,
-    })
-    .from(cards)
-    .leftJoin(reviewState, eq(reviewState.cardId, cards.id))
-    .where(eq(cards.topicId, topicId))
-    .orderBy(asc(cards.position), asc(cards.createdAt));
+  const [rows, scoped] = await Promise.all([
+    db
+      .select({
+        id: cards.id,
+        topicId: cards.topicId,
+        title: cards.title,
+        points: cards.points,
+        position: cards.position,
+        createdAt: cards.createdAt,
+        updatedAt: cards.updatedAt,
+        state: reviewState.state,
+        stability: reviewState.stability,
+        due: reviewState.due,
+      })
+      .from(cards)
+      .leftJoin(reviewState, eq(reviewState.cardId, cards.id))
+      .where(eq(cards.topicId, topicId))
+      .orderBy(asc(cards.position), asc(cards.createdAt)),
+    scopedCounts(at),
+  ]);
 
-  const counts = sealed({
-    cards: rows.length,
-    due: rows.filter((r) => r.due !== null && r.due <= at).length,
-    learned: rows.filter((r) => r.state === 2).length,
-    percent: 0,
-    lastStudied: null,
-  });
-
+  const counts = scoped.find((s) => s.row.topicId === topicId)?.counts ?? sealed(empty());
   return { topic: found.topic, deck: found.deck, cards: rows, counts };
 }
 
@@ -196,7 +341,7 @@ export async function getTopicView(
  * Consecutive days with at least one review, counting back from today — or from
  * yesterday, so a day you have not started yet does not read as a break.
  *
- * Its own small query rather than a field on `getProgress`: the home page wants
+ * Its own small query rather than a field on `getProgress`: the library wants
  * this one number and none of the rest of that page's work.
  */
 export async function getStreak(at = Date.now()): Promise<number> {
@@ -271,7 +416,6 @@ export type QueueCard = {
   id: string;
   title: string;
   points: string[];
-  topicName: string;
   state: ReviewStateRow;
 };
 
@@ -314,7 +458,6 @@ export async function buildQueue(
     title: string;
     points: string;
     topicId: string;
-    topicName: string;
     band: number;
     due: number;
     stability: number;
@@ -332,7 +475,6 @@ export async function buildQueue(
       ${cards.title} AS title,
       ${cards.points} AS points,
       ${topics.id} AS topicId,
-      ${topics.name} AS topicName,
       CASE
         WHEN ${reviewState.due} <= ${at} THEN 0
         WHEN ${reviewState.state} = 0 THEN 1
@@ -361,7 +503,6 @@ export async function buildQueue(
       id: row.id,
       title: row.title,
       points: parsePoints(row.points),
-      topicName: row.topicName,
       state: {
         cardId: row.id,
         due: row.due,
@@ -437,36 +578,23 @@ function parsePoints(value: string | string[]): string[] {
 export type Progress = {
   totalCards: number;
   /** The four states a card can be in, which sum to `totalCards`. */
-  memory: { mature: number; young: number; learning: number; unseen: number };
+  memory: Record<MemoryState, number>;
   percent: number;
   streak: number;
   reviewsToday: number;
-  /** Share of the last 30 days' answers that were not Again. Null until graded. */
   recall: number | null;
   /** epoch-day (UTC) -> reviews, for the past year. */
   heatmap: Record<number, number>;
   today: number;
-  /** Weakest first — the page's answer to "what should I work on". */
-  decks: { id: string; name: string; cards: number; percent: number; recall: number | null }[];
+  decks: DeckSummary[];
 };
 
 export async function getProgress(at = Date.now()): Promise<Progress> {
   const today = Math.floor(at / DAY_MS);
   const yearFrom = (today - 364) * DAY_MS;
-  const recentFrom = at - 30 * DAY_MS;
 
-  const [memoryRows, byDay, recent, deckRows, totalCards] = await Promise.all([
-    db.all<{ bucket: string; n: number }>(sql`
-      SELECT
-        CASE
-          WHEN ${reviewState.state} = 0 THEN 'unseen'
-          WHEN ${reviewState.state} IN (1, 3) THEN 'learning'
-          WHEN ${reviewState.stability} >= ${MATURE_DAYS} THEN 'mature'
-          ELSE 'young'
-        END AS bucket,
-        COUNT(*) AS n
-      FROM ${reviewState} GROUP BY bucket
-    `),
+  const [{ decks: deckSummaries, totals }, byDay] = await Promise.all([
+    getLibrary(at),
     /* Counted by SQLite and returned already reduced. review_logs is the one
        table that grows without bound, so it is the one never read whole. The
        CAST is not decoration: a bound parameter arrives as REAL, so the
@@ -476,65 +604,30 @@ export async function getProgress(at = Date.now()): Promise<Progress> {
       FROM ${reviewLogs} WHERE ${reviewLogs.reviewedAt} >= ${yearFrom}
       GROUP BY day ORDER BY day
     `),
-    db.all<{ total: number; recalled: number }>(sql`
-      SELECT COUNT(*) AS total,
-             SUM(CASE WHEN ${reviewLogs.rating} > 1 THEN 1 ELSE 0 END) AS recalled
-      FROM ${reviewLogs} WHERE ${reviewLogs.reviewedAt} >= ${recentFrom}
-    `),
-    db.all<{ id: string; name: string; cards: number; learned: number; total: number; recalled: number }>(sql`
-      SELECT
-        ${decks.id} AS id,
-        ${decks.name} AS name,
-        COUNT(DISTINCT ${cards.id}) AS cards,
-        COUNT(DISTINCT CASE WHEN ${reviewState.state} = 2 THEN ${cards.id} END) AS learned,
-        COALESCE(SUM(CASE WHEN ${reviewLogs.reviewedAt} >= ${recentFrom} THEN 1 ELSE 0 END), 0) AS total,
-        COALESCE(SUM(CASE WHEN ${reviewLogs.reviewedAt} >= ${recentFrom} AND ${reviewLogs.rating} > 1 THEN 1 ELSE 0 END), 0) AS recalled
-      FROM ${decks}
-      LEFT JOIN ${topics} ON ${topics.deckId} = ${decks.id}
-      LEFT JOIN ${cards} ON ${cards.topicId} = ${topics.id}
-      LEFT JOIN ${reviewState} ON ${reviewState.cardId} = ${cards.id}
-      LEFT JOIN ${reviewLogs} ON ${reviewLogs.cardId} = ${cards.id}
-      GROUP BY ${decks.id}
-    `),
-    db.$count(cards),
   ]);
-
-  const memory = { mature: 0, young: 0, learning: 0, unseen: 0 };
-  for (const row of memoryRows) {
-    memory[row.bucket as keyof typeof memory] = row.n;
-  }
-  // A card with no schedule row at all has never been seen either.
-  const scheduled = memory.mature + memory.young + memory.learning + memory.unseen;
-  memory.unseen += totalCards - scheduled;
 
   const heatmap: Record<number, number> = {};
   for (const row of byDay) heatmap[row.day] = row.n;
 
-  // Consecutive days with at least one review, counting back from today — or
-  // from yesterday, so a day you haven't started yet doesn't read as a break.
   let streak = 0;
   for (let day = heatmap[today] ? today : today - 1; heatmap[day]; day--) streak += 1;
 
-  const recentTotal = recent[0]?.total ?? 0;
-  const held = memory.mature + memory.young;
-
   return {
-    totalCards,
-    memory,
-    percent: totalCards === 0 ? 0 : Math.round((held / totalCards) * 100),
+    totalCards: totals.cards,
+    memory: totals.memory,
+    percent: totals.percent,
     streak,
     reviewsToday: heatmap[today] ?? 0,
-    recall: recentTotal === 0 ? null : Math.round(((recent[0].recalled ?? 0) / recentTotal) * 100),
+    recall: totals.recall,
     heatmap,
     today,
-    decks: deckRows
-      .map((d) => ({
-        id: d.id,
-        name: d.name,
-        cards: d.cards,
-        percent: d.cards === 0 ? 0 : Math.round((d.learned / d.cards) * 100),
-        recall: d.total === 0 ? null : Math.round((d.recalled / d.total) * 100),
-      }))
-      .sort((a, b) => (a.recall ?? 101) - (b.recall ?? 101) || a.name.localeCompare(b.name)),
+    // Weakest first — the page's answer to "what should I work on".
+    decks: deckSummaries
+      .filter((deck) => deck.counts.cards > 0)
+      .sort(
+        (a, b) =>
+          (a.counts.recall ?? 101) - (b.counts.recall ?? 101) ||
+          a.name.localeCompare(b.name),
+      ),
   };
 }

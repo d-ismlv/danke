@@ -1,87 +1,90 @@
 /**
- * The whole icon set. A 24x24 viewBox, stroke-based, inheriting `currentColor`
- * so an icon matches the text beside it in colour and weight.
+ * The whole icon set, on the mockup's 24x24 grid and drawn in the mockup's
+ * weight. Everything inherits `currentColor`, so an icon matches the text
+ * beside it without being told to.
  *
- * It is short on purpose. Icons are used where they replace a word — the theme
- * toggle, the lock, an edit affordance — and nowhere a word would have done the
- * job better.
+ * It is short on purpose: an icon is here where it replaces a word, or where
+ * it labels a rail item that is already labelled.
  */
 
 import type { ReactElement } from "react";
 
 export type IconName =
-  | "play"
+  | "library"
+  | "deck"
+  | "card"
+  | "chart"
   | "import"
-  | "progress"
+  | "play"
+  | "chevron"
+  | "arrow"
+  | "flame"
   | "lock"
   | "check"
+  | "alert"
   | "pencil"
   | "trash"
-  | "back"
-  | "chevron"
-  | "alert"
-  | "sun"
-  | "moon"
-  | "auto";
+  | "theme-system"
+  | "theme-light"
+  | "theme-dark";
 
 const PATHS: Record<IconName, ReactElement> = {
-  play: <path d="M8 5.4 19 12 8 18.6z" fill="currentColor" stroke="none" />,
-  import: <path d="M12 3v11m0 0 4-4m-4 4-4-4M4 16v2.5A2.5 2.5 0 0 0 6.5 21h11a2.5 2.5 0 0 0 2.5-2.5V16" />,
-  progress: <path d="M4 20V10m6 10V4m6 16v-7m-12 7h16" />,
+  library: <path d="M5 4.5h14v15H5zM8.5 8h7M8.5 12h7M8.5 16h4" />,
+  deck: <path d="m4 8 8-4 8 4-8 4-8-4Zm0 4 8 4 8-4M4 16l8 4 8-4" />,
+  card: (
+    <>
+      <rect x="3.5" y="5" width="17" height="14" rx="2" />
+      <path d="M7.5 9h9M7.5 13h6" />
+    </>
+  ),
+  chart: <path d="M4 19.5V13M10 19.5v-11M16 19.5V5M22 19.5H2" />,
+  import: <path d="M12 3v11M7.5 10 12 14.5 16.5 10M4 18v2.5h16V18" />,
+  play: <path d="m9 7 8 5-8 5V7Z" />,
+  chevron: <path d="m8 10 4 4 4-4" />,
+  arrow: <path d="M5 12h13M14 7l5 5-5 5" />,
+  flame: (
+    <path d="M12.5 3.5c1 4-3.5 4.8-2.2 8.1.7 1.9 2.8 1.4 3.2-.1.5 1.1 1.8 2.4 1.8 4.5a4.8 4.8 0 0 1-9.6 0c0-4.3 3.2-7.7 6.8-12.5Z" />
+  ),
   lock: (
     <>
-      <rect x="4.5" y="10.5" width="15" height="10" rx="2.2" />
-      <path d="M8 10.5V7.8a4 4 0 0 1 8 0v2.7" />
+      <rect x="4.75" y="10.25" width="14.5" height="9.5" rx="2.2" />
+      <path d="M8.25 10.25V7.6a3.75 3.75 0 0 1 7.5 0v2.65M12 13.9v2.2" />
     </>
   ),
   check: <path d="M5 12.6 9.5 17 19 7" />,
-  pencil: <path d="M4 20h4L19.2 8.8a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 16.2z" />,
-  trash: <path d="M4.5 7h15M9.5 7V5.2A1.2 1.2 0 0 1 10.7 4h2.6a1.2 1.2 0 0 1 1.2 1.2V7m3 0v12.2A1.8 1.8 0 0 1 15.7 21H8.3a1.8 1.8 0 0 1-1.8-1.8V7" />,
-  back: <path d="M19 12H5m0 0 6-6m-6 6 6 6" />,
-  chevron: <path d="m6 9.5 6 6 6-6" />,
   alert: (
     <>
       <circle cx="12" cy="12" r="8.5" />
       <path d="M12 7.8v4.8m0 3.2v.4" />
     </>
   ),
-  sun: (
+  pencil: <path d="M4 20h4L19.2 8.8a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 16.2z" />,
+  trash: <path d="M4.5 7h15M9.5 7V5.2A1.2 1.2 0 0 1 10.7 4h2.6a1.2 1.2 0 0 1 1.2 1.2V7m3 0v12.2A1.8 1.8 0 0 1 15.7 21H8.3a1.8 1.8 0 0 1-1.8-1.8V7" />,
+  // A display, for "whatever this machine is set to".
+  "theme-system": (
     <>
-      <circle cx="12" cy="12" r="4.2" />
-      <path d="M12 2.6v2.1M12 19.3v2.1M4.2 4.2l1.5 1.5M18.3 18.3l1.5 1.5M2.6 12h2.1M19.3 12h2.1M4.2 19.8l1.5-1.5M18.3 5.7l1.5-1.5" />
+      <rect x="3.25" y="4.5" width="17.5" height="11.5" rx="1.8" />
+      <path d="M8.75 20h6.5M12 16v4" />
     </>
   ),
-  moon: <path d="M20.3 15A8.6 8.6 0 0 1 9.1 3.7a8.6 8.6 0 1 0 11.2 11.3z" />,
-  auto: (
+  "theme-light": (
     <>
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="M12 3.5v17a8.5 8.5 0 0 0 0-17z" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="3.5" />
+      <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4" />
     </>
   ),
+  "theme-dark": <path d="M20 15.2A8.5 8.5 0 0 1 8.8 4a8.5 8.5 0 1 0 11.2 11.2Z" />,
 };
 
 export default function Icon({
   name,
-  size = 16,
   className,
 }: {
   name: IconName;
-  size?: number;
   className?: string;
 }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
       {PATHS[name]}
     </svg>
   );

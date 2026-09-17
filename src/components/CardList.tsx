@@ -1,22 +1,21 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useId, useState } from "react";
 import { saveCard, deleteCard, type CardState } from "@/lib/actions";
 import { MIN_POINTS, MAX_POINTS } from "@/lib/parse";
 import type { CardRow } from "@/lib/queries";
+import { cardMark, MARK_LABEL, type CardMark } from "@/lib/status";
 import Inline from "./Inline";
 import Icon from "./Icon";
 
-/** Four states, one dot each: unseen, learning, learned, due. The dot is the
- * same reading as the progress bars — filled means the card is holding. */
-function Dot({ state, due, at }: { state: number | null; due: number | null; at: number }) {
-  const overdue = due !== null && due <= at;
-  const tone =
-    overdue ? "bg-due" : state === 2 ? "bg-accent" : state === 1 || state === 3 ? "bg-accent/40" : "bg-surface-2 ring-1 ring-border-strong";
-  const label = overdue ? "Due" : state === 2 ? "Learned" : state === 0 || state === null ? "Unseen" : "Learning";
-  return <span title={label} aria-label={label} className={`size-2 shrink-0 rounded-full ${tone}`} />;
-}
-
+/**
+ * The questions in a topic. Every row is closed when the screen is entered;
+ * opening one tints its header and reveals the points underneath.
+ *
+ * Correcting a card lives inside the opened answer rather than on the row, so
+ * a closed row is exactly the row it looks like — a question and how it is
+ * going, with nothing hovering over it waiting to be clicked.
+ */
 export default function CardList({
   cards,
   topicId,
@@ -26,76 +25,79 @@ export default function CardList({
   topicId: string;
   at: number;
 }) {
-  const [editing, setEditing] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
+  const prefix = useId();
 
   return (
-    <ul className="panel divide-hairline overflow-hidden">
-      {cards.map((card) => {
-        const isEditing = editing === card.id;
+    <div className="question-list">
+      {cards.map((card, index) => {
         const isOpen = open === card.id;
+        const answerId = `${prefix}-answer-${index}`;
+        const mark = cardMark(card, at);
         return (
-          <li key={card.id}>
-            {isEditing ? (
-              <Editor card={card} topicId={topicId} onDone={() => setEditing(null)} />
-            ) : (
-              <div className="group flex flex-col">
-                <div className="flex items-center gap-3 px-4 py-3 sm:px-5">
-                  <Dot state={card.state} due={card.due} at={at} />
-                  <button
-                    type="button"
-                    onClick={() => setOpen(isOpen ? null : card.id)}
-                    aria-expanded={isOpen}
-                    className="min-w-0 flex-1 text-left text-[0.95rem] font-medium leading-snug text-pretty transition-colors hover:text-accent"
-                  >
-                    <Inline>{card.title}</Inline>
-                  </button>
-                  <span
-                    className="num shrink-0 text-xs text-faint"
-                    title={`${card.points.length} points`}
-                  >
-                    {card.points.length}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setEditing(card.id)}
-                    title="Edit card"
-                    className="btn-ghost size-8 shrink-0 px-0 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
-                  >
-                    <Icon name="pencil" size={15} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setOpen(isOpen ? null : card.id)}
-                    aria-label={isOpen ? "Hide points" : "Show points"}
-                    className="btn-ghost size-8 shrink-0 px-0"
-                  >
-                    <Icon
-                      name="chevron"
-                      size={15}
-                      className={`transition-transform ${isOpen ? "rotate-180" : ""}`}
-                    />
-                  </button>
-                </div>
-                {isOpen && (
-                  <ol className="anim-fade flex flex-col gap-2 border-t bg-surface-2/40 px-4 py-4 pl-9 text-sm sm:px-5 sm:pl-10">
-                    {card.points.map((point, i) => (
-                      <li key={i} className="grid grid-cols-[1.4rem_1fr] items-baseline leading-relaxed">
-                        <span className="num text-xs text-faint">{i + 1}</span>
-                        <span>
+          <article className="question" key={card.id}>
+            <button
+              type="button"
+              className="question__toggle"
+              aria-expanded={isOpen}
+              aria-controls={answerId}
+              onClick={() => {
+                setOpen(isOpen ? null : card.id);
+                setEditing(null);
+              }}
+            >
+              <span className="question-index">{String(index + 1).padStart(2, "0")}</span>
+              <span className="question-prompt">
+                <strong>
+                  <Inline>{card.title}</Inline>
+                </strong>
+              </span>
+              <span className={stateClass(mark)}>{MARK_LABEL[mark]}</span>
+              <Icon name="chevron" />
+            </button>
+
+            {isOpen && (
+              <div className="question__answer" id={answerId}>
+                {editing === card.id ? (
+                  <Editor
+                    card={card}
+                    topicId={topicId}
+                    onDone={() => setEditing(null)}
+                  />
+                ) : (
+                  <>
+                    <ul>
+                      {card.points.map((point, i) => (
+                        <li key={i}>
                           <Inline>{point}</Inline>
-                        </span>
-                      </li>
-                    ))}
-                  </ol>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="card-tools">
+                      <button
+                        type="button"
+                        className="ghost-action"
+                        onClick={() => setEditing(card.id)}
+                      >
+                        <Icon name="pencil" />
+                        Edit card
+                      </button>
+                      <DeleteCard id={card.id} topicId={topicId} />
+                    </div>
+                  </>
                 )}
               </div>
             )}
-          </li>
+          </article>
         );
       })}
-    </ul>
+    </div>
   );
+}
+
+function stateClass(mark: CardMark): string {
+  return mark === "mature" ? "question-state" : `question-state question-state--${mark}`;
 }
 
 function Editor({
@@ -122,10 +124,13 @@ function Editor({
     { error: null },
   );
 
+  const formId = `edit-${card.id}`;
+
   return (
-    <div className="bg-surface-2/40 px-4 py-4 sm:px-5">
-      <form id={`edit-${card.id}`} action={action} className="flex flex-col gap-3">
-        <input type="hidden" name="id" value={card.id} />
+    /* The fields are their own form and the buttons sit outside it: a delete
+       form nested inside the edit form would submit the edit. */
+    <div className="card-editor">
+      <form id={formId} action={action}>
         <div>
           <label htmlFor={`t-${card.id}`} className="field-label">
             Question
@@ -136,7 +141,7 @@ function Editor({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            className="input"
+            className="text-field"
           />
         </div>
         <div>
@@ -149,24 +154,23 @@ function Editor({
             value={points}
             onChange={(e) => setPoints(e.target.value)}
             required
-            className="textarea min-h-32"
+            className="text-field"
           />
         </div>
         {state.error && (
-          <p className="flex items-center gap-2 text-sm text-again">
-            <Icon name="alert" size={15} />
+          <p className="form-error">
+            <Icon name="alert" />
             {state.error}
           </p>
         )}
       </form>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <button type="submit" form={`edit-${card.id}`} disabled={pending} className="btn-primary">
+      <div className="card-tools">
+        <button type="submit" form={formId} disabled={pending} className="primary-action">
           {pending ? "Saving…" : "Save"}
         </button>
-        <button type="button" onClick={onDone} className="btn-ghost">
+        <button type="button" onClick={onDone} className="ghost-action">
           Cancel
         </button>
-        <span className="flex-1" />
         <DeleteCard id={card.id} topicId={topicId} />
       </div>
     </div>
@@ -178,21 +182,21 @@ function DeleteCard({ id, topicId }: { id: string; topicId: string }) {
   const [armed, setArmed] = useState(false);
   if (!armed) {
     return (
-      <button type="button" onClick={() => setArmed(true)} className="btn-danger">
-        <Icon name="trash" size={15} />
+      <button type="button" onClick={() => setArmed(true)} className="danger-action">
+        <Icon name="trash" />
         Delete
       </button>
     );
   }
   return (
-    <form action={deleteCard} className="flex items-center gap-2 text-sm">
+    <form action={deleteCard} className="confirm-row">
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="topicId" value={topicId} />
-      <span className="text-muted">Delete this card?</span>
-      <button type="submit" className="btn-danger">
+      <span>Delete this card?</span>
+      <button type="submit" className="danger-action">
         Delete
       </button>
-      <button type="button" onClick={() => setArmed(false)} className="btn-ghost">
+      <button type="button" onClick={() => setArmed(false)} className="ghost-action">
         Cancel
       </button>
     </form>

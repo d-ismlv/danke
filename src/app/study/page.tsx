@@ -12,12 +12,10 @@ export default async function StudyEverything({
   return (
     <StudyScreen
       scope={{ kind: "library" }}
-      what="Everything"
-      where="All decks"
+      what="your library"
       backHref="/"
-      backLabel="Decks"
+      backLabel="Library"
       round={Number(round) || 1}
-      showTopic
     />
   );
 }

@@ -6,7 +6,7 @@ mounted volume, so the container stays disposable. Scheduling is
 [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs).
 
 ```
-Next.js (React + Tailwind v4)
+Next.js (React)
  ├─ Server components            → reads, through src/lib/queries.ts
  ├─ Server actions               → writes, through src/lib/actions.ts
  ├─ /api/review (route handler)  → grading
@@ -67,14 +67,63 @@ Grading goes through a **route handler** (`/api/review`) rather than a Server
 Action, so answering a card doesn't trigger an RSC refresh of the study route
 and discard the queue the client is holding.
 
-**Learned** means one thing everywhere it appears — on a deck tile, a topic row,
-the Progress page: the share of those cards FSRS has graduated out of learning
-(`state = 2`). One definition behind every percentage and every progress bar.
+**Learned** means one thing everywhere it appears — a deck row, a topic row, the
+Progress page: the share of those cards FSRS has graduated out of learning
+(`state = 2`). One definition behind every percentage in the app.
+
+## Learning status
+
+The coloured mark beside a deck on Library, the dot beside a topic inside a
+deck, and the mark beside a deck on Progress → By deck are the same
+measurement drawn three times: how the cards in that scope are actually going.
+Never an identity colour, and never keyed to a deck's id, name or position.
+
+`src/lib/status.ts` holds the one classifier, and its thresholds are named
+constants so they can be argued with in one place rather than in three
+components. In precedence order:
+
+| | |
+|---|---|
+| `new` — grey | nothing in scope has ever been answered |
+| `struggling` — amber | the recent answers keep coming back Again, or a third of what has been seen is relearning or repeatedly lapsed |
+| `strong` — green | predominantly mature, and not struggling |
+| `learning` — blue | everything else that has been started |
+
+Being **due** is deliberately not in that list: a due card is a healthy card
+whose turn has come round, and a deck does not turn amber for being scheduled
+today. Every mark is paired with a text description, because colour is never
+the only carrier of a fact.
+
+`src/lib/queries.ts` produces the inputs once per topic and rolls them up to
+decks and to the library, so the three surfaces cannot disagree.
 
 ## Screens
 
 Library (`/`) · Deck · Topic · Study · Import · Progress · Login. Six, plus the
 lock screen, and each one has a single job.
+
+The shell is a fixed rail on the left that becomes a five-column bottom bar
+under 900px, a top bar carrying only the wordmark, and a content column capped
+at `82rem` so a 4K display gets a readable measure rather than a stretched one.
+
+The rail holds Library, Progress and Import, then Theme and Lock. A deck, a
+topic and a card are not there: they are states you reach by going down through
+the library, and each carries its own way back up. Every screen builds its
+header from the same `.page-heading` block, so the title and the action button
+sit at identical coordinates and nothing slides when you change page.
+
+## Styling
+
+`src/app/globals.css` is the whole visual system: tokens, then the classes the
+screens are built from, ported from the `danke-v3` mockup rather than
+approximated. Tailwind is imported for its reset (Preflight) and nothing else —
+no utility classes appear in the components, so there is one place a colour,
+a radius or a rhythm is decided.
+
+Theme is `system` / `light` / `dark`, cycled by one button in the rail. The
+choice lives in a cookie so the server can stamp `data-theme` on `<html>` while
+it renders, which is what removes the flash; `system` is the absence of the
+attribute and falls through to `prefers-color-scheme`.
 
 ## Deployment
 

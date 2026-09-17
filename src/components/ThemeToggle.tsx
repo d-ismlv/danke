@@ -5,27 +5,29 @@ import Icon, { type IconName } from "./Icon";
 import { asTheme, THEME_COOKIE, type Theme } from "@/lib/theme";
 
 const ORDER: Theme[] = ["system", "light", "dark"];
-const ICON: Record<Theme, IconName> = { system: "auto", light: "sun", dark: "moon" };
-const LABEL: Record<Theme, string> = {
-  system: "Theme: system",
-  light: "Theme: light",
-  dark: "Theme: dark",
+const ICON: Record<Theme, IconName> = {
+  system: "theme-system",
+  light: "theme-light",
+  dark: "theme-dark",
 };
+const NAME: Record<Theme, string> = { system: "System", light: "Light", dark: "Dark" };
 
 /**
- * The choice lives in a cookie so the *server* can stamp `data-theme` on
- * <html> while it renders. That is what removes the flash: the old version
- * shipped an inline <script> to do it before first paint, which React 19
- * refuses to execute and warns about, and which could only ever run after the
- * document had already started arriving.
+ * One button, three modes — System, Light, Dark — in that order and round
+ * again. The label says what the button is; the icon says which mode is on.
  *
- * The value is still read through an external store rather than an effect, so
- * SSR and hydration agree: both read the same stamped attribute.
+ * The choice lives in a cookie so the *server* can stamp `data-theme` on
+ * <html> while it renders. That is what removes the flash: an inline script
+ * to do it before first paint is something React 19 refuses to execute, and
+ * it could only ever run after the document had started arriving anyway.
+ *
+ * The value is read through an external store rather than an effect, so SSR
+ * and hydration agree: both read the same stamped attribute.
  *
  * Cookies fire no event when they change, so the choice is mirrored into
  * localStorage as well — not as a second source of truth, only as the thing
- * that wakes other tabs. Without it a second tab kept the old theme until its
- * next navigation, which the localStorage version it replaced did not do.
+ * that wakes other tabs. Without it a second tab keeps the old theme until
+ * its next navigation.
  */
 const listeners = new Set<() => void>();
 
@@ -34,8 +36,8 @@ function read(): Theme {
   return asTheme(document.documentElement.getAttribute("data-theme") ?? undefined);
 }
 
-/** Stamp the choice on <html>: an explicit theme wins over the OS preference;
- * "system" clears the attribute and follows prefers-color-scheme. */
+/** An explicit theme wins over the OS preference; "system" clears the
+ * attribute and falls back through to prefers-color-scheme. */
 function apply(theme: Theme) {
   const root = document.documentElement;
   if (theme === "system") root.removeAttribute("data-theme");
@@ -78,12 +80,13 @@ export default function ThemeToggle({ initial }: { initial: Theme }) {
   return (
     <button
       type="button"
+      className="theme-toggle"
       onClick={() => setTheme(next)}
-      title={LABEL[theme]}
-      aria-label={LABEL[theme]}
-      className="btn-ghost size-10 px-0 sm:size-9"
+      title={`Theme: ${NAME[theme]}`}
+      aria-label={`Theme: ${NAME[theme]}. Activate to use ${NAME[next]}.`}
     >
-      <Icon name={ICON[theme]} size={19} className="sm:size-[17px]" />
+      <Icon name={ICON[theme]} />
+      <span>Theme</span>
     </button>
   );
 }

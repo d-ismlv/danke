@@ -2,13 +2,12 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import Icon from "@/components/Icon";
 
 /**
- * Anything a page throws lands here rather than on Next's default screen, which
- * loses the header, the nav, and any sense that the app is still running.
- * `reset()` re-renders the segment, which is enough for a transient database
- * error.
+ * Anything a page throws lands here rather than on Next's default screen,
+ * which loses the rail, the top bar, and any sense that the app is still
+ * running. `reset()` re-renders the segment, which is enough for a transient
+ * database error.
  */
 export default function Error({
   error,
@@ -22,23 +21,18 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="anim-rise mx-auto flex max-w-lg flex-col items-center gap-4 py-20 text-center">
-      <span className="flex size-14 items-center justify-center rounded-full bg-again/12 text-again">
-        <Icon name="alert" size={26} />
-      </span>
-      <h1 className="h-page">This page didn&apos;t load</h1>
-      <p className="text-muted text-pretty">
+    <div className="centered-message">
+      <h1>This page didn&apos;t load</h1>
+      <p>
         Your cards and their schedules are untouched — this is a rendering failure, not a write.
       </p>
-      {error.digest && (
-        <p className="font-mono text-xs text-faint">Reference: {error.digest}</p>
-      )}
-      <div className="mt-2 flex flex-wrap justify-center gap-2">
-        <button type="button" onClick={reset} className="btn-primary">
+      {error.digest && <p className="digest">Reference: {error.digest}</p>}
+      <div className="centered-message__actions">
+        <button type="button" onClick={reset} className="primary-action">
           Try again
         </button>
-        <Link href="/" className="btn">
-          Your decks
+        <Link href="/" className="ghost-action">
+          Library
         </Link>
       </div>
     </div>

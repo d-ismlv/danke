@@ -13,31 +13,29 @@ import Icon from "./Icon";
 export default function ConfirmButton({
   label,
   confirm,
-  className = "btn-danger",
 }: {
   label: string;
   /** What the second click will actually do, in plain words. */
   confirm: string;
-  className?: string;
 }) {
   const [armed, setArmed] = useState(false);
 
   if (!armed) {
     return (
-      <button type="button" onClick={() => setArmed(true)} className={className}>
-        <Icon name="trash" size={15} />
+      <button type="button" onClick={() => setArmed(true)} className="danger-action">
+        <Icon name="trash" />
         {label}
       </button>
     );
   }
 
   return (
-    <span className="inline-flex items-center gap-2 text-sm">
-      <span className="text-muted">{confirm}</span>
-      <button type="submit" className="btn-danger">
+    <span className="confirm-row">
+      <span>{confirm}</span>
+      <button type="submit" className="danger-action">
         Delete
       </button>
-      <button type="button" onClick={() => setArmed(false)} className="btn-ghost">
+      <button type="button" onClick={() => setArmed(false)} className="ghost-action">
         Cancel
       </button>
     </span>

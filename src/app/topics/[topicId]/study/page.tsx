@@ -26,11 +26,9 @@ export default async function StudyTopic({
     <StudyScreen
       scope={{ kind: "topic", id: topicId }}
       what={topic.name}
-      where={topic.deckName}
       backHref={`/topics/${topicId}`}
       backLabel={topic.name}
       round={Number(round) || 1}
-      showTopic={false}
     />
   );
 }

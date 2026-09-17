@@ -1,44 +1,53 @@
 "use client";
 
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import Inline from "./Inline";
 import Icon from "./Icon";
-import Meter from "./Meter";
 
 export type StudyItem = {
   id: string;
   title: string;
   points: string[];
-  topicName: string;
-  /** How far each grade would push the card, e.g. `{ 3: "10m" }`. */
-  previews: Record<number, string>;
 };
 
 const GRADES = [
-  { rating: 1, name: "Again", key: "1", hue: "var(--again)" },
-  { rating: 2, name: "Hard", key: "2", hue: "var(--hard)" },
-  { rating: 3, name: "Good", key: "3", hue: "var(--good)" },
-  { rating: 4, name: "Easy", key: "4", hue: "var(--easy)" },
+  { rating: 1, name: "Again", tone: "again" },
+  { rating: 2, name: "Hard", tone: "hard" },
+  { rating: 3, name: "Good", tone: "good" },
+  { rating: 4, name: "Easy", tone: "easy" },
 ] as const;
 
 /** Card states ts-fsrs has not finished with: they come back this session. */
 const LEARNING = new Set([1, 3]);
 
+/**
+ * How many times one card may come back inside a single session.
+ *
+ * A card graded Again or Hard stays in learning, and seeing it again a few
+ * minutes later is the whole point of short-term steps. But "still learning"
+ * is a state a card can hold indefinitely, so answering Hard forever kept
+ * putting the same card back on the end of the queue forever. Past this it is
+ * left where it is: its schedule is already saved, it will be due again in
+ * minutes, and the next session picks it up.
+ */
+const MAX_RETURNS = 2;
+
+/** More marks than this and the session bar stops being a row of cards and
+ * starts being a haze; past it each mark stands for a share of the queue. */
+const MAX_MARKS = 30;
+
 export default function StudySession({
   what,
-  where,
   backHref,
   backLabel,
   nextRoundHref,
   queue,
   remaining,
-  showTopic,
 }: {
-  /** What is being studied — a topic, a deck, or everything. */
+  /** What is being studied — a topic, a deck, or everything. Used when the
+   * session ends, not while it is running. */
   what: string;
-  /** Where that sits, when it sits inside something. */
-  where?: string;
   backHref: string;
   /** What `backHref` leads to, named as the link should read. */
   backLabel: string;
@@ -47,16 +56,22 @@ export default function StudySession({
   queue: StudyItem[];
   /** Cards in scope beyond this session's queue. */
   remaining: number;
-  showTopic: boolean;
 }) {
   const [cards, setCards] = useState(queue);
   const [revealed, setRevealed] = useState(false);
+  /** Distinct cards finished — not answers given. A card that comes back has
+   * not been finished, so seeing it again does not move this. */
   const [done, setDone] = useState(0);
+  /** How many times each card has already come back this session. */
+  const [returns, setReturns] = useState<Record<string, number>>({});
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const current = cards[0];
-  const left = cards.length;
+  /* Fixed for the life of the session: the cards the server dealt. Deriving it
+     from done + remaining made the denominator climb every time a card was
+     re-queued, which is where "14 / 17" in a five-card topic came from. */
+  const total = queue.length;
 
   const answer = useCallback(
     async (rating: number) => {
@@ -77,23 +92,26 @@ export default function StudySession({
           setError("That answer didn't save. The card is still here; try again.");
           return;
         }
-        const result: { state: number; previews: Record<number, string> } = await res.json();
-        setDone((n) => n + 1);
+        const result: { state: number } = await res.json();
+        // A card still in learning hasn't earned an interval yet, so it comes
+        // back before the session ends rather than tomorrow — but only so many
+        // times, or a card answered Hard never leaves.
+        const comesBack =
+          LEARNING.has(result.state) && (returns[current.id] ?? 0) < MAX_RETURNS;
         setRevealed(false);
-        setCards(([, ...rest]) =>
-          // A card still in learning hasn't earned an interval yet, so it comes
-          // back before the session ends rather than tomorrow.
-          LEARNING.has(result.state)
-            ? [...rest, { ...current, previews: result.previews }]
-            : rest,
-        );
+        setCards(([, ...rest]) => (comesBack ? [...rest, current] : rest));
+        if (comesBack) {
+          setReturns((seen) => ({ ...seen, [current.id]: (seen[current.id] ?? 0) + 1 }));
+        } else {
+          setDone((n) => n + 1);
+        }
       } catch {
         setError("Couldn't reach the app. The card is still here; try again.");
       } finally {
         setPending(false);
       }
     },
-    [current, pending],
+    [current, pending, returns],
   );
 
   useEffect(() => {
@@ -111,12 +129,9 @@ export default function StudySession({
         setRevealed(true);
         return;
       }
-      if (revealed) {
-        const grade = GRADES.find((g) => g.key === e.key);
-        if (grade) {
-          e.preventDefault();
-          void answer(grade.rating);
-        }
+      if (revealed && ["1", "2", "3", "4"].includes(e.key)) {
+        e.preventDefault();
+        void answer(Number(e.key));
       }
     };
     window.addEventListener("keydown", onKey);
@@ -125,38 +140,31 @@ export default function StudySession({
 
   if (!current) {
     return (
-      <div className="anim-rise mx-auto flex max-w-lg flex-col items-center gap-4 py-20 text-center">
-        <span className="flex size-14 items-center justify-center rounded-full bg-accent-soft text-accent">
-          <Icon name="check" size={26} />
-        </span>
-        <h1 className="h-page">{done > 0 ? "Session complete" : "Nothing to study"}</h1>
-        <p className="text-muted">
+      <div className="centered-message">
+        <h1>{done > 0 ? "Session complete" : "Nothing to study"}</h1>
+        <p>
           {done > 0 ? (
             <>
-              You answered {done} card{done === 1 ? "" : "s"} in{" "}
-              <span className="font-medium text-text">{what}</span>.
+              You answered {done} card{done === 1 ? "" : "s"} in {what}.
               {remaining > 0 && ` ${remaining} more are waiting.`}
             </>
           ) : (
-            <>
-              <span className="font-medium text-text">{what}</span> has no cards yet. Import some
-              to get started.
-            </>
+            <>{what} has no cards yet.</>
           )}
         </p>
-        <div className="mt-2 flex flex-wrap justify-center gap-2">
-          <Link href={backHref} className="btn">
+        <div className="centered-message__actions">
+          <Link href={backHref} className="ghost-action">
             Back to {backLabel}
           </Link>
           {remaining > 0 && nextRoundHref && (
-            <Link href={nextRoundHref} className="btn-primary">
-              <Icon name="play" size={14} />
+            <Link href={nextRoundHref} className="primary-action">
+              <Icon name="play" />
               Keep going
             </Link>
           )}
           {done === 0 && (
-            <Link href="/import" className="btn-primary">
-              <Icon name="import" size={15} />
+            <Link href="/import" className="primary-action">
+              <Icon name="import" />
               Import cards
             </Link>
           )}
@@ -165,94 +173,101 @@ export default function StudySession({
     );
   }
 
+  const marks = sessionMarks(done, total);
+
   return (
-    <div className="mx-auto flex w-full max-w-[var(--stage-width)] flex-col gap-3.5">
-      <div className="flex items-end justify-between gap-4">
-        <div className="min-w-0">
-          <Link
-            href={backHref}
-            className="block truncate text-[0.95rem] font-semibold transition-colors hover:text-accent"
-          >
-            {what}
-          </Link>
-          {where && <p className="truncate text-xs text-muted">{where}</p>}
+    <section className="study-screen">
+      <header className="review-toolbar">
+        <Link href={backHref} className="back-link">
+          ← {backLabel}
+        </Link>
+        <div className="review-progress" aria-label={`Card ${done + 1} / ${total}`}>
+          <span>
+            {done + 1} / {total}
+          </span>
+          <div style={{ "--n": marks.length } as React.CSSProperties} aria-hidden="true">
+            {marks.map((mark, i) => (
+              <i key={i} className={mark} />
+            ))}
+          </div>
         </div>
-        <p className="num shrink-0 text-sm text-muted">
-          <span className="font-semibold text-text">{done}</span> / {done + left}
-        </p>
-      </div>
+      </header>
 
-      <Meter percent={(done / (done + left)) * 100} />
-
-      <section
-        key={current.id}
-        /* The floor is for the question on its own: without it a one-line
-           question is a letterbox, and the card jumps a long way when the
-           answer arrives. Revealed, the points set the height — a two-point
-           card that held its full height would be a third of it empty. */
-        className={`stage anim-rise flex flex-col px-6 py-7 sm:px-12 sm:py-11 ${
-          revealed ? "" : "min-h-[19rem] sm:min-h-[21rem]"
-        }`}
-      >
-        {showTopic && (
-          <p className="h-section mb-3 truncate">{current.topicName}</p>
-        )}
-
-        <h1 className="stage-title">
+      <article className="review-card">
+        <div className="review-card__meta">
+          <span>
+            Card {done + 1} / {total}
+          </span>
+        </div>
+        <h1>
           <Inline>{current.title}</Inline>
         </h1>
 
         {revealed ? (
-          <div className="anim-fade mt-7 border-t pt-7">
-            <ol className="points" data-count={current.points.length}>
+          <>
+            <div className="review-divider" aria-hidden="true" />
+            <ul className="review-answer">
               {current.points.map((point, i) => (
-                <li key={i} className="point">
-                  <b>{String(i + 1).padStart(2, "0")}</b>
-                  <span>
-                    <Inline>{point}</Inline>
-                  </span>
+                <li key={i}>
+                  <Inline>{point}</Inline>
                 </li>
               ))}
-            </ol>
-          </div>
+            </ul>
+          </>
         ) : (
-          <button
-            type="button"
-            onClick={() => setRevealed(true)}
-            aria-keyshortcuts="Space"
-            className="btn-primary btn-lg mx-auto mt-auto w-full max-w-64"
-          >
-            Show answer
-            <span className="kbd border-transparent bg-black/15 text-[inherit] opacity-80">Space</span>
-          </button>
+          /* The answer is asked for, not handed over: recalling it is the
+             whole exercise. The reveal sits where the divider and the points
+             will be, so nothing above it moves when they arrive. */
+          <div className="reveal-row">
+            <button
+              type="button"
+              className="primary-action"
+              onClick={() => setRevealed(true)}
+              aria-keyshortcuts="Space"
+            >
+              Show answer
+            </button>
+          </div>
         )}
-      </section>
+      </article>
 
       {revealed && (
-        <div className="anim-fade flex flex-col gap-2">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {GRADES.map((g) => (
+        <>
+          <div className="rating-grid" aria-label="Rate this answer">
+            {GRADES.map((grade) => (
               <button
-                key={g.rating}
+                key={grade.rating}
                 type="button"
+                className={`rating rating--${grade.tone}`}
                 disabled={pending}
-                onClick={() => answer(g.rating)}
-                style={{ "--grade": g.hue } as CSSProperties}
-                className="grade"
+                onClick={() => answer(grade.rating)}
+                aria-keyshortcuts={String(grade.rating)}
               >
-                <span className="flex items-center gap-1.5">
-                  <span className="kbd">{g.key}</span>
-                  <span className="grade-name">{g.name}</span>
+                <span className="rating-label">
+                  <span className="rating-key">{grade.rating}</span>
+                  <strong>{grade.name}</strong>
                 </span>
-                <span className="grade-when">{current.previews[g.rating] ?? ""}</span>
               </button>
             ))}
           </div>
-          <p aria-live="polite" className="min-h-5 text-center text-sm text-again">
+          <p aria-live="polite" className="review-error">
             {error}
           </p>
-        </div>
+        </>
       )}
-    </div>
+    </section>
+  );
+}
+
+/**
+ * The session as a row of marks: what is behind you, where you are, what is
+ * left. Past `MAX_MARKS` each mark stands for a share of the queue rather than
+ * one card, so a long session still reads as one glance.
+ */
+function sessionMarks(done: number, total: number): string[] {
+  const n = Math.min(total, MAX_MARKS);
+  const current = Math.floor((done / total) * n);
+  return Array.from({ length: n }, (_, i) =>
+    i < current ? "is-complete" : i === current ? "is-current" : "",
   );
 }

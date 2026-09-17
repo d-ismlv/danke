@@ -3,40 +3,68 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Icon, { type IconName } from "./Icon";
+import ThemeToggle from "./ThemeToggle";
+import { logout } from "@/lib/actions";
+import type { Theme } from "@/lib/theme";
 
 /**
- * Two destinations, because there are two places that are not content:
- * where cards come from, and how you are doing. Everything else is reached by
- * going down through the library from the logo, which is why there is no
- * "Decks" item here — the logo is that item.
+ * The rail, and the bottom bar it becomes when the window is narrow. Five
+ * items, always the same five, in the same order.
+ *
+ * A deck is not one of them, and neither is a topic or a card: those are
+ * states you reach by going down through the library, and they carry their own
+ * way back up. What is here is the three places the application navigates
+ * between, and the two controls that belong to no page.
  */
-const ITEMS: { href: string; label: string; icon: IconName }[] = [
-  { href: "/import", label: "Import", icon: "import" },
-  { href: "/progress", label: "Progress", icon: "progress" },
-];
-
-export default function Nav() {
+export default function Nav({ theme }: { theme: Theme }) {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Main" className="flex items-center gap-0.5">
-      {ITEMS.map((item) => {
-        const active = pathname.startsWith(item.href);
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={active ? "page" : undefined}
-            title={item.label}
-            className={`flex h-10 items-center gap-2 rounded-lg px-2.5 text-sm font-medium transition-colors sm:h-9 ${
-              active ? "bg-surface-2 text-text" : "text-muted hover:bg-surface-2 hover:text-text"
-            }`}
-          >
-            <Icon name={item.icon} size={17} />
-            <span className="hidden sm:inline">{item.label}</span>
-          </Link>
-        );
-      })}
+    <nav className="side-nav__items" aria-label="Main">
+      <Item
+        href="/"
+        icon="library"
+        label="Library"
+        current={pathname === "/" || pathname.startsWith("/decks/") || pathname.startsWith("/topics/") || pathname === "/study"}
+      />
+      <Item
+        href="/progress"
+        icon="chart"
+        label="Progress"
+        current={pathname.startsWith("/progress")}
+      />
+      <Item
+        href="/import"
+        icon="import"
+        label="Import"
+        current={pathname.startsWith("/import")}
+      />
+      <ThemeToggle initial={theme} />
+      <form action={logout} className="rail-form">
+        <button type="submit" className="rail-action" aria-label="Lock danke">
+          <Icon name="lock" />
+          <span>Lock</span>
+        </button>
+      </form>
     </nav>
+  );
+}
+
+function Item({
+  href,
+  icon,
+  label,
+  current,
+}: {
+  href: string;
+  icon: IconName;
+  label: string;
+  current: boolean;
+}) {
+  return (
+    <Link href={href} className="side-nav__item" aria-current={current ? "page" : undefined}>
+      <Icon name={icon} />
+      <span>{label}</span>
+    </Link>
   );
 }
