@@ -131,6 +131,7 @@ function Editor({
        form nested inside the edit form would submit the edit. */
     <div className="card-editor">
       <form id={formId} action={action}>
+        <input type="hidden" name="id" value={card.id} />
         <div>
           <label htmlFor={`t-${card.id}`} className="field-label">
             Question
