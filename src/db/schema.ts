@@ -1,4 +1,5 @@
 import { sqliteTable, text, integer, real, index, unique } from "drizzle-orm/sqlite-core";
+import type { List } from "@/lib/parse";
 
 /**
  * The hierarchy is exactly two levels deep — deck, then topic — and it is
@@ -33,10 +34,12 @@ export const topics = sqliteTable(
 );
 
 /**
- * A card is a question and the two-to-six points that answer it. `points` is a
- * JSON array of strings, each one line of inline markup — which is the whole
- * content model, so it is stored as the shape it is authored and rendered in
- * rather than as a blob of markdown to be re-parsed on every render.
+ * A card is a question and the points that answer it. `points` is a JSON list:
+ * items of inline markup, each one able to hold a list of its own, ordered or
+ * not — which is the whole content model, so it is stored as the shape it is
+ * authored and rendered in rather than as a blob of markdown to be re-parsed on
+ * every render. Cards written before points could nest hold a plain array of
+ * strings, and `toList` reads both.
  *
  * `(topic_id, title)` is the card's identity for import: re-importing a
  * corrected file updates the points of a card with the same title and leaves
@@ -50,7 +53,7 @@ export const cards = sqliteTable(
       .notNull()
       .references(() => topics.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
-    points: text("points", { mode: "json" }).notNull().$type<string[]>(),
+    points: text("points", { mode: "json" }).notNull().$type<List>(),
     /** Authoring order within the topic, so an import reads back as written. */
     position: integer("position").notNull().default(0),
     createdAt: integer("created_at").notNull(),

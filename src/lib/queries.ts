@@ -3,6 +3,7 @@ import { asc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { decks, topics, cards, reviewState, reviewLogs } from "@/db/schema";
 import type { Card, Deck, ReviewStateRow, Topic } from "@/db/schema";
+import { toList, type List } from "@/lib/parse";
 import {
   learningStatusForScope,
   MATURE_DAYS,
@@ -334,7 +335,10 @@ export async function getTopicView(
   ]);
 
   const counts = scoped.find((s) => s.row.topicId === topicId)?.counts ?? sealed(empty());
-  return { topic: found.topic, deck: found.deck, cards: rows, counts };
+  /* Drizzle hands back whatever the JSON column holds, which for a card last
+     written before points could nest is a flat array of strings. */
+  const read = rows.map((row) => ({ ...row, points: toList(row.points) }));
+  return { topic: found.topic, deck: found.deck, cards: read, counts };
 }
 
 /**
@@ -415,7 +419,7 @@ export async function getDeckOptions(): Promise<
 export type QueueCard = {
   id: string;
   title: string;
-  points: string[];
+  points: List;
   state: ReviewStateRow;
 };
 
@@ -502,7 +506,7 @@ export async function buildQueue(
     bands[row.band].push({
       id: row.id,
       title: row.title,
-      points: parsePoints(row.points),
+      points: toList(row.points),
       state: {
         cardId: row.id,
         due: row.due,
@@ -557,18 +561,6 @@ function shuffle<T>(items: T[]): T[] {
     [items[i], items[j]] = [items[j], items[i]];
   }
   return items;
-}
-
-/** `points` comes back from a raw query as JSON text rather than through
- * Drizzle's column mapping. */
-function parsePoints(value: string | string[]): string[] {
-  if (Array.isArray(value)) return value;
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.map(String) : [];
-  } catch {
-    return [];
-  }
 }
 
 /* ==========================================================================

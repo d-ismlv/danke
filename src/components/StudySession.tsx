@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import Inline from "./Inline";
+import Points from "./Points";
 import Icon from "./Icon";
+import type { List } from "@/lib/parse";
 
 export type StudyItem = {
   id: string;
   title: string;
-  points: string[];
+  points: List;
 };
 
 const GRADES = [
@@ -235,13 +237,7 @@ export default function StudySession({
         {revealed ? (
           <>
             <div className="review-divider" aria-hidden="true" />
-            <ul className="review-answer">
-              {current.points.map((point, i) => (
-                <li key={i}>
-                  <Inline>{point}</Inline>
-                </li>
-              ))}
-            </ul>
+            <Points list={current.points} className="review-answer" />
           </>
         ) : (
           /* The answer is asked for, not handed over: recalling it is the

@@ -7,7 +7,7 @@ import { nanoid } from "nanoid";
 import { db } from "@/db";
 import { decks, topics, cards, reviewState } from "@/db/schema";
 import { emptyState, fsrsCardToRow } from "@/lib/fsrs";
-import { parseCards, MIN_POINTS, MAX_POINTS } from "@/lib/parse";
+import { parseCards, parsePoints, MIN_POINTS } from "@/lib/parse";
 import { grantSession, clearSession, clientAddress, requireSession } from "@/lib/auth";
 import { secretsMatch } from "@/lib/session";
 import { retryAfter, recordFailure, recordSuccess } from "@/lib/throttle";
@@ -170,20 +170,28 @@ export async function importCards(
 
 export type CardState = { error: string | null };
 
-/** Edit one card in place. The same two-to-six rule the importer enforces. */
+/**
+ * Edit one card in place.
+ *
+ * The box holds the same format the importer reads — markers, numbers and all —
+ * so it is read back with the importer's own parser rather than a second,
+ * nearly-identical rule that would drift away from it. The old editor split on
+ * newlines and stripped the markers, which is why a card saved here could never
+ * be reopened with its bullets, let alone with anything nested under them.
+ */
 export async function saveCard(_prev: CardState, formData: FormData): Promise<CardState> {
   await requireSession();
   const id = String(formData.get("id") ?? "");
   const title = String(formData.get("title") ?? "").trim();
-  const points = String(formData.get("points") ?? "")
-    .split(/\r?\n/)
-    .map((line) => line.replace(/^\s*[-*+]\s+/, "").trim())
-    .filter(Boolean);
+  const { points, issues } = parsePoints(String(formData.get("points") ?? ""));
 
   if (!id) return { error: "That card no longer exists." };
   if (!title) return { error: "A card needs a question." };
-  if (points.length < MIN_POINTS || points.length > MAX_POINTS) {
-    return { error: `A card needs between ${MIN_POINTS} and ${MAX_POINTS} points.` };
+  // One problem at a time: the box is a handful of lines, and the line number
+  // the importer reports has nothing to point at here.
+  if (issues.length > 0) return { error: issues[0].message };
+  if (points.items.length < MIN_POINTS) {
+    return { error: "A card needs at least one point." };
   }
 
   const [card] = await db

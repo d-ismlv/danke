@@ -2,11 +2,13 @@
 
 import { useActionState, useId, useState } from "react";
 import { saveCard, deleteCard, type CardState } from "@/lib/actions";
-import { MIN_POINTS, MAX_POINTS } from "@/lib/parse";
+import { formatPoints } from "@/lib/parse";
 import type { CardRow } from "@/lib/queries";
 import { cardMark, MARK_LABEL, type CardMark } from "@/lib/status";
 import Inline from "./Inline";
+import Points from "./Points";
 import Icon from "./Icon";
+import { useIndent } from "@/lib/indent";
 
 /**
  * The questions in a topic. Every row is closed when the screen is entered;
@@ -67,13 +69,7 @@ export default function CardList({
                   />
                 ) : (
                   <>
-                    <ul>
-                      {card.points.map((point, i) => (
-                        <li key={i}>
-                          <Inline>{point}</Inline>
-                        </li>
-                      ))}
-                    </ul>
+                    <Points list={card.points} />
                     <div className="card-tools">
                       <button
                         type="button"
@@ -113,7 +109,11 @@ function Editor({
      once its action resolves, so a rejected save handed back the original card
      and threw away whatever had just been typed. */
   const [title, setTitle] = useState(card.title);
-  const [points, setPoints] = useState(card.points.join("\n"));
+  /* Seeded in the format the importer reads, markers and all: the box is the
+     card's source, so opening it shows what the card is written in rather than
+     a stripped copy that loses its bullets, its numbers and its nesting. */
+  const [points, setPoints] = useState(() => formatPoints(card.points));
+  const onKeyDown = useIndent();
 
   const [state, action, pending] = useActionState<CardState, FormData>(
     async (prev, data) => {
@@ -147,15 +147,18 @@ function Editor({
         </div>
         <div>
           <label htmlFor={`p-${card.id}`} className="field-label">
-            Points — one per line, {MIN_POINTS} to {MAX_POINTS}
+            Points — one per line, Tab to nest
           </label>
           <textarea
             id={`p-${card.id}`}
             name="points"
             value={points}
             onChange={(e) => setPoints(e.target.value)}
+            onKeyDown={onKeyDown}
             required
+            spellCheck={false}
             className="text-field"
+            rows={Math.min(16, points.split("\n").length + 2)}
           />
         </div>
         {state.error && (

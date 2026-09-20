@@ -1456,15 +1456,19 @@ svg {
   background: var(--answer-surface);
 }
 
-.question__answer ul {
+.question__answer :is(ul, ol) {
   max-width: 58rem;
-  /* The reset above strips list markers; a card's points are a bullet list and
-     stay one, here and everywhere else they are rendered. */
+  /* The reset above strips list markers; a card's points are a list and stay
+     one, here and everywhere else they are rendered. */
   list-style: disc;
   padding-inline-start: 1.05rem;
   color: var(--ink-2);
   font-size: 0.87rem;
   line-height: 1.55;
+}
+
+.question__answer ol {
+  list-style: decimal;
 }
 
 .question__answer li + li {
@@ -1711,6 +1715,10 @@ body:has(.study-screen) .side-nav:focus-within {
   color: var(--ink-2);
   font-size: clamp(1rem, 1.219vw, 1.25rem);
   line-height: 1.55;
+}
+
+ol.review-answer {
+  list-style: decimal;
 }
 
 .review-answer li + li {
@@ -2265,8 +2273,15 @@ body:has(.study-screen) .side-nav:focus-within {
   outline-offset: -3px;
 }
 
+/* A card can hold as many points as it needs, and this one is in a row of
+   cards: without a ceiling, one long answer stretches the whole preview panel
+   and pushes the Import button off the bottom of the page. The card scrolls its
+   own points instead, the way the study card does. */
 .import-card-preview {
+  max-height: min(30rem, 62vh);
   padding: 1rem 1.1rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border: var(--hairline) solid var(--line);
   border-radius: var(--radius-control);
   background: var(--answer-surface);
@@ -2286,12 +2301,16 @@ body:has(.study-screen) .side-nav:focus-within {
   text-wrap: pretty;
 }
 
-.import-card-preview ul {
+.import-card-preview :is(ul, ol) {
   list-style: disc;
   padding-inline-start: 1.2rem;
   color: var(--ink-2);
   font-size: 0.82rem;
   line-height: 1.55;
+}
+
+.import-card-preview ol {
+  list-style: decimal;
 }
 
 .import-card-preview li + li {
@@ -2300,6 +2319,40 @@ body:has(.study-screen) .side-nav:focus-within {
 
 .import-card-preview li::marker {
   color: var(--faint);
+}
+
+/* ==========================================================================
+   Sub-points
+
+   A list nested under a point is drawn the same way in all three places a card
+   is shown — the topic screen, the study card and the preview — because it is
+   the same content in all three, and a preview that nested differently from
+   the card would be a preview of something else. Only the text size differs,
+   and that is inherited from the list above it.
+
+   The marker changes with the level rather than only the indentation: a hollow
+   ring reads as "part of the point above" at a glance, which is what a
+   sub-point is.
+   ========================================================================== */
+:is(.question__answer, .review-answer, .import-card-preview) li :is(ul, ol) {
+  margin-block-start: 0.3rem;
+  padding-inline-start: 1.15rem;
+  list-style: circle;
+  font-size: inherit;
+}
+
+:is(.question__answer, .review-answer, .import-card-preview) li ol {
+  list-style: decimal;
+}
+
+/* Sub-points sit closer together than the points they hang from, so the two
+   levels group by spacing as well as by indent. */
+:is(.question__answer, .review-answer, .import-card-preview) li li + li {
+  margin-block-start: 0.2rem;
+}
+
+.review-answer li li + li {
+  margin-block-start: 0.35rem;
 }
 
 .import-hint {

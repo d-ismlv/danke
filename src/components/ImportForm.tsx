@@ -3,7 +3,9 @@
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { importCards, type ImportState } from "@/lib/actions";
 import { parseCards, TEMPLATE } from "@/lib/parse";
+import { useIndent } from "@/lib/indent";
 import Inline from "./Inline";
+import Points from "./Points";
 import Icon from "./Icon";
 import { useToast } from "./Toast";
 
@@ -73,6 +75,7 @@ export default function ImportForm({
   const lines = useMemo(() => text.split("\n"), [text]);
   const mirror = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
+  const onKeyDown = useIndent();
 
   /** Keep the highlight layer under the part of the text you are looking at. */
   function syncScroll(field: HTMLTextAreaElement) {
@@ -259,10 +262,15 @@ export default function ImportForm({
                 syncScroll(event.currentTarget);
               }}
               onScroll={(event) => syncScroll(event.currentTarget)}
+              onKeyDown={onKeyDown}
             />
           </div>
           <div className="format-guide">
             <strong>Expected format</strong>
+            <span>
+              <code>#</code> a question, then its points — <code>-</code> for bullets,{" "}
+              <code>1.</code> to number them, Tab to nest one under the point above
+            </span>
             <span>
               Supports <strong>bold</strong>, <em>italic</em>, <code>inline code</code>, and{" "}
               <strong>
@@ -301,13 +309,7 @@ export default function ImportForm({
                   <h3>
                     <Inline>{card.title}</Inline>
                   </h3>
-                  <ul>
-                    {card.points.map((point, j) => (
-                      <li key={j}>
-                        <Inline>{point}</Inline>
-                      </li>
-                    ))}
-                  </ul>
+                  <Points list={card.points} />
                 </article>
               ))}
             </div>
