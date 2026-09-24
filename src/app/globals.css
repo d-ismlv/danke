@@ -350,6 +350,30 @@ code {
   overflow-wrap: anywhere;
 }
 
+/* A link in a card's text. Preflight hands every <a> its parent's colour and
+   no underline, which suits the rail and loses a link in running text — there
+   the colour and the rule under it are the only things saying the words go
+   somewhere. */
+.card-link {
+  color: var(--blue);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--blue) 40%, transparent);
+  text-decoration-thickness: 0.06em;
+  text-underline-offset: 0.18em;
+  transition: text-decoration-color 120ms ease;
+}
+
+.card-link:hover {
+  text-decoration-color: currentColor;
+}
+
+/* Points brighten their bold to the ink colour; inside a link it stays the
+   link's, or half the link turns black. The element in the selector is there
+   to outrank `.review-answer strong`, which comes later. */
+a.card-link strong {
+  color: inherit;
+}
+
 svg {
   display: block;
   width: 1.1rem;

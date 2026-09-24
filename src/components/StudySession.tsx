@@ -150,6 +150,9 @@ export default function StudySession({
         return;
       }
       if (!current) return;
+      // Enter on a focused link or button is that control's own — a link in
+      // the question opens rather than revealing the answer underneath it.
+      if (e.key === "Enter" && target?.closest("a, button")) return;
       if (!revealed && (e.key === " " || e.key === "Enter")) {
         e.preventDefault();
         setRevealed(true);

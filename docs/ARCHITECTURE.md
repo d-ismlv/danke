@@ -39,10 +39,13 @@ alone.
 
 ## Content format
 
-The only formatting a card carries is `**bold**`, `*italic*`, `` `code` `` and
-``**`bold code`**``. That is four rules, so `src/lib/markup.ts` is a 40-line
-tokenizer rather than a markdown pipeline — and it returns a tree, never a
-string, so card content cannot become markup whatever an import contains.
+The only formatting a card carries is `**bold**`, `*italic*`, `` `code` ``,
+``**`bold code`**`` and `[links](https://…)`. That is five rules, so
+`src/lib/markup.ts` is a small tokenizer rather than a markdown pipeline — and
+it returns a tree, never a string, so card content cannot become markup whatever
+an import contains. A link only enters that tree with an `http(s)` address;
+anything else stays the text it was written as, and the importer reports it.
+Links open in a new tab, because the study session's queue lives in the page.
 
 `src/lib/parse.ts` is the only definition of the import format. It is pure, so
 the live preview in the browser and the server action that writes the rows agree

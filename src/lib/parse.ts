@@ -6,6 +6,8 @@
  * means. Nothing is imported while `issues` is non-empty.
  */
 
+import { unusableLinks } from "./markup";
+
 /** A card with a question and nothing under it is a card that cannot be
  * answered, so one point is the floor. There is no ceiling: a long answer
  * scrolls inside the study card, which is what that card was built to do. */
@@ -44,6 +46,7 @@ export const TEMPLATE = `# What is **deconfliction** during an offensive exercis
 
 - A **TGT** signed with the \`krbtgt\` account hash
 - Any service ticket can then be requested from it normally
+- Catalogued as [T1558.001](https://attack.mitre.org/techniques/T1558/001/) in MITRE ATT&CK
 
 # How should defenders separate malicious discovery from **administration**?
 
@@ -184,7 +187,7 @@ export function parseCards(text: string): ParseResult {
       }
       titles.set(title, line);
       current = { title, points: points(), line };
-      checkTicks(title, line, issues);
+      checkInline(title, line, issues);
       return;
     }
 
@@ -205,7 +208,7 @@ export function parseCards(text: string): ParseResult {
         return;
       }
       current.points.add(indentOf(prefix), marker.length > 1, body);
-      checkTicks(body, line, issues);
+      checkInline(body, line, issues);
       return;
     }
 
@@ -268,7 +271,7 @@ export function parsePoints(text: string): { points: List; issues: Issue[] } {
         return;
       }
       built.add(indentOf(prefix), marker.length > 1, body);
-      checkTicks(body, line, issues);
+      checkInline(body, line, issues);
       return;
     }
 
@@ -278,7 +281,7 @@ export function parsePoints(text: string): { points: List; issues: Issue[] } {
     /* A line with no marker at all is the common case in the editor — the box
        used to be one plain point per line — so it is a point, not a mistake. */
     built.add(0, false, raw.trim());
-    checkTicks(raw.trim(), line, issues);
+    checkInline(raw.trim(), line, issues);
   });
 
   return { points: built.root, issues };
@@ -340,13 +343,30 @@ function tryParse(value: string): unknown {
   }
 }
 
-/** An odd number of backticks means a code span someone forgot to close, and
- * it would import as a stray tick in the middle of a sentence. */
-function checkTicks(text: string, line: number, issues: Issue[]): void {
+/**
+ * What is wrong with one line of inline markup, if anything — the importer
+ * asks this of every question and point, and the card editor of its question
+ * field, so the two cannot disagree about what a line may say.
+ *
+ * - An odd number of backticks means a code span someone forgot to close, and
+ *   it would import as a stray tick in the middle of a sentence.
+ * - A link whose address is not a web page would import as its brackets and
+ *   parentheses, which is never what was meant. `example.com` is the usual
+ *   one: it reads as an address to a person and as a relative path to a
+ *   browser.
+ */
+export function inlineIssues(text: string): string[] {
+  const found: string[] = [];
   const ticks = (text.match(/`/g) ?? []).length;
-  if (ticks % 2 === 1) {
-    issues.push({ line, message: "There is an unclosed ` on this line." });
+  if (ticks % 2 === 1) found.push("There is an unclosed ` on this line.");
+  for (const href of unusableLinks(text)) {
+    found.push(`“${short(href)}” is not a web address. A link needs one that starts with https://.`);
   }
+  return found;
+}
+
+function checkInline(text: string, line: number, issues: Issue[]): void {
+  for (const message of inlineIssues(text)) issues.push({ line, message });
 }
 
 function short(text: string): string {

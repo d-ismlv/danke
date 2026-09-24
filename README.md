@@ -86,6 +86,7 @@ A `#` question line followed by its points. Repeat for every card.
 | Points per card | 2 to 6 |
 | Question | one line, a single `#`, unique within its topic |
 | Formatting | `**bold**`, `*italic*`, `` `code` ``, ``**`bold code`**`` |
+| Links | `[text](https://…)` — web addresses only; they open in a new tab |
 
 Nothing is written while a single line is wrong.
 

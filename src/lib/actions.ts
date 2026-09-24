@@ -7,7 +7,7 @@ import { nanoid } from "nanoid";
 import { db } from "@/db";
 import { decks, topics, cards, reviewState } from "@/db/schema";
 import { emptyState, fsrsCardToRow } from "@/lib/fsrs";
-import { parseCards, parsePoints, MIN_POINTS } from "@/lib/parse";
+import { parseCards, parsePoints, inlineIssues, MIN_POINTS } from "@/lib/parse";
 import { grantSession, clearSession, clientAddress, requireSession } from "@/lib/auth";
 import { secretsMatch } from "@/lib/session";
 import { retryAfter, recordFailure, recordSuccess } from "@/lib/throttle";
@@ -187,6 +187,10 @@ export async function saveCard(_prev: CardState, formData: FormData): Promise<Ca
 
   if (!id) return { error: "That card no longer exists." };
   if (!title) return { error: "A card needs a question." };
+  // The importer holds a question to the same rules as a point, so a question
+  // saved here is one it would have taken.
+  const [titleIssue] = inlineIssues(title);
+  if (titleIssue) return { error: titleIssue };
   // One problem at a time: the box is a handful of lines, and the line number
   // the importer reports has nothing to point at here.
   if (issues.length > 0) return { error: issues[0].message };

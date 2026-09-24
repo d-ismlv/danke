@@ -52,7 +52,9 @@ export default function CardList({
               <span className="question-index">{String(index + 1).padStart(2, "0")}</span>
               <span className="question-prompt">
                 <strong>
-                  <Inline>{card.title}</Inline>
+                  {/* The whole row is the toggle; a link in the question is
+                      followed from the study card instead. */}
+                  <Inline links={false}>{card.title}</Inline>
                 </strong>
               </span>
               <span className={stateClass(mark)}>{MARK_LABEL[mark]}</span>

@@ -272,10 +272,11 @@ export default function ImportForm({
               <code>1.</code> to number them, Tab to nest one under the point above
             </span>
             <span>
-              Supports <strong>bold</strong>, <em>italic</em>, <code>inline code</code>, and{" "}
+              Supports <strong>bold</strong>, <em>italic</em>, <code>inline code</code>,{" "}
               <strong>
                 <code>bold code</code>
               </strong>
+              , and links as <code>[text](https://…)</code>
             </span>
           </div>
         </div>
