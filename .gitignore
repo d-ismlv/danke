@@ -41,7 +41,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# local database + uploaded media
+# local database
 /data
 
 # local editor / assistant settings

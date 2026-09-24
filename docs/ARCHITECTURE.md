@@ -25,13 +25,16 @@ repetition don't entangle.
 |---|---|
 | `decks` | `id`, `name` (unique), `created_at` |
 | `topics` | `id`, `deck_id`, `name` — unique within its deck |
-| `cards` | `id`, `topic_id`, `title`, `points` (JSON array), `position` — `(topic_id, title)` unique |
+| `cards` | `id`, `topic_id`, `title`, `points` (JSON list), `position` — `(topic_id, title)` unique |
 | `review_state` | 1:1 with a card: `due`, `stability`, `difficulty`, `reps`, `lapses`, `state`, … |
 | `review_logs` | append-only `card_id` / `rating` / `reviewed_at`, which is what Progress reads |
 
-A card is a question and the two to six points that answer it. `points` is
-stored as the array it is authored and rendered as, not as markdown to be
-re-parsed on every render.
+A card is a question and the points that answer it — at least one, with no
+upper limit, and each point able to hold a bulleted or numbered list of its own,
+one level deep. `points` is stored as the list it is authored and rendered as
+(`{ ordered, items }`), not as markdown to be re-parsed on every render. Cards
+written before points could nest hold a plain array of strings, and `toList`
+reads both.
 
 `(topic_id, title)` is the card's import identity: re-importing a corrected file
 updates the points of a question the topic already has and leaves its schedule

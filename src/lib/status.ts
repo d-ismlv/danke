@@ -100,7 +100,7 @@ export function statusLabel(status: LearningStatus): string {
 }
 
 /** Which of the four buckets a card's schedule row falls in. */
-export function memoryState(row: {
+function memoryState(row: {
   state: number | null;
   stability: number | null;
 }): MemoryState {
@@ -143,7 +143,7 @@ export const MARK_LABEL: Record<CardMark, string> = {
  * all but the first twenty were clipped, leaving a row that looked like the
  * whole topic but showed a tenth of it.
  */
-export function proportionalSegments<T extends string>(
+function proportionalSegments<T extends string>(
   counts: Record<T, number>,
   order: readonly T[],
   max: number,

@@ -35,10 +35,10 @@ export default async function ProgressPage() {
     return (
       <section aria-labelledby="progress-title">
         <header className="page-heading">
-        <div className="page-heading__row">
-          <h1 id="progress-title">Progress</h1>
-        </div>
-      </header>
+          <div className="page-heading__row">
+            <h1 id="progress-title">Progress</h1>
+          </div>
+        </header>
         <div className="empty-state">
           <h2>Nothing to measure yet</h2>
           <p>Import some cards and study them — this page fills in from the first answer.</p>
@@ -75,17 +75,17 @@ export default async function ProgressPage() {
             {memory.mature + memory.young} / {totalCards} learned
           </p>
         </div>
-        <div className="progress-hero__stat">
+        <div>
           <span>Streak</span>
           <strong>{p.streak}</strong>
           <p>{p.streak === 1 ? "day in a row" : "days in a row"}</p>
         </div>
-        <div className="progress-hero__stat">
+        <div>
           <span>Recall</span>
           <strong>{p.recall === null ? "—" : `${p.recall}%`}</strong>
           <p>last 30 days</p>
         </div>
-        <div className="progress-hero__stat">
+        <div>
           <span>Today</span>
           <strong>{p.reviewsToday}</strong>
           <p>cards answered</p>

@@ -20,8 +20,8 @@
 
 ## What it is
 
-Decks hold topics, topics hold cards, and a card is a question with two to six
-points that answer it. Paste your notes in, press Study, and [FSRS](https://github.com/open-spaced-repetition/ts-fsrs)
+Decks hold topics, topics hold cards, and a card is a question with the points
+that answer it. Paste your notes in, press Study, and [FSRS](https://github.com/open-spaced-repetition/ts-fsrs)
 decides what comes back and when. Everything lives in one SQLite file you own.
 
 - **One study button** — due cards first, then unseen, then the rest. No modes.
@@ -83,7 +83,7 @@ A `#` question line followed by its points. Repeat for every card.
 
 | | |
 |---|---|
-| Points per card | 2 to 6 |
+| Points per card | at least one; indent a point to nest a list under it, one level deep |
 | Question | one line, a single `#`, unique within its topic |
 | Formatting | `**bold**`, `*italic*`, `` `code` ``, ``**`bold code`**`` |
 | Links | `[text](https://…)` — web addresses only; they open in a new tab |
@@ -98,6 +98,7 @@ Nothing is written while a single line is wrong.
 | `AUTH_SESSION_TOKEN` | Signing key for the session cookie. Generated on first run; changing it signs every device out. |
 | `DANKE_DATA_DIR` | Database location. Default `/app/data`. |
 | `TZ` | Timezone the streak, today's count and the activity grid use to decide where a day ends, e.g. `Europe/Stockholm`. Default UTC. |
+| `AUTH_INSECURE_COOKIE` | Set to `true` only if you open danke over plain HTTP by address, with no TLS proxy in front — otherwise the browser drops the secure session cookie and every sign-in bounces back to the lock screen. |
 
 ---
 

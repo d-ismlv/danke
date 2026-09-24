@@ -26,11 +26,7 @@ function render(nodes: InlineNode[], links: boolean): React.ReactNode {
       );
     }
     const Tag = TAG[node.mark];
-    return (
-      <Tag key={i} className={node.mark === "code" ? "code" : undefined}>
-        {render(node.children, links)}
-      </Tag>
-    );
+    return <Tag key={i}>{render(node.children, links)}</Tag>;
   });
 }
 
