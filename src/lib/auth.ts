@@ -37,7 +37,9 @@ export async function clearSession(): Promise<void> {
  *
  * The proxy already turns anonymous traffic away, but it is one `matcher`
  * regex from not doing so, and a mutation should not be one typo from being
- * open to the internet. Every action and API route calls this first.
+ * open to the internet. Every action and API route calls this first, and so
+ * does every read in `queries.ts` — the layout renders a page whether or not
+ * the visitor is signed in, so the data is what has to refuse.
  */
 export async function requireSession(): Promise<void> {
   if (!(await isAuthed())) throw new Error("Not signed in");
@@ -48,12 +50,21 @@ export async function requireSession(): Promise<void> {
  * reverse proxy the socket address is the proxy's, so the forwarded headers
  * are what distinguish callers; a single shared bucket is the fallback, which
  * throttles everyone together rather than nobody.
+ *
+ * The *last* `X-Forwarded-For` entry, not the first. A proxy appends the
+ * address it saw to whatever the request arrived with, so every entry before
+ * its own was written by the caller — reading the first let a script send a
+ * fresh made-up address with each guess and never be throttled at all. Behind
+ * a second proxy the last entry is that proxy's, which throttles more coarsely
+ * rather than not at all. With no proxy in front, Next fills the header in
+ * from the socket, but only when the request did not bring one of its own —
+ * that deployment is the one the README tells you not to run.
  */
 export async function clientAddress(): Promise<string> {
   const h = await headers();
   const forwarded = h.get("x-forwarded-for");
   return (
-    forwarded?.split(",")[0]?.trim() ||
+    forwarded?.split(",").at(-1)?.trim() ||
     h.get("x-real-ip") ||
     "unknown"
   );

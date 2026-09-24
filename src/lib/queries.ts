@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { decks, topics, cards, reviewState, reviewLogs } from "@/db/schema";
 import type { Card, Deck, ReviewStateRow, Topic } from "@/db/schema";
 import { toList, type List } from "@/lib/parse";
+import { requireSession } from "@/lib/auth";
 import {
   learningStatusForScope,
   MATURE_DAYS,
@@ -14,6 +15,12 @@ import {
 const DAY_MS = 86_400_000;
 /** The window every recall figure and every "recently" judgement reads. */
 const RECENT_DAYS = 30;
+
+/* Every exported read below starts with `requireSession()`. The proxy turns
+   anonymous traffic away first, but the root layout renders a page's content
+   whether or not anyone is signed in, so without this a page was one proxy
+   bug — or one matcher edit — from serving the whole library to a stranger.
+   Mutations were already held to this; reads are now held to it too. */
 
 /** Read the clock outside render, which React's purity lint requires. */
 export function now(): number {
@@ -217,6 +224,7 @@ export async function getLibrary(at = Date.now()): Promise<{
   decks: DeckSummary[];
   totals: Counts;
 }> {
+  await requireSession();
   const [all, scoped] = await Promise.all([
     db.select().from(decks).orderBy(asc(sql`${decks.name} COLLATE NOCASE`)),
     scopedCounts(at),
@@ -274,6 +282,7 @@ export async function getDeckView(
   deckId: string,
   at = Date.now(),
 ): Promise<{ deck: Deck; topics: TopicSummary[]; marks: Map<string, CardState[]>; counts: Counts } | null> {
+  await requireSession();
   const [deck] = await db.select().from(decks).where(eq(decks.id, deckId)).limit(1);
   if (!deck) return null;
 
@@ -305,6 +314,7 @@ export async function getTopicView(
   topicId: string,
   at = Date.now(),
 ): Promise<{ topic: Topic; deck: Deck; cards: CardRow[]; counts: Counts } | null> {
+  await requireSession();
   const [found] = await db
     .select({ topic: topics, deck: decks })
     .from(topics)
@@ -349,6 +359,7 @@ export async function getTopicView(
  * this one number and none of the rest of that page's work.
  */
 export async function getStreak(at = Date.now()): Promise<number> {
+  await requireSession();
   const today = Math.floor(at / DAY_MS);
   const rows = await db.all<{ day: number }>(sql`
     SELECT DISTINCT CAST(${reviewLogs.reviewedAt} / ${DAY_MS} AS INTEGER) AS day
@@ -374,6 +385,7 @@ export async function getStreak(at = Date.now()): Promise<number> {
 export async function getDeckLabel(
   deckId: string,
 ): Promise<{ name: string; topicCount: number } | null> {
+  await requireSession();
   const [row] = await db.all<{ name: string; topicCount: number }>(sql`
     SELECT ${decks.name} AS name, COUNT(${topics.id}) AS topicCount
     FROM ${decks} LEFT JOIN ${topics} ON ${topics.deckId} = ${decks.id}
@@ -386,6 +398,7 @@ export async function getDeckLabel(
 export async function getTopicLabel(
   topicId: string,
 ): Promise<{ name: string; deckName: string; deckId: string } | null> {
+  await requireSession();
   const [row] = await db
     .select({ name: topics.name, deckName: decks.name, deckId: decks.id })
     .from(topics)
@@ -399,6 +412,7 @@ export async function getTopicLabel(
 export async function getDeckOptions(): Promise<
   { id: string; name: string; topics: { id: string; name: string }[] }[]
 > {
+  await requireSession();
   const [allDecks, allTopics] = await Promise.all([
     db.select().from(decks).orderBy(asc(sql`${decks.name} COLLATE NOCASE`)),
     db.select().from(topics).orderBy(asc(sql`${topics.name} COLLATE NOCASE`)),
@@ -450,6 +464,7 @@ export async function buildQueue(
   scope: Scope,
   at = Date.now(),
 ): Promise<{ cards: QueueCard[]; total: number }> {
+  await requireSession();
   const where =
     scope.kind === "topic"
       ? sql`WHERE ${topics.id} = ${scope.id}`
@@ -582,6 +597,7 @@ export type Progress = {
 };
 
 export async function getProgress(at = Date.now()): Promise<Progress> {
+  await requireSession();
   const today = Math.floor(at / DAY_MS);
   const yearFrom = (today - 364) * DAY_MS;
 

@@ -128,6 +128,22 @@ choice lives in a cookie so the server can stamp `data-theme` on `<html>` while
 it renders, which is what removes the flash; `system` is the absence of the
 attribute and falls through to `prefers-color-scheme`.
 
+## Access
+
+One password, and a signed session cookie per sign-in (`src/lib/session.ts`):
+different on every device, refused after thirty days, and all revoked at once
+by changing `AUTH_SESSION_TOKEN`.
+
+`src/proxy.ts` turns anonymous requests away before they reach a page, and
+nothing relies on it alone. Every server action, the review route and every
+read in `src/lib/queries.ts` checks the session again, because the root layout
+renders a page's content whether or not the visitor is signed in.
+
+Wrong passwords are throttled per client address, in memory: five free, then a
+wait that doubles from ten seconds to fifteen minutes. The address is the
+**last** `X-Forwarded-For` entry — the one the reverse proxy in front of danke
+appended — since every entry before it was written by the caller.
+
 ## Deployment
 
 The image is published to `ghcr.io/d-ismlv/danke` by a GitHub Actions workflow on
