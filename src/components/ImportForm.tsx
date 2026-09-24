@@ -317,9 +317,22 @@ export default function ImportForm({
           )}
 
           <div className="import-result">
-            <span className={`validation-status${issues.length > 0 && text.trim() ? " validation-status--bad" : ""}${text.trim() ? "" : " validation-status--idle"}`}>
-              {status(text, parsed.cards.length, issues.length)}
-            </span>
+            {/* A refusal with no line to point at — the write failed, or the
+                deck went away in another tab — has nowhere in the problem list
+                to appear, because the list only exists when the paste itself
+                is wrong. It takes the status's place instead; left out, the
+                button simply came back and nothing said the import had not
+                happened. */}
+            {state.error && issues.length === 0 && !pending ? (
+              <p className="form-error" role="alert">
+                <Icon name="alert" />
+                {state.error}
+              </p>
+            ) : (
+              <span className={`validation-status${issues.length > 0 && text.trim() ? " validation-status--bad" : ""}${text.trim() ? "" : " validation-status--idle"}`}>
+                {status(text, parsed.cards.length, issues.length)}
+              </span>
+            )}
             <button type="submit" className="primary-action" disabled={!ready || pending}>
               <Icon name="import" />
               {pending
