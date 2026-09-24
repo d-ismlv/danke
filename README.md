@@ -97,7 +97,7 @@ Nothing is written while a single line is wrong.
 | `AUTH_PASSWORD` | Login password. Required. |
 | `AUTH_SESSION_TOKEN` | Signing key for the session cookie. Generated on first run; changing it signs every device out. |
 | `DANKE_DATA_DIR` | Database location. Default `/app/data`. |
-| `TZ` | Timezone. Optional. |
+| `TZ` | Timezone the streak, today's count and the activity grid use to decide where a day ends, e.g. `Europe/Stockholm`. Default UTC. |
 
 ---
 

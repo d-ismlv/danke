@@ -155,6 +155,8 @@ export default async function ProgressPage() {
               <i
                 key={day}
                 data-level={level(count)}
+                // A day number is a calendar date; read back through UTC it
+                // is that date, whatever zone the day was counted in.
                 title={`${new Date(day * DAY_MS).toISOString().slice(0, 10)} · ${count} review${count === 1 ? "" : "s"}`}
               />
             ),

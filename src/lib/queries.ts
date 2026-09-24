@@ -356,26 +356,69 @@ export async function getTopicView(
   return { topic: found.topic, deck: found.deck, cards: read, counts };
 }
 
+/* ==========================================================================
+   Days
+
+   A streak, "today" and the activity grid all count calendar days, and a
+   calendar day is local: one that turned over at UTC midnight broke a streak
+   at 02:00 in Stockholm and at 17:00 in California, and counted an evening's
+   study as tomorrow's. Local is the server's zone — `TZ`, or UTC when it is
+   unset — because that is the only clock a self-hosted app has.
+   ========================================================================== */
+
+/** A quarter of an hour. Every UTC offset in use is a whole number of them. */
+const SLOT_MS = 15 * 60_000;
+
 /**
- * Consecutive days with at least one review, counting back from today — or from
- * yesterday, so a day you have not started yet does not read as a break.
+ * The local calendar day `ms` falls on, numbered like `Math.floor(ms /
+ * DAY_MS)` — days since 1970-01-01 — but starting at local midnight. So a day
+ * number read back through UTC (`new Date(day * DAY_MS)`) is that date.
+ */
+function localDay(ms: number): number {
+  return Math.floor((ms - new Date(ms).getTimezoneOffset() * 60_000) / DAY_MS);
+}
+
+/**
+ * Answers per local day, over the trailing `days` days including today.
  *
- * Its own small query rather than a field on `getProgress`: the library wants
- * this one number and none of the rest of that page's work.
+ * SQLite counts them into quarter-hour slots and this folds the slots into
+ * days: no slot straddles a local midnight, so nothing is split, and the
+ * folding happens where the time zone is known. SQLite's own `localtime`
+ * reads the system zone database, which the slim image does not ship — Node
+ * carries its own. The CAST is not decoration: a bound parameter arrives as
+ * REAL, so the division would be float and every row its own slot.
+ */
+async function answersByDay(at: number, days: number): Promise<Map<number, number>> {
+  const today = localDay(at);
+  const rows = await db.all<{ slot: number; n: number }>(sql`
+    SELECT CAST(${reviewLogs.reviewedAt} / ${SLOT_MS} AS INTEGER) AS slot, COUNT(*) AS n
+    FROM ${reviewLogs}
+    WHERE ${reviewLogs.reviewedAt} >= ${(today - days) * DAY_MS}
+    GROUP BY slot
+  `);
+  const byDay = new Map<number, number>();
+  for (const { slot, n } of rows) {
+    const day = localDay(slot * SLOT_MS);
+    if (day > today - days) byDay.set(day, (byDay.get(day) ?? 0) + n);
+  }
+  return byDay;
+}
+
+/** Consecutive days with at least one answer, counting back from today — or
+ * from yesterday, so a day you have not started yet does not read as a break. */
+function streakOf(byDay: Map<number, number>, today: number): number {
+  let streak = 0;
+  for (let day = byDay.has(today) ? today : today - 1; byDay.has(day); day--) streak += 1;
+  return streak;
+}
+
+/**
+ * The streak on its own. The library wants this one number and none of the
+ * rest of the Progress page's work, so it does not go through `getProgress`.
  */
 export async function getStreak(at = Date.now()): Promise<number> {
   await requireSession();
-  const today = Math.floor(at / DAY_MS);
-  const rows = await db.all<{ day: number }>(sql`
-    SELECT DISTINCT CAST(${reviewLogs.reviewedAt} / ${DAY_MS} AS INTEGER) AS day
-    FROM ${reviewLogs}
-    WHERE ${reviewLogs.reviewedAt} >= ${(today - 365) * DAY_MS}
-    ORDER BY day DESC
-  `);
-  const days = new Set(rows.map((r) => r.day));
-  let streak = 0;
-  for (let day = days.has(today) ? today : today - 1; days.has(day); day--) streak += 1;
-  return streak;
+  return streakOf(await answersByDay(at, 365), localDay(at));
 }
 
 /**
@@ -561,7 +604,7 @@ export type Progress = {
   streak: number;
   reviewsToday: number;
   recall: number | null;
-  /** epoch-day (UTC) -> reviews, for the past year. */
+  /** Local day number (see `localDay`) -> answers, for the past year. */
   heatmap: Record<number, number>;
   today: number;
   decks: DeckSummary[];
@@ -569,36 +612,20 @@ export type Progress = {
 
 export async function getProgress(at = Date.now()): Promise<Progress> {
   await requireSession();
-  const today = Math.floor(at / DAY_MS);
-  const yearFrom = (today - 364) * DAY_MS;
-
+  const today = localDay(at);
   const [{ decks: deckSummaries, totals }, byDay] = await Promise.all([
     getLibrary(at),
-    /* Counted by SQLite and returned already reduced. review_logs is the one
-       table that grows without bound, so it is the one never read whole. The
-       CAST is not decoration: a bound parameter arrives as REAL, so the
-       division would be float and every row would land in its own bucket. */
-    db.all<{ day: number; n: number }>(sql`
-      SELECT CAST(${reviewLogs.reviewedAt} / ${DAY_MS} AS INTEGER) AS day, COUNT(*) AS n
-      FROM ${reviewLogs} WHERE ${reviewLogs.reviewedAt} >= ${yearFrom}
-      GROUP BY day ORDER BY day
-    `),
+    answersByDay(at, 365),
   ]);
-
-  const heatmap: Record<number, number> = {};
-  for (const row of byDay) heatmap[row.day] = row.n;
-
-  let streak = 0;
-  for (let day = heatmap[today] ? today : today - 1; heatmap[day]; day--) streak += 1;
 
   return {
     totalCards: totals.cards,
     memory: totals.memory,
     percent: totals.percent,
-    streak,
-    reviewsToday: heatmap[today] ?? 0,
+    streak: streakOf(byDay, today),
+    reviewsToday: byDay.get(today) ?? 0,
     recall: totals.recall,
-    heatmap,
+    heatmap: Object.fromEntries(byDay),
     today,
     // Weakest first — the page's answer to "what should I work on".
     decks: deckSummaries
