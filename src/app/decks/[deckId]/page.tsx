@@ -35,6 +35,7 @@ export default async function DeckPage({ params }: { params: Promise<{ deckId: s
     name: topic.name,
     cards: topic.counts.cards,
     due: topic.counts.due,
+    unseen: topic.counts.memory.unseen,
     status: topic.counts.status,
     marks: (marks.get(topic.id) ?? []).map((card) => cardMark(card, at)),
   }));
@@ -81,6 +82,10 @@ export default async function DeckPage({ params }: { params: Promise<{ deckId: s
               <div>
                 <dt>Due now</dt>
                 <dd className="warm">{counts.due}</dd>
+              </div>
+              <div>
+                <dt>Unseen</dt>
+                <dd>{counts.memory.unseen}</dd>
               </div>
               <div>
                 <dt>Recall</dt>

@@ -1011,6 +1011,12 @@ svg {
   color: var(--mature);
 }
 
+/* Waiting, but not owed: neither the warm of a due review nor the green of a
+   finished one. */
+.row-figures strong.is-unseen {
+  color: var(--ink-2);
+}
+
 .row-figures small {
   color: var(--muted);
   font-size: 0.72rem;

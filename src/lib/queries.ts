@@ -2,7 +2,7 @@ import "server-only";
 import { asc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { decks, topics, cards, reviewState, reviewLogs } from "@/db/schema";
-import type { Card, Deck, ReviewStateRow, Topic } from "@/db/schema";
+import type { Card, Deck, Topic } from "@/db/schema";
 import { toList, type List } from "@/lib/parse";
 import { requireSession } from "@/lib/auth";
 import {
@@ -39,6 +39,8 @@ export function now(): number {
 
 export type Counts = {
   cards: number;
+  /** Studied cards whose next review has come round. A card never studied is
+   * not due — it has no debt to pay yet — and is counted in `memory.unseen`. */
   due: number;
   learned: number;
   /** 0-100. Zero cards reads as 0%, not as a hole in the layout. */
@@ -146,7 +148,10 @@ function toCounts(row: Partial<TopicRow> & { recentTotal?: number; recentAgain?:
  * One row per topic, counts included — the whole library in a single query.
  *
  * A card with no schedule row at all counts as unseen, which is why the
- * `unseen` bucket tests for a null state rather than for state 0 alone.
+ * `unseen` bucket tests for a null state rather than for state 0 alone. An
+ * unseen card is never also due, although its `due` is the moment it was
+ * imported: counting it would have every fresh import read as a backlog, and
+ * say "10 due" beside ten marks that each say Unseen.
  * "Unstable" is the scheduler saying it is not holding this card: relearning
  * now, or lapsed more than once and still on a short interval.
  */
@@ -158,7 +163,7 @@ async function topicRows(at: number): Promise<TopicRow[]> {
       ${decks.id}    AS deckId,
       ${decks.name}  AS deckName,
       COUNT(${cards.id}) AS cards,
-      COALESCE(SUM(CASE WHEN ${reviewState.due} <= ${at} THEN 1 ELSE 0 END), 0) AS due,
+      COALESCE(SUM(CASE WHEN ${reviewState.state} <> 0 AND ${reviewState.due} <= ${at} THEN 1 ELSE 0 END), 0) AS due,
       COALESCE(SUM(CASE WHEN ${reviewState.state} = 2 THEN 1 ELSE 0 END), 0) AS learned,
       COALESCE(SUM(CASE WHEN ${reviewState.state} = 2 AND ${reviewState.stability} >= ${MATURE_DAYS} THEN 1 ELSE 0 END), 0) AS mature,
       COALESCE(SUM(CASE WHEN ${reviewState.state} = 2 AND ${reviewState.stability} < ${MATURE_DAYS} THEN 1 ELSE 0 END), 0) AS young,
@@ -434,7 +439,6 @@ export type QueueCard = {
   id: string;
   title: string;
   points: List;
-  state: ReviewStateRow;
 };
 
 export type Scope =
@@ -451,7 +455,11 @@ export const SESSION_LIMIT = 120;
  *
  * One rule, whatever the scope: cards that are **due** come first, oldest debt
  * first; then cards you have **never seen**; then the rest of the selection,
- * nearest to due first. There is no separate practice mode to choose — a
+ * nearest to due first. An unseen card's `due` is the moment it was imported,
+ * which is always in the past, so it is banded by its state before its date —
+ * otherwise last month's import sorts ahead of today's reviews, and a big
+ * enough one pushes them out of the session altogether. There is no separate
+ * practice mode to choose — a
  * session simply runs out of due cards and carries on into new ones, and every
  * answer is graded the same way.
  *
@@ -478,16 +486,6 @@ export async function buildQueue(
     points: string;
     topicId: string;
     band: number;
-    due: number;
-    stability: number;
-    difficulty: number;
-    elapsedDays: number;
-    scheduledDays: number;
-    learningSteps: number;
-    reps: number;
-    lapses: number;
-    state: number;
-    lastReview: number | null;
   }>(sql`
     SELECT
       ${cards.id} AS id,
@@ -495,20 +493,10 @@ export async function buildQueue(
       ${cards.points} AS points,
       ${topics.id} AS topicId,
       CASE
-        WHEN ${reviewState.due} <= ${at} THEN 0
         WHEN ${reviewState.state} = 0 THEN 1
+        WHEN ${reviewState.due} <= ${at} THEN 0
         ELSE 2
-      END AS band,
-      ${reviewState.due} AS due,
-      ${reviewState.stability} AS stability,
-      ${reviewState.difficulty} AS difficulty,
-      ${reviewState.elapsedDays} AS elapsedDays,
-      ${reviewState.scheduledDays} AS scheduledDays,
-      ${reviewState.learningSteps} AS learningSteps,
-      ${reviewState.reps} AS reps,
-      ${reviewState.lapses} AS lapses,
-      ${reviewState.state} AS state,
-      ${reviewState.lastReview} AS lastReview
+      END AS band
     FROM ${cards}
     JOIN ${topics} ON ${topics.id} = ${cards.topicId}
     JOIN ${reviewState} ON ${reviewState.cardId} = ${cards.id}
@@ -518,24 +506,7 @@ export async function buildQueue(
 
   const bands: QueueCard[][] = [[], [], []];
   for (const row of rows) {
-    bands[row.band].push({
-      id: row.id,
-      title: row.title,
-      points: toList(row.points),
-      state: {
-        cardId: row.id,
-        due: row.due,
-        stability: row.stability,
-        difficulty: row.difficulty,
-        elapsedDays: row.elapsedDays,
-        scheduledDays: row.scheduledDays,
-        learningSteps: row.learningSteps,
-        reps: row.reps,
-        lapses: row.lapses,
-        state: row.state,
-        lastReview: row.lastReview,
-      },
-    });
+    bands[row.band].push({ id: row.id, title: row.title, points: toList(row.points) });
   }
 
   const queue =

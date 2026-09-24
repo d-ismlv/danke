@@ -31,6 +31,20 @@ export function StatusMark({
   );
 }
 
+/**
+ * What is waiting in a deck or topic row, in one word-and-number: the reviews
+ * that have come round, or failing those the cards never studied, or Clear.
+ * One line, because the figures column is narrow, and in that order because a
+ * review that has come round is the more pressing of the two. Clear means
+ * there is nothing at all to study — an import you have not started does not
+ * read as done.
+ */
+export function WaitingFigure({ due, unseen }: { due: number; unseen: number }) {
+  if (due > 0) return <strong>{due} due</strong>;
+  if (unseen > 0) return <strong className="is-unseen">{unseen} unseen</strong>;
+  return <strong className="is-clear">Clear</strong>;
+}
+
 /** How many marks fit in a topic row's column and still read as marks. */
 const PIP_LIMIT = 10;
 

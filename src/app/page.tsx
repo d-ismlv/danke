@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getLibrary, getStreak, now } from "@/lib/queries";
 import Icon from "@/components/Icon";
-import { StatusMark, SegmentTrack, MarkLegend } from "@/components/Marks";
+import { StatusMark, SegmentTrack, MarkLegend, WaitingFigure } from "@/components/Marks";
 import { statusLabel } from "@/lib/status";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +36,7 @@ export default async function Library() {
           >
             <strong>{totals.due}</strong>
             <span>card{totals.due === 1 ? "" : "s"} due</span>
+            {totals.memory.unseen > 0 && <span>· {totals.memory.unseen} unseen</span>}
           </p>
           {totals.cards > 0 && (
             <Link href="/study" className="primary-action">
@@ -110,9 +111,7 @@ export default async function Library() {
                   <b>{deck.counts.percent}%</b>
                 </span>
                 <span className="row-figures">
-                  <strong className={deck.counts.due === 0 ? "is-clear" : undefined}>
-                    {deck.counts.due === 0 ? "Clear" : `${deck.counts.due} due`}
-                  </strong>
+                  <WaitingFigure due={deck.counts.due} unseen={deck.counts.memory.unseen} />
                   <small>{deck.counts.learned} learned</small>
                 </span>
                 <Icon name="arrow" className="row-arrow" />

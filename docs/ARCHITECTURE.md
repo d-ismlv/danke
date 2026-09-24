@@ -58,8 +58,12 @@ There is one session behaviour, and the only thing that varies between studying
 a topic, a deck or everything is which cards go into the queue:
 
 1. cards that are **due**, oldest debt first;
-2. cards you have **never seen**;
+2. cards you have **never seen**, shuffled;
 3. the rest of the selection, nearest to due first.
+
+A card you have never seen is never also due, even though FSRS stamps it due
+from the moment it is imported. Every "due" figure in the app means studied
+cards whose turn has come round; the unseen ones are counted beside them.
 
 Within each band, a multi-topic session deals cards out one topic at a time, so
 studying a whole deck moves across it instead of spending its first twenty cards

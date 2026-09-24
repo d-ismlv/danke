@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
-import { StatusMark, StatePips, MarkLegend } from "./Marks";
+import { StatusMark, StatePips, MarkLegend, WaitingFigure } from "./Marks";
 import type { CardMark, LearningStatus } from "@/lib/status";
 
 export type TopicRow = {
@@ -11,6 +11,7 @@ export type TopicRow = {
   name: string;
   cards: number;
   due: number;
+  unseen: number;
   status: LearningStatus;
   marks: CardMark[];
 };
@@ -73,9 +74,7 @@ export default function TopicTable({ topics }: { topics: TopicRow[] }) {
             </span>
             <StatePips marks={topic.marks} />
             <span className="row-figures">
-              <strong className={topic.due === 0 ? "is-clear" : undefined}>
-                {topic.due === 0 ? "Clear" : `${topic.due} due`}
-              </strong>
+              <WaitingFigure due={topic.due} unseen={topic.unseen} />
             </span>
             <Icon name="arrow" className="row-arrow" />
           </Link>
