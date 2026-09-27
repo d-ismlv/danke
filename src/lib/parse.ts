@@ -306,6 +306,15 @@ export function formatPoints(list: List, depth = 0): string {
 }
 
 /**
+ * One card as the importer reads it: the question as a heading, then its
+ * points. That is also plain Markdown, so a copied card pastes as a heading
+ * and a list anywhere that renders Markdown, and imports back as itself.
+ */
+export function formatCard(card: ParsedCard): string {
+  return `# ${card.title}\n\n${formatPoints(card.points)}\n`;
+}
+
+/**
  * Whatever the `points` column holds, as a list.
  *
  * It is a JSON column, so its shape is a promise rather than a constraint —

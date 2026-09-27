@@ -2,12 +2,13 @@
 
 import { useActionState, useId, useState } from "react";
 import { saveCard, deleteCard, type CardState } from "@/lib/actions";
-import { formatPoints } from "@/lib/parse";
+import { formatCard, formatPoints } from "@/lib/parse";
 import type { CardRow } from "@/lib/queries";
 import { cardMark, MARK_LABEL, type CardMark } from "@/lib/status";
 import Inline from "./Inline";
 import Points from "./Points";
 import Icon from "./Icon";
+import { useToast } from "./Toast";
 import { useIndent } from "@/lib/indent";
 
 /**
@@ -30,6 +31,18 @@ export default function CardList({
   const [open, setOpen] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const prefix = useId();
+  const toast = useToast();
+
+  /* The whole card in the format it was imported in — a selection only ever
+     takes the words, and loses the heading and the list markers on the way. */
+  const copy = async (card: CardRow) => {
+    try {
+      await navigator.clipboard.writeText(formatCard(card));
+      toast.show("The card has been copied as Markdown.");
+    } catch {
+      toast.show("Your browser would not let the app copy. Select and copy instead.");
+    }
+  };
 
   return (
     <div className="question-list">
@@ -81,6 +94,10 @@ export default function CardList({
                         <Icon name="pencil" />
                         Edit card
                       </button>
+                      <button type="button" className="ghost-action" onClick={() => copy(card)}>
+                        <Icon name="copy" />
+                        Copy card
+                      </button>
                       <DeleteCard id={card.id} topicId={topicId} />
                     </div>
                   </>
@@ -90,6 +107,7 @@ export default function CardList({
           </article>
         );
       })}
+      {toast.node}
     </div>
   );
 }
