@@ -616,6 +616,14 @@ svg {
   border: 0;
 }
 
+/* Around a card rather than part of it: a row's number and state, the tools
+   under an answer, the grades. A selection passes over them, and CopyFilter
+   keeps them off the clipboard, so a copied card is its question and points. */
+.no-copy {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* ==========================================================================
    Headings and the one primary action
    ========================================================================== */

@@ -5,6 +5,7 @@ import "./globals.css";
 import { isAuthed } from "@/lib/auth";
 import Logo from "@/components/Logo";
 import Nav from "@/components/Nav";
+import CopyFilter from "@/components/CopyFilter";
 import { asTheme, THEME_COOKIE, type Theme } from "@/lib/theme";
 
 /** The saved theme, read on the server so `data-theme` is already on <html> in
@@ -61,6 +62,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <main className="content" id="main-content">
               {children}
             </main>
+
+            <CopyFilter />
           </div>
         ) : (
           <div className="plain-shell">{children}</div>

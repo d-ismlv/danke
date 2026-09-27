@@ -49,7 +49,7 @@ export default function CardList({
                 setEditing(null);
               }}
             >
-              <span className="question-index">{String(index + 1).padStart(2, "0")}</span>
+              <span className="question-index no-copy">{String(index + 1).padStart(2, "0")}</span>
               <span className="question-prompt">
                 <strong>
                   {/* The whole row is the toggle; a link in the question is
@@ -57,8 +57,8 @@ export default function CardList({
                   <Inline links={false}>{card.title}</Inline>
                 </strong>
               </span>
-              <span className={stateClass(mark)}>{MARK_LABEL[mark]}</span>
-              <Icon name="chevron" />
+              <span className={`${stateClass(mark)} no-copy`}>{MARK_LABEL[mark]}</span>
+              <Icon name="chevron" className="no-copy" />
             </button>
 
             {isOpen && (
@@ -72,7 +72,7 @@ export default function CardList({
                 ) : (
                   <>
                     <Points list={card.points} />
-                    <div className="card-tools">
+                    <div className="card-tools no-copy">
                       <button
                         type="button"
                         className="ghost-action"

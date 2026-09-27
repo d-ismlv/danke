@@ -228,7 +228,7 @@ export default function StudySession({
       </header>
 
       <article className="review-card">
-        <div className="review-card__meta">
+        <div className="review-card__meta no-copy">
           <span>
             Card {place + 1} / {total}
           </span>
@@ -246,7 +246,7 @@ export default function StudySession({
           /* The answer is asked for, not handed over: recalling it is the
              whole exercise. The reveal sits where the divider and the points
              will be, so nothing above it moves when they arrive. */
-          <div className="reveal-row">
+          <div className="reveal-row no-copy">
             <button
               type="button"
               className="primary-action"
@@ -264,7 +264,7 @@ export default function StudySession({
           and another after, and a different height again on the next card —
           which is the card resizing between questions. `visibility` keeps the
           space and still takes them out of the tab order and the a11y tree. */}
-      <div className={`rating-slot${revealed ? "" : " is-waiting"}`} aria-hidden={!revealed}>
+      <div className={`rating-slot no-copy${revealed ? "" : " is-waiting"}`} aria-hidden={!revealed}>
         <div className="rating-grid" aria-label="Rate this answer">
           {GRADES.map((grade) => (
             <button
