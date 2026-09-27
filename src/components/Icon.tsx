@@ -24,6 +24,7 @@ export type IconName =
   | "alert"
   | "pencil"
   | "trash"
+  | "reset"
   | "theme-system"
   | "theme-light"
   | "theme-dark";
@@ -60,6 +61,7 @@ const PATHS: Record<IconName, ReactElement> = {
   ),
   pencil: <path d="M4 20h4L19.2 8.8a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 16.2z" />,
   trash: <path d="M4.5 7h15M9.5 7V5.2A1.2 1.2 0 0 1 10.7 4h2.6a1.2 1.2 0 0 1 1.2 1.2V7m3 0v12.2A1.8 1.8 0 0 1 15.7 21H8.3a1.8 1.8 0 0 1-1.8-1.8V7" />,
+  reset: <path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3L4.5 9M4.5 4.5V9H9" />,
   // A display, for "whatever this machine is set to".
   "theme-system": (
     <>

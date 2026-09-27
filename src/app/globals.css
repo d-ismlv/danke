@@ -2576,8 +2576,53 @@ textarea.text-field {
 
 .page-footer-action {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
+  gap: 0.6rem;
   margin-block-start: 1.75rem;
+}
+
+/* The one question asked in a dialog rather than in place. The preflight
+   zeroes every margin, and `auto` is what centres a modal dialog. */
+.confirm-dialog {
+  width: min(27rem, calc(100% - 2rem));
+  margin: auto;
+  padding: 0;
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-layer);
+}
+
+.confirm-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.32);
+}
+
+.confirm-dialog__panel {
+  display: grid;
+  gap: 0.6rem;
+  padding: 1.2rem 1.25rem 1rem;
+}
+
+.confirm-dialog__panel h2 {
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+
+.confirm-dialog__panel p {
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.confirm-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-block-start: 0.5rem;
 }
 
 .confirm-row {

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db } from "@/db";
 import { decks, topics, cards, reviewState } from "@/db/schema";
@@ -264,6 +264,30 @@ export async function renameTopic(formData: FormData) {
   } catch {
     return;
   }
+  revalidatePath("/", "layout");
+}
+
+/**
+ * Every card in a topic back to unseen, as though it had just been imported.
+ *
+ * The schedule starts over; the history stays. `review_logs` is a record of
+ * answers that were given, and the streak, the activity grid and the day's
+ * count are read from it — starting a topic again does not un-study the days
+ * spent on it.
+ */
+export async function resetTopic(formData: FormData) {
+  await requireSession();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await db
+    .update(reviewState)
+    .set(fsrsCardToRow(emptyState()))
+    .where(
+      inArray(
+        reviewState.cardId,
+        db.select({ id: cards.id }).from(cards).where(eq(cards.topicId, id)),
+      ),
+    );
   revalidatePath("/", "layout");
 }
 

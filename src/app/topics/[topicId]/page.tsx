@@ -5,6 +5,7 @@ import { renameTopic, deleteTopic } from "@/lib/actions";
 import { cardMark, markClass, markSegments, MATURE_DAYS } from "@/lib/status";
 import Icon from "@/components/Icon";
 import ConfirmButton from "@/components/ConfirmButton";
+import ResetTopic from "@/components/ResetTopic";
 import RenameField from "@/components/RenameField";
 import CardList from "@/components/CardList";
 import { describe } from "@/components/Marks";
@@ -113,14 +114,19 @@ export default async function TopicPage({
         )}
       </section>
 
-      <form action={deleteTopic} className="page-footer-action">
-        <input type="hidden" name="id" value={topic.id} />
-        <input type="hidden" name="deckId" value={deck.id} />
-        <ConfirmButton
-          label="Delete topic"
-          confirm={`Delete ${topic.name} and its ${counts.cards} card${counts.cards === 1 ? "" : "s"}?`}
-        />
-      </form>
+      <footer className="page-footer-action">
+        {/* Only once there is something to start over: on a topic nobody has
+            studied it would reset nothing. */}
+        {counts.reviewed > 0 && <ResetTopic id={topic.id} name={topic.name} />}
+        <form action={deleteTopic}>
+          <input type="hidden" name="id" value={topic.id} />
+          <input type="hidden" name="deckId" value={deck.id} />
+          <ConfirmButton
+            label="Delete topic"
+            confirm={`Delete ${topic.name} and its ${counts.cards} card${counts.cards === 1 ? "" : "s"}?`}
+          />
+        </form>
+      </footer>
     </section>
   );
 }
