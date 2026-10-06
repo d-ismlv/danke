@@ -38,6 +38,7 @@ export default async function DeckPage({ params }: { params: Promise<{ deckId: s
     unseen: topic.counts.memory.unseen,
     status: topic.counts.status,
     marks: (marks.get(topic.id) ?? []).map((card) => cardMark(card, at)),
+    lastStudied: topic.counts.lastStudied,
   }));
 
   return (

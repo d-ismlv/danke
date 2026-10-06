@@ -14,9 +14,18 @@ export type TopicRow = {
   unseen: number;
   status: LearningStatus;
   marks: CardMark[];
+  /** Epoch ms of the most recent answer in this topic, or null. */
+  lastStudied: number | null;
 };
 
 const SORTS = {
+  /* What you were working on, at the top. A topic never studied has nothing
+     to be recent about, so those come last, by name. */
+  latest: {
+    label: "Latest",
+    compare: (a: TopicRow, b: TopicRow) =>
+      (b.lastStudied ?? 0) - (a.lastStudied ?? 0) || byName(a, b),
+  },
   due: { label: "Due count", compare: (a: TopicRow, b: TopicRow) => b.due - a.due || byName(a, b) },
   name: { label: "Topic name", compare: byName },
   cards: {
@@ -37,7 +46,7 @@ function byName(a: TopicRow, b: TopicRow) {
  * than asking the server for the same rows again.
  */
 export default function TopicTable({ topics }: { topics: TopicRow[] }) {
-  const [sort, setSort] = useState<SortKey>("due");
+  const [sort, setSort] = useState<SortKey>("latest");
   const ordered = useMemo(() => [...topics].sort(SORTS[sort].compare), [topics, sort]);
 
   return (
