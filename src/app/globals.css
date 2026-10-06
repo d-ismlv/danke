@@ -852,11 +852,16 @@ code {
   line-height: 20px;
 }
 
-/* At least as wide as its words: a sliver of a segment should not let its
-   label run into the next one. */
+/* Under its segment while the segment is wide enough to hold it. A sliver of
+   a segment cannot be, so a label is never narrower than its words plus a
+   32px gap: the next one moves along rather than running into it. */
 .bar-label {
   flex: 1 1 0;
   min-width: max-content;
+}
+
+.bar-label:not(:last-child) {
+  padding-right: 32px;
 }
 
 .bar-label__name {
@@ -2211,7 +2216,7 @@ ul.points .points > li::before,
 /* The weekday names sit inside the content, in line with the section title. */
 .heatmap__inner {
   position: relative;
-  min-width: 880px;
+  min-width: 800px;
   padding-left: 48px;
 }
 

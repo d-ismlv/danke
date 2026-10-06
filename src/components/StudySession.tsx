@@ -223,8 +223,8 @@ export default function StudySession({
                 Back to {backLabel}
               </Link>
               <Link href="/import" className="btn btn--primary">
-                <Icon name="import" />
-                Import cards
+                <Icon name="plus" />
+                Add cards
               </Link>
             </div>
           </div>

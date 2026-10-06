@@ -27,7 +27,8 @@ export type IconName =
   | "trash"
   | "reset"
   | "copy"
-  | "download"
+  | "export"
+  | "plus"
   | "theme-system"
   | "theme-light"
   | "theme-dark";
@@ -72,8 +73,9 @@ const PATHS: Record<IconName, ReactElement> = {
       <path d="M15.5 8.5V5.8A1.8 1.8 0 0 0 13.7 4H5.8A1.8 1.8 0 0 0 4 5.8v7.9a1.8 1.8 0 0 0 1.8 1.8h2.7" />
     </>
   ),
-  // Down onto a line rather than into a tray, which is "import".
-  download: <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14" />,
+  // The import tray with the arrow leaving it: the same box, the other way.
+  export: <path d="M12 14.5V3M7.5 7.5 12 3l4.5 4.5M4 18v2.5h16V18" />,
+  plus: <path d="M12 5v14M5 12h14" />,
   // A display, for "whatever this machine is set to".
   "theme-system": (
     <>

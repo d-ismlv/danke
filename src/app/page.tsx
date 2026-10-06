@@ -75,8 +75,8 @@ export default async function Library() {
           </h2>
           {decks.length > 0 && (
             <Link href="/import" className="btn btn--ghost flush-end">
-              <Icon name="import" />
-              Import cards
+              <Icon name="plus" />
+              Add cards
             </Link>
           )}
         </div>
@@ -89,8 +89,8 @@ export default async function Library() {
               creates both.
             </p>
             <Link href="/import" className="btn btn--primary">
-              <Icon name="import" />
-              Import cards
+              <Icon name="plus" />
+              Add cards
             </Link>
           </div>
         ) : (

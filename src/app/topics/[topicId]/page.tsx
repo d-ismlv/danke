@@ -156,15 +156,20 @@ export default async function TopicPage({
           </h2>
           <div className="section-tools">
             <Link href={`/import?deck=${deck.id}&topic=${topic.id}`} className="btn btn--ghost">
-              <Icon name="import" />
-              Import
+              <Icon name="plus" />
+              Add cards
             </Link>
             {/* A plain link, not <Link>: it is a file, and the router would try
                 to render it as a page. */}
             {counts.cards > 0 && (
-              <a href={`/topics/${topic.id}/download`} download className="btn btn--ghost">
-                <Icon name="download" />
-                Download
+              <a
+                href={`/topics/${topic.id}/download`}
+                download
+                className="btn btn--ghost"
+                title="Save every card in this topic as one Markdown file"
+              >
+                <Icon name="export" />
+                Export as Markdown
               </a>
             )}
             {/* Only once there is something to start over: on a topic nobody
@@ -178,8 +183,8 @@ export default async function TopicPage({
             <h2>No cards in this topic</h2>
             <p>Paste a set of questions into it and they will appear here.</p>
             <Link href={`/import?deck=${deck.id}&topic=${topic.id}`} className="btn btn--primary">
-              <Icon name="import" />
-              Import cards
+              <Icon name="plus" />
+              Add cards
             </Link>
           </div>
         ) : (

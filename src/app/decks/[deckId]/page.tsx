@@ -78,8 +78,8 @@ export default async function DeckPage({ params }: { params: Promise<{ deckId: s
                 }
               >
                 <Link href={`/import?deck=${deck.id}`} className="btn btn--secondary">
-                  <Icon name="import" />
-                  Import
+                  <Icon name="plus" />
+                  Add cards
                 </Link>
                 {counts.cards > 0 && (
                   <Link href={`/decks/${deck.id}/study`} className="btn btn--primary">
@@ -128,8 +128,8 @@ export default async function DeckPage({ params }: { params: Promise<{ deckId: s
               <h2>No topics yet</h2>
               <p>Import a paste into this deck and name the topic it belongs to.</p>
               <Link href={`/import?deck=${deck.id}`} className="btn btn--primary">
-                <Icon name="import" />
-                Import cards
+                <Icon name="plus" />
+                Add cards
               </Link>
             </div>
           </>

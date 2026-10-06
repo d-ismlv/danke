@@ -40,8 +40,8 @@ export default async function ProgressPage() {
           <h2>Nothing to measure yet</h2>
           <p>Import some cards and study them — this page fills in from the first answer.</p>
           <Link href="/import" className="btn btn--primary">
-            <Icon name="import" />
-            Import cards
+            <Icon name="plus" />
+            Add cards
           </Link>
         </div>
       </section>
