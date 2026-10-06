@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { importCards, type ImportState } from "@/lib/actions";
 import { parseCards, TEMPLATE } from "@/lib/parse";
 import { useIndent } from "@/lib/indent";
@@ -11,6 +11,13 @@ import { useToast } from "./Toast";
 
 type DeckOption = { id: string; name: string; topics: { id: string; name: string }[] };
 
+/** The editor never draws shorter than this, so an empty paste has room. */
+const MIN_ROWS = 18;
+
+/**
+ * The import screen: where the cards go, the Markdown they are written in,
+ * and a preview of exactly what will be written — all before anything is.
+ */
 export default function ImportForm({
   decks,
   initialDeck,
@@ -36,6 +43,7 @@ export default function ImportForm({
   const [creatingTopic, setCreatingTopic] = useState(startTopics.length === 0);
   const [text, setText] = useState("");
   const toast = useToast();
+  const onKeyDown = useIndent();
 
   const [state, action, pending] = useActionState<ImportState, FormData>(importCards, {
     error: null,
@@ -72,130 +80,105 @@ export default function ImportForm({
     for (const issue of issues) if (issue.line !== null) lines.add(issue.line);
     return lines;
   }, [issues]);
-  const lines = useMemo(() => text.split("\n"), [text]);
-  const mirror = useRef<HTMLDivElement>(null);
-  const input = useRef<HTMLTextAreaElement>(null);
-  const onKeyDown = useIndent();
+  const lines = text.split("\n");
+  /* The editor grows with its text rather than scrolling inside itself, so
+     the line numbers and highlights beside it never have to follow a scroll.
+     It does not wrap, so a line is always one row of each. */
+  const rows = Math.max(MIN_ROWS, lines.length + 1);
 
-  /** Keep the highlight layer under the part of the text you are looking at. */
-  function syncScroll(field: HTMLTextAreaElement) {
-    if (!mirror.current) return;
-    mirror.current.scrollTop = field.scrollTop;
-    mirror.current.scrollLeft = field.scrollLeft;
-  }
-
-  /*
-   * The highlight layer has to wrap its text at exactly the width the textarea
-   * does, or a highlight drifts off the line it belongs to. `inset: 0` is not
-   * that width: a textarea's scrollbar is taken out of its content box, so the
-   * moment the text overflows — or the window is resized across that
-   * threshold — the two layers disagree and the highlights jump.
-   *
-   * `clientWidth`/`clientHeight` are the padding box, scrollbar already
-   * excluded, which is precisely what the mirror should be.
-   */
-  useEffect(() => {
-    const field = input.current;
-    const layer = mirror.current;
-    if (!field || !layer) return;
-    const match = () => {
-      layer.style.width = `${field.clientWidth}px`;
-      layer.style.height = `${field.clientHeight}px`;
-      layer.scrollTop = field.scrollTop;
-      layer.scrollLeft = field.scrollLeft;
-    };
-    match();
-    const observer = new ResizeObserver(match);
-    observer.observe(field);
-    return () => observer.disconnect();
-  }, []);
-
+  const empty = text.trim().length === 0;
   const destinationReady = creatingDeck ? newDeck.trim() !== "" : deckId !== "";
   const topicReady = creatingTopic ? newTopic.trim() !== "" : topicId !== "";
-  const contentReady = text.trim().length > 0 && parsed.issues.length === 0;
+  const contentReady = !empty && parsed.issues.length === 0;
   const ready = destinationReady && topicReady && contentReady;
+  const count = parsed.cards.length;
+
+  const copyTemplate = async () => {
+    try {
+      await navigator.clipboard.writeText(TEMPLATE);
+      toast.show("The Markdown template has been copied.");
+    } catch {
+      toast.show("Your browser would not let the app copy. Select and copy instead.");
+    }
+  };
 
   return (
     <form action={action}>
-      <section className="destination-panel" aria-labelledby="destination-title">
-        <header className="section-heading">
-          <div>
-            <h2 id="destination-title">Destination</h2>
+      <section className="panel" aria-labelledby="import-title">
+        <div className="head">
+          <div className="head__main">
+            {/* An empty eyebrow keeps the title on the same line as every
+                other page's. */}
+            <p className="eyebrow" aria-hidden="true" />
+            <h1 className="title" id="import-title">
+              Import
+            </h1>
           </div>
-        </header>
-        <div className="destination-grid">
-          <div className="destination-field">
-            <label htmlFor="import-deck">Deck</label>
-            <div className="destination-control">
-              <select
-                id="import-deck"
-                value={deckId}
-                disabled={creatingDeck || decks.length === 0}
-                onChange={(event) => chooseDeck(event.target.value)}
-              >
-                {decks.length === 0 && <option value="">No decks yet</option>}
-                {decks.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className="inline-action"
-                aria-expanded={creatingDeck}
-                aria-controls="new-deck-field"
-                onClick={toggleNewDeck}
-              >
-                {creatingDeck && decks.length > 0 ? "Use existing" : "+ New deck"}
-              </button>
-            </div>
-            {creatingDeck && (
-              <label className="create-inline" id="new-deck-field">
-                <span>New deck name</span>
+          <div className="head__side">
+            <button type="button" className="btn btn--secondary" onClick={copyTemplate}>
+              <Icon name="copy" />
+              Copy template
+            </button>
+          </div>
+        </div>
+
+        <div className="destination" role="group" aria-label="Destination">
+          <div className="field">
+            <label className="field__label" htmlFor={creatingDeck ? "import-new-deck" : "import-deck"}>
+              {creatingDeck ? "New deck" : "Deck"}
+            </label>
+            <div className="picker">
+              {creatingDeck ? (
                 <input
+                  id="import-new-deck"
+                  className="input"
                   type="text"
                   name="newDeck"
                   value={newDeck}
                   maxLength={120}
                   placeholder="e.g. Endpoint Security"
+                  autoFocus={decks.length > 0}
                   onChange={(event) => setNewDeck(event.target.value)}
                 />
-              </label>
-            )}
+              ) : (
+                <span className="select-wrap">
+                  <select
+                    id="import-deck"
+                    className="select"
+                    value={deckId}
+                    onChange={(event) => chooseDeck(event.target.value)}
+                  >
+                    {decks.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                  <Icon name="chevron" />
+                </span>
+              )}
+              {decks.length > 0 && (
+                <button
+                  type="button"
+                  className="btn btn--secondary"
+                  aria-expanded={creatingDeck}
+                  onClick={toggleNewDeck}
+                >
+                  {creatingDeck ? "Use existing" : "New deck"}
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="destination-field">
-            <label htmlFor="import-topic">Topic</label>
-            <div className="destination-control">
-              <select
-                id="import-topic"
-                value={topicId}
-                disabled={creatingTopic || topics.length === 0}
-                onChange={(event) => setTopicId(event.target.value)}
-              >
-                {topics.length === 0 && <option value="">No topics yet</option>}
-                {topics.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className="inline-action"
-                aria-expanded={creatingTopic}
-                aria-controls="new-topic-field"
-                disabled={topics.length === 0}
-                onClick={() => setCreatingTopic((v) => topics.length === 0 || !v)}
-              >
-                {creatingTopic && topics.length > 0 ? "Use existing" : "+ New topic"}
-              </button>
-            </div>
-            {creatingTopic && (
-              <label className="create-inline" id="new-topic-field">
-                <span>New topic name</span>
+          <div className="field">
+            <label className="field__label" htmlFor={creatingTopic ? "import-new-topic" : "import-topic"}>
+              {creatingTopic ? "New topic" : "Topic"}
+            </label>
+            <div className="picker">
+              {creatingTopic ? (
                 <input
+                  id="import-new-topic"
+                  className="input"
                   type="text"
                   name="newTopic"
                   value={newTopic}
@@ -203,120 +186,125 @@ export default function ImportForm({
                   placeholder="e.g. Resource-based delegation"
                   onChange={(event) => setNewTopic(event.target.value)}
                 />
-              </label>
-            )}
+              ) : (
+                <span className="select-wrap">
+                  <select
+                    id="import-topic"
+                    className="select"
+                    value={topicId}
+                    onChange={(event) => setTopicId(event.target.value)}
+                  >
+                    {topics.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                  <Icon name="chevron" />
+                </span>
+              )}
+              {!creatingDeck && topics.length > 0 && (
+                <button
+                  type="button"
+                  className="btn btn--secondary"
+                  aria-expanded={creatingTopic}
+                  onClick={() => setCreatingTopic((v) => !v)}
+                >
+                  {creatingTopic ? "Use existing" : "New topic"}
+                </button>
+              )}
+            </div>
           </div>
         </div>
         {/* The pickers are local state; these carry what the server should act
-            on. A disabled select submits nothing at all. */}
+            on. A disabled or absent select submits nothing at all. */}
         <input type="hidden" name="deckId" value={creatingDeck ? "" : deckId} />
-        <input
-          type="hidden"
-          name="topicId"
-          value={creatingDeck || creatingTopic ? "" : topicId}
-        />
+        <input type="hidden" name="topicId" value={creatingDeck || creatingTopic ? "" : topicId} />
       </section>
 
-      <section className="import-workspace" aria-label="Markdown import">
-        <div className="import-editor">
-          <header className="import-panel-heading">
-            <div>
-              <h2>Markdown</h2>
-            </div>
-            <button
-              type="button"
-              className="text-action"
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(TEMPLATE);
-                  toast.show("The Markdown template has been copied.");
-                } catch {
-                  toast.show("Your browser would not let the app copy. Select and copy instead.");
-                }
-              }}
-            >
-              Copy template
-            </button>
-          </header>
-          {/* The highlights are a second copy of the text sitting behind a
-              transparent textarea, in the same font, padding and wrapping — a
-              textarea cannot style one of its own lines. */}
-          <div className="markdown-editor">
-            <div className="markdown-lines" ref={mirror} aria-hidden="true">
-              {lines.map((line, i) => (
+      <section className="workspace" aria-label="Markdown import">
+        <div className="workpanel">
+          <div className="workpanel__head">
+            <h2>Markdown</h2>
+            <span className="meta num">
+              {lines.length} line{lines.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          <div className="md">
+            <div className="md__gutter" aria-hidden="true">
+              {lines.map((_, i) => (
                 <span key={i} className={badLines.has(i + 1) ? "is-bad" : undefined}>
-                  {line === "" ? "\u200b" : line}
+                  {i + 1}
                 </span>
               ))}
             </div>
-            <textarea
-              ref={input}
-              className="markdown-input"
-              name="text"
-              aria-label="Markdown cards"
-              spellCheck={false}
-              value={text}
-              placeholder={"# Your question?\n\n- First answer point\n- Second answer point"}
-              onChange={(event) => {
-                setText(event.target.value);
-                syncScroll(event.currentTarget);
-              }}
-              onScroll={(event) => syncScroll(event.currentTarget)}
-              onKeyDown={onKeyDown}
-            />
+            <div className="md__field">
+              <div className="md__lines" aria-hidden="true">
+                {lines.map((_, i) => (
+                  <span key={i} className={badLines.has(i + 1) ? "is-bad" : undefined} />
+                ))}
+              </div>
+              <textarea
+                className="md__input"
+                name="text"
+                aria-label="Markdown cards"
+                spellCheck={false}
+                wrap="off"
+                rows={rows}
+                value={text}
+                placeholder={"# Your question?\n\n- First answer point\n- Second answer point"}
+                onChange={(event) => setText(event.target.value)}
+                onKeyDown={onKeyDown}
+              />
+            </div>
           </div>
-          <div className="format-guide">
-            <strong>Expected format</strong>
+          <div className="workpanel__foot">
             <span>
-              <code>#</code> a question, then its points — <code>-</code> for bullets,{" "}
-              <code>1.</code> to number them, Tab to nest one under the point above
+              <code>#</code> a question, then its points — <code>-</code> to bullet, <code>1.</code>{" "}
+              to number, Tab to nest one level
             </span>
             <span>
-              Supports <strong>bold</strong>, <em>italic</em>, <code>inline code</code>,{" "}
-              <strong>
-                <code>bold code</code>
-              </strong>
-              , and links as <code>[text](https://…)</code>
+              <strong>**bold**</strong> · <em>*italic*</em> · <code>`code`</code> ·{" "}
+              <code>[text](https://…)</code>
             </span>
           </div>
         </div>
 
-        <div className="import-preview">
-          <header className="import-panel-heading">
-            <div>
-              <h2>Preview</h2>
-            </div>
-          </header>
-
-          {text.trim().length === 0 ? (
-            <p className="import-hint">Paste your cards above to see exactly what will be imported.</p>
-          ) : issues.length > 0 ? (
-            <Problems issues={issues} error={state.error} />
-          ) : (
-            /* Every parsed card, mounted, in document order. Scrolling right
-               moves through the set; nothing is swapped out behind a counter. */
-            <div
-              className="preview-track"
-              tabIndex={0}
-              role="group"
-              aria-label={`${parsed.cards.length} parsed card${parsed.cards.length === 1 ? "" : "s"}, scroll right for more`}
-              onKeyDown={stepPreview}
-            >
-              {parsed.cards.map((card, i) => (
-                <article className="import-card-preview" key={i}>
-                  <span>
-                    Card {i + 1} / {parsed.cards.length}
-                  </span>
+        <div className="workpanel">
+          <div className="workpanel__head">
+            <h2>Preview</h2>
+            {!empty && issues.length === 0 && (
+              <span className="meta num">
+                {count} card{count === 1 ? "" : "s"}
+              </span>
+            )}
+          </div>
+          <div className="workpanel__body preview">
+            {empty ? (
+              <p className="preview__hint">
+                Paste your cards on the left to see exactly what will be imported.
+              </p>
+            ) : issues.length > 0 ? (
+              <Problems issues={issues} error={state.error} />
+            ) : (
+              parsed.cards.map((card, i) => (
+                <article className="preview-card" key={i}>
+                  <p className="preview-card__meta">
+                    <span className="preview-card__number">
+                      {i + 1} / {count}
+                    </span>
+                    {card.points.ordered ? "Numbered" : "Bulleted"} · {card.points.items.length}{" "}
+                    point{card.points.items.length === 1 ? "" : "s"}
+                  </p>
                   <h3>
                     <Inline>{card.title}</Inline>
                   </h3>
                   <Points list={card.points} />
                 </article>
-              ))}
-            </div>
-          )}
-
-          <div className="import-result">
+              ))
+            )}
+          </div>
+          <div className="workpanel__foot">
             {/* A refusal with no line to point at — the write failed, or the
                 deck went away in another tab — has nowhere in the problem list
                 to appear, because the list only exists when the paste itself
@@ -329,53 +317,31 @@ export default function ImportForm({
                 {state.error}
               </p>
             ) : (
-              <span className={`validation-status${issues.length > 0 && text.trim() ? " validation-status--bad" : ""}${text.trim() ? "" : " validation-status--idle"}`}>
-                {status(text, parsed.cards.length, issues.length)}
+              <span
+                role="status"
+                className={`import-status ${empty ? "is-idle" : issues.length > 0 ? "is-bad" : "is-ready"}`}
+              >
+                <i className="dot" />
+                {empty
+                  ? "Nothing to import yet"
+                  : issues.length > 0
+                    ? `${issues.length} problem${issues.length === 1 ? "" : "s"} · nothing will be imported`
+                    : "Valid"}
               </span>
             )}
-            <button type="submit" className="primary-action" disabled={!ready || pending}>
-              <Icon name="import" />
-              {pending
-                ? "Importing…"
-                : contentReady
-                  ? `Import ${parsed.cards.length} card${parsed.cards.length === 1 ? "" : "s"}`
-                  : "Import"}
-            </button>
           </div>
         </div>
       </section>
+
+      <div className="import-cta">
+        <button type="submit" className="btn btn--primary" disabled={!ready || pending}>
+          <Icon name="import" />
+          {pending ? "Importing…" : contentReady ? `Import ${count} card${count === 1 ? "" : "s"}` : "Import"}
+        </button>
+      </div>
       {toast.node}
     </form>
   );
-}
-
-/**
- * Arrow keys move the preview a card at a time, and Home/End jump to the ends.
- * A focused scroll container scrolls with the arrows on its own, but only by a
- * line — which lands between two cards and fights the snap points.
- */
-function stepPreview(event: React.KeyboardEvent<HTMLDivElement>) {
-  const track = event.currentTarget;
-  const card = track.firstElementChild as HTMLElement | null;
-  const step = card ? card.getBoundingClientRect().width + 16 : track.clientWidth;
-  const moves: Record<string, number | "start" | "end"> = {
-    ArrowRight: step,
-    ArrowLeft: -step,
-    Home: "start",
-    End: "end",
-  };
-  const move = moves[event.key];
-  if (move === undefined) return;
-  event.preventDefault();
-  if (move === "start") track.scrollTo({ left: 0 });
-  else if (move === "end") track.scrollTo({ left: track.scrollWidth });
-  else track.scrollBy({ left: move });
-}
-
-function status(text: string, cards: number, issues: number): string {
-  if (text.trim().length === 0) return "Nothing to import yet";
-  if (issues > 0) return `${issues} problem${issues === 1 ? "" : "s"} · nothing will be imported`;
-  return `Valid · ${cards} card${cards === 1 ? "" : "s"}`;
 }
 
 /** Which card, which line, and what is wrong with it. */
@@ -387,11 +353,10 @@ function Problems({
   error: string | null;
 }) {
   return (
-    <div className="import-problems">
-      <p>
+    <div className="problems">
+      <p className="problems__head">
         <Icon name="alert" />
-        {error ??
-          `${issues.length} problem${issues.length === 1 ? "" : "s"} — nothing will be imported`}
+        {error ?? `${issues.length} problem${issues.length === 1 ? "" : "s"} — nothing will be imported`}
       </p>
       <ul>
         {issues.slice(0, 12).map((issue, i) => (
@@ -401,7 +366,7 @@ function Problems({
           </li>
         ))}
       </ul>
-      {issues.length > 12 && <p className="import-problems__more">…and {issues.length - 12} more.</p>}
+      {issues.length > 12 && <p className="problems__more">…and {issues.length - 12} more.</p>}
     </div>
   );
 }

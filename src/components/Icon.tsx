@@ -1,10 +1,10 @@
 /**
- * The whole icon set, on the mockup's 24x24 grid and drawn in the mockup's
- * weight. Everything inherits `currentColor`, so an icon matches the text
- * beside it without being told to.
+ * The whole icon set, on one 24x24 grid and drawn in one weight. Everything
+ * inherits `currentColor`, so an icon matches the text beside it without being
+ * told to.
  *
  * It is short on purpose: an icon is here where it replaces a word, or where
- * it labels a rail item that is already labelled.
+ * it labels a tab that is already labelled.
  */
 
 import type { ReactElement } from "react";
@@ -18,6 +18,7 @@ export type IconName =
   | "play"
   | "chevron"
   | "arrow"
+  | "back"
   | "flame"
   | "lock"
   | "check"
@@ -45,6 +46,7 @@ const PATHS: Record<IconName, ReactElement> = {
   play: <path d="m9 7 8 5-8 5V7Z" />,
   chevron: <path d="m8 10 4 4 4-4" />,
   arrow: <path d="M5 12h13M14 7l5 5-5 5" />,
+  back: <path d="M19 12H6M10 7l-5 5 5 5" />,
   flame: (
     <path d="M12.5 3.5c1 4-3.5 4.8-2.2 8.1.7 1.9 2.8 1.4 3.2-.1.5 1.1 1.8 2.4 1.8 4.5a4.8 4.8 0 0 1-9.6 0c0-4.3 3.2-7.7 6.8-12.5Z" />
   ),
@@ -96,7 +98,7 @@ export default function Icon({
   className?: string;
 }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+    <svg viewBox="0 0 24 24" className={className ? `icon ${className}` : "icon"} aria-hidden="true">
       {PATHS[name]}
     </svg>
   );

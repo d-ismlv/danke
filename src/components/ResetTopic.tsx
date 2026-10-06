@@ -26,21 +26,21 @@ export default function ResetTopic({ id, name }: { id: string; name: string }) {
 
   return (
     <>
-      <button type="button" onClick={open} className="ghost-action">
+      <button type="button" onClick={open} className="btn btn--ghost">
         <Icon name="reset" />
         Reset progress
       </button>
 
       <dialog
         ref={dialog}
-        className="confirm-dialog"
+        className="dialog"
         aria-labelledby={titleId}
         // The dialog's own box is only ever hit from outside the panel it
         // holds, so a click that lands on it landed on the backdrop.
         onClick={(event) => event.target === dialog.current && close()}
       >
         <form
-          className="confirm-dialog__panel"
+          className="dialog__panel"
           action={async (data) => {
             await resetTopic(data);
             close();
@@ -52,8 +52,8 @@ export default function ResetTopic({ id, name }: { id: string; name: string }) {
             Every card goes back to unseen and starts again from its first review. The answers
             you have already given still count toward your streak and activity.
           </p>
-          <div className="confirm-dialog__actions">
-            <button type="button" ref={cancel} onClick={close} className="ghost-action">
+          <div className="dialog__actions">
+            <button type="button" ref={cancel} onClick={close} className="btn btn--secondary">
               Cancel
             </button>
             <Confirm />
@@ -67,7 +67,7 @@ export default function ResetTopic({ id, name }: { id: string; name: string }) {
 function Confirm() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="danger-action">
+    <button type="submit" disabled={pending} className="btn btn--dark">
       {pending ? "Resetting…" : "Reset progress"}
     </button>
   );

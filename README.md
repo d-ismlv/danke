@@ -1,44 +1,40 @@
 <div align="center">
 
-<img src="docs/app-icon.svg" width="76" alt="">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/card-dark.png">
+  <img src="docs/card-light.png" width="880" alt="A danke study card asking “Why does Kerberoasting work for any domain user?”, its answer, and the four grade keys">
+</picture>
 
 # danke
 
-**A self-hosted spaced-repetition app for cards you write yourself.**
-
-[Quick start](#quick-start) · [Card format](#card-format) · [Architecture](docs/ARCHITECTURE.md) · [Image](https://github.com/d-ismlv/danke/pkgs/container/danke)
-
-![Next.js](https://img.shields.io/badge/Next.js-000000?logo=nextdotjs&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js_16-000000?logo=nextdotjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
+![FSRS](https://img.shields.io/badge/FSRS-spaced_repetition-6047E8)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+![Self-hosted](https://img.shields.io/badge/self--hosted-0F7A55)
 ![MIT](https://img.shields.io/badge/License-MIT-green)
-
-<img src="docs/demo.gif" width="880" alt="Browsing decks, studying a card, and importing Markdown with a live preview">
 
 </div>
 
-## What it is
+A self-hosted spaced-repetition app for flashcards you write yourself in Markdown.
+Paste your notes in, press Study, and FSRS decides what comes back and when — everything lives in one SQLite file you own.
 
-Decks hold topics, topics hold cards, and a card is a question with the points
-that answer it. Paste your notes in, press Study, and [FSRS](https://github.com/open-spaced-repetition/ts-fsrs)
-decides what comes back and when. Everything lives in one SQLite file you own.
+## Run
 
-- **One study button** — due cards first, then unseen, then the rest. No modes.
-- **Import with a live preview** of every card, and the line number of anything wrong.
-- **Re-import safely** — a corrected paste updates questions it already has and keeps their schedules.
-- **Colour that means something** — the mark beside a deck is how that deck is actually going, not a label you picked.
-- **System / light / dark**, keyboard-driven, and readable from a phone to a 4K display.
-- **One container, one volume.**
+```bash
+docker run -d --name danke -p 32323:32323 -e AUTH_PASSWORD=change-me -v danke-data:/app/data ghcr.io/d-ismlv/danke:latest
+```
 
-## Quick start
+Or with Compose:
 
-```yaml
-# docker-compose.yml
+```bash
+cat > docker-compose.yml <<'EOF'
 services:
   danke:
     image: ghcr.io/d-ismlv/danke:latest
-    ports: ["32323:32323"]
+    ports:
+      - "32323:32323"
     environment:
       - AUTH_PASSWORD=change-me
     volumes:
@@ -47,59 +43,8 @@ services:
 
 volumes:
   danke-data:
-```
-
-```bash
+EOF
 docker compose up -d
 ```
 
-Open <http://localhost:32323>, sign in, import your first cards. Put it behind a
-TLS-terminating reverse proxy. All state lives in the volume.
-
-<details>
-<summary>Run it locally</summary>
-
-```bash
-npm install
-npm run migrate   # create ./data/danke.db
-npm run dev       # http://localhost:3000
-```
-
-Set `AUTH_PASSWORD` in `.env.local` first — see [`.env.example`](.env.example).
-
-</details>
-
-## Card format
-
-A `#` question line followed by its points. Repeat for every card.
-
-```markdown
-# Why does rotating `krbtgt` **twice** matter?
-
-- KRBTGT retains its **two most recent** passwords
-- One reset therefore leaves the previous key valid
-- A second reset, after the full ticket lifetime, removes that remaining path
-```
-
-| | |
-|---|---|
-| Points per card | at least one; indent a point to nest a list under it, one level deep |
-| Question | one line, a single `#`, unique within its topic |
-| Formatting | `**bold**`, `*italic*`, `` `code` ``, ``**`bold code`**`` |
-| Links | `[text](https://…)` — web addresses only; they open in a new tab |
-
-Nothing is written while a single line is wrong.
-
-## Configuration
-
-| Variable | |
-|---|---|
-| `AUTH_PASSWORD` | Login password. Required. |
-| `AUTH_SESSION_TOKEN` | Signing key for the session cookie. Generated on first run; changing it signs every device out. |
-| `DANKE_DATA_DIR` | Database location. Default `/app/data`. |
-| `TZ` | Timezone the streak, today's count and the activity grid use to decide where a day ends, e.g. `Europe/Stockholm`. Default UTC. |
-| `AUTH_INSECURE_COOKIE` | Set to `true` only if you open danke over plain HTTP by address, with no TLS proxy in front — otherwise the browser drops the secure session cookie and every sign-in bounces back to the lock screen. |
-
----
-
-<sub>MIT · *danke — "thanks" in German.*</sub>
+Open <http://localhost:32323> and sign in with `change-me`.

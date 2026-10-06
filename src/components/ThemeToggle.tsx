@@ -80,13 +80,15 @@ export default function ThemeToggle({ initial }: { initial: Theme }) {
   return (
     <button
       type="button"
-      className="theme-toggle"
+      className="nav__tool"
       onClick={() => setTheme(next)}
       title={`Theme: ${NAME[theme]}`}
       aria-label={`Theme: ${NAME[theme]}. Activate to use ${NAME[next]}.`}
     >
       <Icon name={ICON[theme]} />
-      <span>Theme</span>
+      <span className="nav__label" aria-hidden="true">
+        Theme
+      </span>
     </button>
   );
 }

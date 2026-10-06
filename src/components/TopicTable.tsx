@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import Icon from "./Icon";
-import { StatusMark, StatePips, MarkLegend, WaitingFigure } from "./Marks";
-import type { CardMark, LearningStatus } from "@/lib/status";
+import { StatusMark, MarkBar, MarkLegend } from "./Marks";
+import { DueCell, NumCell, plural } from "./Cells";
+import { statusLabel, type CardMark, type LearningStatus } from "@/lib/status";
 
 export type TopicRow = {
   id: string;
@@ -13,9 +13,13 @@ export type TopicRow = {
   due: number;
   unseen: number;
   status: LearningStatus;
+  /** Why the topic needs attention, when it does. */
+  reason: string | null;
   marks: CardMark[];
   /** Epoch ms of the most recent answer in this topic, or null. */
   lastStudied: number | null;
+  /** The same moment as a row reads it: Today, Yesterday, 3 days ago. */
+  when: string;
 };
 
 const SORTS = {
@@ -26,10 +30,10 @@ const SORTS = {
     compare: (a: TopicRow, b: TopicRow) =>
       (b.lastStudied ?? 0) - (a.lastStudied ?? 0) || byName(a, b),
   },
-  due: { label: "Due count", compare: (a: TopicRow, b: TopicRow) => b.due - a.due || byName(a, b) },
-  name: { label: "Topic name", compare: byName },
+  due: { label: "Due", compare: (a: TopicRow, b: TopicRow) => b.due - a.due || byName(a, b) },
+  name: { label: "Name", compare: byName },
   cards: {
-    label: "Card count",
+    label: "Cards",
     compare: (a: TopicRow, b: TopicRow) => b.cards - a.cards || byName(a, b),
   },
 } as const;
@@ -51,46 +55,61 @@ export default function TopicTable({ topics }: { topics: TopicRow[] }) {
 
   return (
     <>
-      <header className="section-heading">
-        <div>
-          <h2 id="topics-title">Topics</h2>
+      <div className="section-head">
+        <h2 className="section-title" id="topics-title">
+          Topics
+        </h2>
+        <div className="segmented" role="group" aria-label="Sort topics">
+          {(Object.keys(SORTS) as SortKey[]).map((key) => (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={sort === key}
+              onClick={() => setSort(key)}
+            >
+              {SORTS[key].label}
+            </button>
+          ))}
         </div>
-        <label className="sort-control">
-          <span>Sorted by</span>
-          <select
-            aria-label="Sort topics"
-            value={sort}
-            onChange={(event) => setSort(event.target.value as SortKey)}
-          >
-            {(Object.keys(SORTS) as SortKey[]).map((key) => (
-              <option key={key} value={key}>
-                {SORTS[key].label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </header>
-
-      <div className="topic-table">
-        {ordered.map((topic) => (
-          <Link key={topic.id} href={`/topics/${topic.id}`} className="topic-table__row">
-            <StatusMark status={topic.status} shape="dot" />
-            <span className="row-name">
-              <strong>{topic.name}</strong>
-              <small>
-                {topic.cards} card{topic.cards === 1 ? "" : "s"}
-              </small>
-            </span>
-            <StatePips marks={topic.marks} />
-            <span className="row-figures">
-              <WaitingFigure due={topic.due} unseen={topic.unseen} />
-            </span>
-            <Icon name="arrow" className="row-arrow" />
-          </Link>
-        ))}
       </div>
 
-      <MarkLegend marks={["mature", "young", "learning", "due"]} end />
+      <div className="table t-topics">
+        <div className="table__inner">
+          <div className="table__head" aria-hidden="true">
+            <span className="cell-name">Topic</span>
+            <span className="c-bar">Cards, one segment each</span>
+            <span className="cell-num">Due</span>
+            <span className="cell-num">Unseen</span>
+            <span className="cell-num c-when">Last studied</span>
+          </div>
+          <div className="table__body">
+            {ordered.map((topic) => (
+              <Link key={topic.id} href={`/topics/${topic.id}`} className="table__row">
+                <span className="cell-name">
+                  <StatusMark status={topic.status} />
+                  <span>
+                    <strong className="row-name">{topic.name}</strong>
+                    <small className="row-sub" title={topic.reason ?? undefined}>
+                      {topic.status === "struggling" ? (
+                        <span className="row-sub__flag">{statusLabel(topic.status)}</span>
+                      ) : (
+                        statusLabel(topic.status)
+                      )}{" "}
+                      · {plural(topic.cards, "card")}
+                    </small>
+                  </span>
+                </span>
+                <MarkBar marks={topic.marks} className="c-bar" />
+                <DueCell due={topic.due} />
+                <NumCell n={topic.unseen} />
+                <span className="cell-when c-when">{topic.when}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <MarkLegend marks={["mature", "young", "learning", "due", "unseen"]} />
     </>
   );
 }

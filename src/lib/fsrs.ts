@@ -57,6 +57,20 @@ export function fsrsCardToRow(card: FsrsCard): Omit<ReviewStateRow, "cardId"> {
   };
 }
 
+/** The four grades, in the order the study screen lays them out. */
+const GRADES = [Rating.Again, Rating.Hard, Rating.Good, Rating.Easy] as const;
+
+/**
+ * How long each grade would put the card away for, in ms, if it were answered
+ * at `now` — what the grade keys show under their names. A preview, not a
+ * promise: with fuzz on, the interval the answer actually gets can land a
+ * little either side of it.
+ */
+export function previewIntervals(current: FsrsCard, now = new Date()): number[] {
+  const record = scheduler.repeat(current, now);
+  return GRADES.map((rating) => record[rating].card.due.getTime() - now.getTime());
+}
+
 /** Apply a grade to a card's current state, returning the scheduled next one. */
 export function grade(current: FsrsCard, rating: Grade, now = new Date()) {
   const record = scheduler.repeat(current, now);

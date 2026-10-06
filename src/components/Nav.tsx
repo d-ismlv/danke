@@ -1,52 +1,83 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Icon, { type IconName } from "./Icon";
 import ThemeToggle from "./ThemeToggle";
 import { logout } from "@/lib/actions";
 import type { Theme } from "@/lib/theme";
 
 /**
- * The rail, and the bottom bar it becomes when the window is narrow. Five
- * items, always the same five, in the same order.
+ * The top bar's navigation, and the tab bar it becomes when the window is
+ * narrow. Five items, always the same five, in the same order.
  *
  * A deck is not one of them, and neither is a topic or a card: those are
  * states you reach by going down through the library, and they carry their own
  * way back up. What is here is the three places the application navigates
  * between, and the two controls that belong to no page.
  */
-export default function Nav({ theme }: { theme: Theme }) {
+export default function Nav({ theme, streak }: { theme: Theme; streak: number }) {
   const pathname = usePathname();
+  useFreshAfterStudy(pathname);
 
   return (
-    <nav className="side-nav__items" aria-label="Main">
+    <nav className="nav" aria-label="Main">
       <Item
         href="/"
         icon="library"
         label="Library"
-        current={pathname === "/" || pathname.startsWith("/decks/") || pathname.startsWith("/topics/") || pathname === "/study"}
+        current={
+          pathname === "/" ||
+          pathname.startsWith("/decks/") ||
+          pathname.startsWith("/topics/") ||
+          pathname === "/study"
+        }
       />
-      <Item
-        href="/progress"
-        icon="chart"
-        label="Progress"
-        current={pathname.startsWith("/progress")}
-      />
-      <Item
-        href="/import"
-        icon="import"
-        label="Import"
-        current={pathname.startsWith("/import")}
-      />
-      <ThemeToggle initial={theme} />
-      <form action={logout} className="rail-form">
-        <button type="submit" className="rail-action" aria-label="Lock danke">
-          <Icon name="lock" />
-          <span>Lock</span>
-        </button>
-      </form>
+      <Item href="/progress" icon="chart" label="Progress" current={pathname.startsWith("/progress")} />
+      <Item href="/import" icon="import" label="Import" current={pathname.startsWith("/import")} />
+      <div className="nav__tools">
+        <Streak days={streak} />
+        <ThemeToggle initial={theme} />
+        <form action={logout} className="nav__form">
+          <button type="submit" className="nav__tool" aria-label="Lock danke" title="Lock">
+            <Icon name="lock" />
+            <span className="nav__label" aria-hidden="true">
+              Lock
+            </span>
+          </button>
+        </form>
+      </div>
     </nav>
+  );
+}
+
+/**
+ * The bar is part of the layout, and a layout is not rendered again when you
+ * move between the pages under it — so the streak it shows would still be the
+ * one from before a session until the next full load. Leaving a session, by
+ * any route, asks the server for this screen again, bar included.
+ */
+function useFreshAfterStudy(pathname: string) {
+  const router = useRouter();
+  const studying = useRef(false);
+  useEffect(() => {
+    const now = pathname === "/study" || pathname.endsWith("/study");
+    if (studying.current && !now) router.refresh();
+    studying.current = now;
+  }, [pathname, router]);
+}
+
+/** Days in a row with at least one answer. Quiet: a fact, not a prize. */
+export function Streak({ days, className }: { days: number; className?: string }) {
+  const label = `${days}-day streak`;
+  return (
+    <span className={className ? `streak ${className}` : "streak"} aria-label={label} title={label}>
+      <Icon name="flame" />
+      <span>
+        <strong>{days}</strong> {days === 1 ? "day" : "days"}
+      </span>
+    </span>
   );
 }
 
@@ -62,7 +93,7 @@ function Item({
   current: boolean;
 }) {
   return (
-    <Link href={href} className="side-nav__item" aria-current={current ? "page" : undefined}>
+    <Link href={href} className="nav__item" aria-current={current ? "page" : undefined}>
       <Icon name={icon} />
       <span>{label}</span>
     </Link>

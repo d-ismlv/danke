@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getDeckLabel, getDeckView, now } from "@/lib/queries";
+import { getDeckLabel, getDeckView, now, studiedWhen } from "@/lib/queries";
 import { renameDeck, deleteDeck } from "@/lib/actions";
 import { cardMark } from "@/lib/status";
 import Icon from "@/components/Icon";
 import ConfirmButton from "@/components/ConfirmButton";
 import RenameField from "@/components/RenameField";
 import TopicTable, { type TopicRow } from "@/components/TopicTable";
+import { Figures } from "@/components/Figures";
+import { MemoryBar, MemoryLabels } from "@/components/Marks";
+import { plural } from "@/components/Cells";
 
 export const dynamic = "force-dynamic";
 
@@ -37,78 +40,94 @@ export default async function DeckPage({ params }: { params: Promise<{ deckId: s
     due: topic.counts.due,
     unseen: topic.counts.memory.unseen,
     status: topic.counts.status,
+    reason: topic.counts.reason,
     marks: (marks.get(topic.id) ?? []).map((card) => cardMark(card, at)),
     lastStudied: topic.counts.lastStudied,
+    when: topic.counts.lastStudied === null ? "Never" : capitalise(studiedWhen(topic.counts.lastStudied, at)),
   }));
+  const topicsWithDue = topics.filter((topic) => topic.counts.due > 0).length;
 
   return (
-    <section aria-labelledby="deck-title">
-      <header className="page-heading">
-        <Link href="/" className="back-link">
-          ← Library
-        </Link>
-        <p className="eyebrow">Deck</p>
-        <div className="page-heading__row">
-          <h1 id="deck-title">
-            <RenameField action={renameDeck} id={deck.id} name={deck.name} />
-          </h1>
-          {counts.cards > 0 && (
-            <Link
-              href={`/decks/${deck.id}/study`}
-              className="primary-action page-heading__end"
-            >
-              <Icon name="play" />
-              Study deck
-            </Link>
-          )}
+    <>
+      <section className="panel" aria-labelledby="deck-title">
+        <div className="head">
+          <div className="head__main">
+            <nav className="crumbs" aria-label="Breadcrumb">
+              <Link href="/">Library</Link>
+              <span className="crumbs__sep" aria-hidden="true">
+                /
+              </span>
+            </nav>
+            <h1 className="title" id="deck-title">
+              <RenameField action={renameDeck} id={deck.id} name={deck.name} />
+            </h1>
+          </div>
+          <div className="head__side">
+            <p className="meta">
+              {plural(topics.length, "topic")} · {plural(counts.cards, "card")}
+            </p>
+            <form action={deleteDeck} className="actions">
+              <input type="hidden" name="id" value={deck.id} />
+              <ConfirmButton
+                label="Delete deck"
+                confirm={
+                  <>
+                    Delete <strong>{deck.name}</strong>
+                    {counts.cards > 0 ? ` and its ${plural(counts.cards, "card")}?` : "?"}
+                  </>
+                }
+              >
+                <Link href={`/import?deck=${deck.id}`} className="btn btn--secondary">
+                  <Icon name="import" />
+                  Import
+                </Link>
+                {counts.cards > 0 && (
+                  <Link href={`/decks/${deck.id}/study`} className="btn btn--primary">
+                    <Icon name="play" className="icon--fill" />
+                    Study deck
+                  </Link>
+                )}
+              </ConfirmButton>
+            </form>
+          </div>
         </div>
-      </header>
+
+        {counts.cards > 0 && (
+          <Figures
+            label={`${deck.name} overview`}
+            counts={counts}
+            dueCaption={
+              counts.due === 0 ? "nothing waiting" : `across ${plural(topicsWithDue, "topic")}`
+            }
+          />
+        )}
+      </section>
 
       {counts.cards > 0 && (
-        <section className="deck-overview" aria-label={`${deck.name} overview`}>
-          <div
-            className="mastery-dial"
-            style={{ "--p": `${counts.percent}%` } as React.CSSProperties}
-          >
-            <span>
-              <strong>{counts.percent}%</strong>
-              <small>learned</small>
-            </span>
-          </div>
-          <div className="deck-overview__copy">
-            <h2>
-              {counts.learned} / {counts.cards} learned
+        <section className="panel" aria-labelledby="memory-title">
+          <div className="section-head">
+            <h2 className="section-title" id="memory-title">
+              Memory
             </h2>
-            <dl className="deck-facts">
-              <div>
-                <dt>Due now</dt>
-                <dd className="warm">{counts.due}</dd>
-              </div>
-              <div>
-                <dt>Unseen</dt>
-                <dd>{counts.memory.unseen}</dd>
-              </div>
-              <div>
-                <dt>Recall</dt>
-                <dd>{counts.recall === null ? "—" : `${counts.recall}%`}</dd>
-              </div>
-            </dl>
+            <span className="meta">{plural(counts.cards, "card")}</span>
           </div>
+          <MemoryBar memory={counts.memory} />
+          <MemoryLabels memory={counts.memory} />
         </section>
       )}
 
-      <section className="section-block" aria-labelledby="topics-title">
+      <section className="panel" aria-labelledby="topics-title">
         {rows.length === 0 ? (
           <>
-            <header className="section-heading">
-              <div>
-                <h2 id="topics-title">Topics</h2>
-              </div>
-            </header>
-            <div className="empty-state">
+            <div className="section-head">
+              <h2 className="section-title" id="topics-title">
+                Topics
+              </h2>
+            </div>
+            <div className="empty">
               <h2>No topics yet</h2>
               <p>Import a paste into this deck and name the topic it belongs to.</p>
-              <Link href={`/import?deck=${deck.id}`} className="primary-action">
+              <Link href={`/import?deck=${deck.id}`} className="btn btn--primary">
                 <Icon name="import" />
                 Import cards
               </Link>
@@ -118,14 +137,10 @@ export default async function DeckPage({ params }: { params: Promise<{ deckId: s
           <TopicTable topics={rows} />
         )}
       </section>
-
-      <form action={deleteDeck} className="page-footer-action">
-        <input type="hidden" name="id" value={deck.id} />
-        <ConfirmButton
-          label="Delete deck"
-          confirm={`Delete ${deck.name} and all ${counts.cards} of its cards?`}
-        />
-      </form>
-    </section>
+    </>
   );
+}
+
+function capitalise(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }

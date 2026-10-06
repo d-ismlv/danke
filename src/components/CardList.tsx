@@ -4,16 +4,17 @@ import { useActionState, useId, useState } from "react";
 import { saveCard, deleteCard, type CardState } from "@/lib/actions";
 import { formatCard, formatPoints } from "@/lib/parse";
 import type { CardRow } from "@/lib/queries";
-import { cardMark, MARK_LABEL, type CardMark } from "@/lib/status";
+import { cardMark } from "@/lib/status";
 import Inline from "./Inline";
 import Points from "./Points";
 import Icon from "./Icon";
+import { MarkPill } from "./Marks";
 import { useToast } from "./Toast";
 import { useIndent } from "@/lib/indent";
 
 /**
  * The questions in a topic. Every row is closed when the screen is entered;
- * opening one tints its header and reveals the points underneath.
+ * opening one lifts it out of the list and reveals the points underneath.
  *
  * Correcting a card lives inside the opened answer rather than on the row, so
  * a closed row is exactly the row it looks like — a question and how it is
@@ -45,13 +46,12 @@ export default function CardList({
   };
 
   return (
-    <div className="question-list">
+    <div className="questions">
       {cards.map((card, index) => {
         const isOpen = open === card.id;
         const answerId = `${prefix}-answer-${index}`;
-        const mark = cardMark(card, at);
         return (
-          <article className="question" key={card.id}>
+          <article className={isOpen ? "question is-open" : "question"} key={card.id}>
             <button
               type="button"
               className="question__toggle"
@@ -62,58 +62,43 @@ export default function CardList({
                 setEditing(null);
               }}
             >
-              <span className="question-index no-copy">{String(index + 1).padStart(2, "0")}</span>
-              <span className="question-prompt">
-                <strong>
-                  {/* The whole row is the toggle; a link in the question is
-                      followed from the study card instead. */}
-                  <Inline links={false}>{card.title}</Inline>
-                </strong>
+              <span className="question__index no-copy">{String(index + 1).padStart(2, "0")}</span>
+              <span className="question__title">
+                {/* The whole row is the toggle; a link in the question is
+                    followed from the study card instead. */}
+                <Inline links={false}>{card.title}</Inline>
               </span>
-              <span className={`${stateClass(mark)} no-copy`}>{MARK_LABEL[mark]}</span>
-              <Icon name="chevron" className="no-copy" />
+              <span className="question__state no-copy">
+                <MarkPill mark={cardMark(card, at)} />
+              </span>
+              <Icon name="chevron" className="question__chevron no-copy" />
             </button>
 
-            {isOpen && (
-              <div className="question__answer" id={answerId}>
-                {editing === card.id ? (
-                  <Editor
-                    card={card}
-                    topicId={topicId}
-                    onDone={() => setEditing(null)}
-                  />
-                ) : (
-                  <>
-                    <Points list={card.points} />
-                    <div className="card-tools no-copy">
-                      <button
-                        type="button"
-                        className="ghost-action"
-                        onClick={() => setEditing(card.id)}
-                      >
-                        <Icon name="pencil" />
-                        Edit card
-                      </button>
-                      <button type="button" className="ghost-action" onClick={() => copy(card)}>
-                        <Icon name="copy" />
-                        Copy card
-                      </button>
-                      <DeleteCard id={card.id} topicId={topicId} />
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+            {isOpen &&
+              (editing === card.id ? (
+                <Editor card={card} topicId={topicId} onDone={() => setEditing(null)} />
+              ) : (
+                <div className="question__body" id={answerId}>
+                  <Points list={card.points} />
+                  <div className="tools no-copy">
+                    <button type="button" className="btn btn--ghost" onClick={() => setEditing(card.id)}>
+                      <Icon name="pencil" />
+                      Edit
+                    </button>
+                    <button type="button" className="btn btn--ghost" onClick={() => copy(card)}>
+                      <Icon name="copy" />
+                      Copy as Markdown
+                    </button>
+                    <DeleteCard id={card.id} topicId={topicId} />
+                  </div>
+                </div>
+              ))}
           </article>
         );
       })}
       {toast.node}
     </div>
   );
-}
-
-function stateClass(mark: CardMark): string {
-  return mark === "mature" ? "question-state" : `question-state question-state--${mark}`;
 }
 
 function Editor({
@@ -149,53 +134,49 @@ function Editor({
   return (
     /* The fields are their own form and the buttons sit outside it: a delete
        form nested inside the edit form would submit the edit. */
-    <div className="card-editor">
-      <form id={formId} action={action}>
+    <div className="editor">
+      <form id={formId} action={action} className="editor__fields">
         <input type="hidden" name="id" value={card.id} />
-        <div>
-          <label htmlFor={`t-${card.id}`} className="field-label">
-            Question
-          </label>
+        <label className="field">
+          <span className="field__label">Question</span>
           <input
-            id={`t-${card.id}`}
             name="title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            className="text-field"
+            className="input"
           />
-        </div>
-        <div>
-          <label htmlFor={`p-${card.id}`} className="field-label">
-            Points — one per line, Tab to nest
-          </label>
+        </label>
+        <label className="field">
+          <span className="field__label">Points — one per line, Tab to nest</span>
           <textarea
-            id={`p-${card.id}`}
             name="points"
             value={points}
             onChange={(e) => setPoints(e.target.value)}
             onKeyDown={onKeyDown}
             required
             spellCheck={false}
-            className="text-field"
+            className="textarea"
             rows={Math.min(16, points.split("\n").length + 2)}
           />
-        </div>
+        </label>
         {state.error && (
-          <p className="form-error">
+          <p className="form-error" role="alert">
             <Icon name="alert" />
             {state.error}
           </p>
         )}
       </form>
-      <div className="card-tools">
-        <button type="submit" form={formId} disabled={pending} className="primary-action">
+      <div className="editor__actions">
+        <button type="submit" form={formId} disabled={pending} className="btn btn--primary">
           {pending ? "Saving…" : "Save"}
         </button>
-        <button type="button" onClick={onDone} className="ghost-action">
+        <button type="button" onClick={onDone} className="btn btn--ghost">
           Cancel
         </button>
-        <DeleteCard id={card.id} topicId={topicId} />
+        <span className="editor__end">
+          <DeleteCard id={card.id} topicId={topicId} />
+        </span>
       </div>
     </div>
   );
@@ -206,21 +187,25 @@ function DeleteCard({ id, topicId }: { id: string; topicId: string }) {
   const [armed, setArmed] = useState(false);
   if (!armed) {
     return (
-      <button type="button" onClick={() => setArmed(true)} className="danger-action">
+      <button type="button" onClick={() => setArmed(true)} className="btn btn--ghost">
         <Icon name="trash" />
         Delete
       </button>
     );
   }
   return (
-    <form action={deleteCard} className="confirm-row">
+    <form
+      action={deleteCard}
+      className="confirm confirm--small"
+      onKeyDown={(event) => event.key === "Escape" && setArmed(false)}
+    >
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="topicId" value={topicId} />
-      <span>Delete this card?</span>
-      <button type="submit" className="danger-action">
+      <span className="confirm__text">Delete this card?</span>
+      <button type="submit" className="btn btn--dark">
         Delete
       </button>
-      <button type="button" onClick={() => setArmed(false)} className="ghost-action">
+      <button type="button" onClick={() => setArmed(false)} className="btn btn--plain" autoFocus>
         Cancel
       </button>
     </form>

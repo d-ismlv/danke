@@ -4,9 +4,11 @@ import { db } from "@/db";
 import { decks, topics, cards, reviewState, reviewLogs } from "@/db/schema";
 import type { Card, Deck, Topic } from "@/db/schema";
 import { toList, type List, type ParsedCard } from "@/lib/parse";
+import { previewIntervals, rowToFsrsCard } from "@/lib/fsrs";
 import { requireSession } from "@/lib/auth";
 import {
   learningStatusForScope,
+  struggleReason,
   MATURE_DAYS,
   type LearningStatus,
   type MemoryState,
@@ -57,6 +59,8 @@ export type Counts = {
   /** Share of those answers that were not Again. Null until something is graded. */
   recall: number | null;
   status: LearningStatus;
+  /** Why a struggling scope is struggling, in words; null for every other status. */
+  reason: string | null;
 };
 
 function empty(): Counts {
@@ -73,6 +77,7 @@ function empty(): Counts {
     recentAgain: 0,
     recall: null,
     status: "new",
+    reason: null,
   };
 }
 
@@ -97,14 +102,16 @@ function sealed(c: Counts): Counts {
     c.recentTotal === 0
       ? null
       : Math.round(((c.recentTotal - c.recentAgain) / c.recentTotal) * 100);
-  c.status = learningStatusForScope({
+  const stats = {
     cards: c.cards,
     reviewed: c.reviewed,
     unstable: c.unstable,
     mature: c.memory.mature,
     recentTotal: c.recentTotal,
     recentAgain: c.recentAgain,
-  });
+  };
+  c.status = learningStatusForScope(stats);
+  c.reason = c.status === "struggling" ? struggleReason(stats) : null;
   return c;
 }
 
@@ -431,6 +438,19 @@ async function answersByDay(at: number, days: number): Promise<Map<number, numbe
   return byDay;
 }
 
+/**
+ * When something was last studied, as a row reads it: today, yesterday, or so
+ * many days ago — counted in local days, like the streak, so an evening's
+ * study does not read as yesterday's.
+ */
+export function studiedWhen(ms: number | null, at = Date.now()): string {
+  if (ms === null) return "never";
+  const days = localDay(at) - localDay(ms);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  return `${days} days ago`;
+}
+
 /** Consecutive days with at least one answer, counting back from today — or
  * from yesterday, so a day you have not started yet does not read as a break. */
 function streakOf(byDay: Map<number, number>, today: number): number {
@@ -509,6 +529,14 @@ export type QueueCard = {
   id: string;
   title: string;
   points: List;
+  /** The topic the card belongs to — a deck or library session moves between
+   * several, and the card says which one it is asking about. */
+  topic: string;
+  /** Which band dealt it: a review that has come round, a card never seen, or
+   * one studied ahead of its schedule because the session ran on. */
+  kind: "due" | "new" | "ahead";
+  /** ms each grade would schedule it for — Again, Hard, Good, Easy. */
+  intervals: number[];
 };
 
 export type Scope =
@@ -519,6 +547,8 @@ export type Scope =
 /** A session's worth of cards. Long enough to clear a real backlog, short
  * enough that the end of it is a place to stop. */
 export const SESSION_LIMIT = 120;
+
+const BANDS: QueueCard["kind"][] = ["due", "new", "ahead"];
 
 /**
  * What to study, in the order to study it.
@@ -543,40 +573,48 @@ export async function buildQueue(
   at = Date.now(),
 ): Promise<{ cards: QueueCard[]; total: number }> {
   await requireSession();
-  const where =
-    scope.kind === "topic"
-      ? sql`WHERE ${topics.id} = ${scope.id}`
-      : scope.kind === "deck"
-        ? sql`WHERE ${topics.deckId} = ${scope.id}`
-        : sql``;
+  const band = sql<number>`CASE
+    WHEN ${reviewState.state} = 0 THEN 1
+    WHEN ${reviewState.due} <= ${at} THEN 0
+    ELSE 2
+  END`;
 
-  const rows = await db.all<{
-    id: string;
-    title: string;
-    points: string;
-    topicId: string;
-    band: number;
-  }>(sql`
-    SELECT
-      ${cards.id} AS id,
-      ${cards.title} AS title,
-      ${cards.points} AS points,
-      ${topics.id} AS topicId,
-      CASE
-        WHEN ${reviewState.state} = 0 THEN 1
-        WHEN ${reviewState.due} <= ${at} THEN 0
-        ELSE 2
-      END AS band
-    FROM ${cards}
-    JOIN ${topics} ON ${topics.id} = ${cards.topicId}
-    JOIN ${reviewState} ON ${reviewState.cardId} = ${cards.id}
-    ${where}
-    ORDER BY band, ${reviewState.due}, ${cards.position}
-  `);
+  const rows = await db
+    .select({
+      id: cards.id,
+      title: cards.title,
+      points: cards.points,
+      topicId: topics.id,
+      topic: topics.name,
+      review: reviewState,
+      band,
+    })
+    .from(cards)
+    .innerJoin(topics, eq(topics.id, cards.topicId))
+    .innerJoin(reviewState, eq(reviewState.cardId, cards.id))
+    .where(
+      scope.kind === "topic"
+        ? eq(topics.id, scope.id)
+        : scope.kind === "deck"
+          ? eq(topics.deckId, scope.id)
+          : undefined,
+    )
+    .orderBy(band, asc(reviewState.due), asc(cards.position));
 
+  /* The previews are worked out against the moment the queue was built. Cards
+     further down are answered minutes later, which moves a learning step by a
+     minute or two at most — close enough to label a key with. */
+  const when = new Date(at);
   const bands: QueueCard[][] = [[], [], []];
   for (const row of rows) {
-    bands[row.band].push({ id: row.id, title: row.title, points: toList(row.points) });
+    bands[row.band].push({
+      id: row.id,
+      title: row.title,
+      points: toList(row.points),
+      topic: row.topic,
+      kind: BANDS[row.band],
+      intervals: previewIntervals(rowToFsrsCard(row.review), when),
+    });
   }
 
   const queue =

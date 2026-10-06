@@ -11,10 +11,10 @@ import type { List } from "@/lib/parse";
  * `<ol>` does its own counting, so what is stored is the point, never its
  * number.
  */
-export default function Points({ list, className }: { list: List; className?: string }) {
+export default function Points({ list }: { list: List }) {
   const Tag = list.ordered ? "ol" : "ul";
   return (
-    <Tag className={className}>
+    <Tag className="points">
       {list.items.map((item, i) => (
         <li key={i}>
           <Inline>{item.text}</Inline>

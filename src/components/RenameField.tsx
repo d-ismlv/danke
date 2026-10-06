@@ -27,7 +27,7 @@ export default function RenameField({
 
   if (!editing) {
     return (
-      <button type="button" onClick={() => setEditing(true)} title="Rename" className="rename-field">
+      <button type="button" onClick={() => setEditing(true)} title="Rename" className="rename">
         {name}
       </button>
     );

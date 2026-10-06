@@ -12,15 +12,5 @@ export default async function ImportPage({
   searchParams: Promise<{ deck?: string; topic?: string }>;
 }) {
   const [{ deck, topic }, decks] = await Promise.all([searchParams, getDeckOptions()]);
-
-  return (
-    <section aria-labelledby="import-title">
-      <header className="page-heading">
-        <div className="page-heading__row">
-          <h1 id="import-title">Import</h1>
-        </div>
-      </header>
-      <ImportForm decks={decks} initialDeck={deck} initialTopic={topic} />
-    </section>
-  );
+  return <ImportForm decks={decks} initialDeck={deck} initialTopic={topic} />;
 }

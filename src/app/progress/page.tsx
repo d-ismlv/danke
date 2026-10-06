@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { getProgress, now } from "@/lib/queries";
-import { statusLabel, type MemoryState } from "@/lib/status";
-import { StatusMark } from "@/components/Marks";
+import Icon from "@/components/Icon";
+import { Figure } from "@/components/Figures";
+import { MemoryBar, MemoryLabels, StatusMark } from "@/components/Marks";
+import { plural } from "@/components/Cells";
+import RowNote from "@/components/RowNote";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Progress" };
@@ -15,30 +18,29 @@ const NARROW_WEEKS = 26;
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 /** Rows run Monday to Sunday; every other one is labelled, as on a calendar. */
 const WEEKDAYS = ["Mon", "", "Wed", "", "Fri", "", ""];
-
-const MEMORY: { key: MemoryState; label: string }[] = [
-  { key: "mature", label: "Mature" },
-  { key: "young", label: "Young" },
-  { key: "learning", label: "Learning" },
-  { key: "unseen", label: "Unseen" },
-];
+const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export default async function ProgressPage() {
-  const p = await getProgress(now());
+  const at = now();
+  const p = await getProgress(at);
   const { memory, totalCards } = p;
 
   if (totalCards === 0) {
     return (
-      <section aria-labelledby="progress-title">
-        <header className="page-heading">
-          <div className="page-heading__row">
-            <h1 id="progress-title">Progress</h1>
+      <section className="panel" aria-labelledby="progress-title">
+        <div className="head">
+          <div className="head__main">
+            <p className="eyebrow" aria-hidden="true" />
+            <h1 className="title" id="progress-title">
+              Progress
+            </h1>
           </div>
-        </header>
-        <div className="empty-state">
+        </div>
+        <div className="empty">
           <h2>Nothing to measure yet</h2>
           <p>Import some cards and study them — this page fills in from the first answer.</p>
-          <Link href="/import" className="primary-action">
+          <Link href="/import" className="btn btn--primary">
+            <Icon name="import" />
             Import cards
           </Link>
         </div>
@@ -48,7 +50,8 @@ export default async function ProgressPage() {
 
   /* Whole calendar weeks, Monday first, ending with this one — so a row is a
      weekday and the days after today are left blank. Day 0 was a Thursday. */
-  const startDay = p.today - ((p.today + 3) % 7) - (WEEKS - 1) * 7;
+  const monday = p.today - ((p.today + 3) % 7);
+  const startDay = monday - (WEEKS - 1) * 7;
   const weeks = Array.from({ length: WEEKS }, (_, w) =>
     Array.from({ length: 7 }, (_, d) => {
       const day = startDay + w * 7 + d;
@@ -59,168 +62,248 @@ export default async function ProgressPage() {
   const months = monthLabels(startDay, WEEKS);
   const total = (from: number) =>
     weeks.slice(from).flat().reduce((sum, cell) => sum + Math.max(0, cell.count), 0);
-  const yearTotal = total(0);
-  const halfTotal = total(WEEKS - NARROW_WEEKS);
-  const share = (n: number) => `${((n / totalCards) * 100).toFixed(2)}%`;
+  const busiest = weeks.flat().reduce((best, cell) => (cell.count > best.count ? cell : best), {
+    day: 0,
+    count: 0,
+  });
+  const learned = memory.mature + memory.young;
 
   return (
-    <section aria-labelledby="progress-title">
-      <header className="page-heading">
-        <div className="page-heading__row">
-          <h1 id="progress-title">Progress</h1>
-        </div>
-      </header>
-
-      <section className="progress-hero" aria-label="Progress summary">
-        <div className="progress-hero__primary">
-          <span>Learned</span>
-          <strong>{p.percent}%</strong>
-          <p>
-            {memory.mature + memory.young} / {totalCards} learned
-          </p>
-        </div>
-        <div>
-          <span>Streak</span>
-          <strong>{p.streak}</strong>
-          <p>{p.streak === 1 ? "day in a row" : "days in a row"}</p>
-        </div>
-        <div>
-          <span>Recall</span>
-          <strong>{p.recall === null ? "—" : `${p.recall}%`}</strong>
-          <p>last 30 days</p>
-        </div>
-        <div>
-          <span>Today</span>
-          <strong>{p.reviewsToday}</strong>
-          <p>cards answered</p>
-        </div>
-      </section>
-
-      <section className="memory-panel" aria-labelledby="memory-title">
-        <header className="section-heading">
-          <div>
+    <>
+      <section className="panel" aria-labelledby="progress-title">
+        <div className="head">
+          <div className="head__main">
             <p className="eyebrow">
-              {totalCards} card{totalCards === 1 ? "" : "s"}
+              {plural(totalCards, "card")} · {plural(p.decks.length, "deck")}
             </p>
-            <h2 id="memory-title">Memory state</h2>
+            <h1 className="title" id="progress-title">
+              Progress
+            </h1>
           </div>
-        </header>
-        {/* Only the buckets that have cards in them. An empty one still took
-            its share of the row's gaps, which pushed the whole bar in from the
-            edge the heading above it is aligned to. */}
-        <div
-          className="large-segments"
-          role="img"
-          aria-label={MEMORY.map((m) => `${memory[m.key]} ${m.label.toLowerCase()}`).join(", ")}
-        >
-          {MEMORY.filter((m) => memory[m.key] > 0).map((m) => (
-            <span
-              key={m.key}
-              className={`large-segments__${m.key}`}
-              style={{ "--share": share(memory[m.key]) } as React.CSSProperties}
-            />
-          ))}
+          <div className="head__side">
+            <StreakBadge streak={p.streak} monday={monday} today={p.today} heatmap={p.heatmap} />
+          </div>
         </div>
-        <div className="memory-keys">
-          {MEMORY.map((m) => (
-            <div key={m.key}>
-              <i className={m.key === "unseen" ? undefined : `state-${m.key}`} />
-              <span>{m.label}</span>
-              <strong>{memory[m.key]}</strong>
-            </div>
-          ))}
-        </div>
+
+        <section className="stats" aria-label="Progress summary">
+          <Figure
+            dot="young"
+            label="Learned"
+            value={p.percent}
+            unit="%"
+            caption={`${learned} of ${totalCards} graduated`}
+          />
+          <Figure
+            dot="streak"
+            label="Streak"
+            value={p.streak}
+            caption={p.streak === 1 ? "day in a row" : "days in a row"}
+          />
+          <Figure
+            dot="recall"
+            label="Recall"
+            value={p.recall === null ? "—" : p.recall}
+            unit={p.recall === null ? undefined : "%"}
+            caption="answers not Again, last 30 days"
+          />
+          <Figure dot="learning" label="Today" value={p.reviewsToday} caption="cards answered" />
+        </section>
       </section>
 
-      <section className="activity" aria-labelledby="activity-title">
+      <section className="panel" aria-labelledby="memory-title">
+        <div className="section-head">
+          <h2 className="section-title" id="memory-title">
+            Memory state
+          </h2>
+          <span className="meta">{plural(totalCards, "card")}</span>
+        </div>
+        <MemoryBar memory={memory} />
+        <MemoryLabels memory={memory} detailed />
+      </section>
+
+      <section className="panel" aria-labelledby="activity-title">
         {/* The grid drops its older half when the panel is too narrow for a
-            year of days, so each heading has the figure for either width. */}
-        <header className="section-heading">
-          <div>
-            <p className="eyebrow">
-              <span className="activity__wide">Past year</span>
-              <span className="activity__narrow">Past {NARROW_WEEKS} weeks</span>
-            </p>
-            <h2 id="activity-title">Activity</h2>
-          </div>
-          <span>
-            <span className="activity__wide">{reviews(yearTotal)}</span>
-            <span className="activity__narrow">{reviews(halfTotal)}</span>
+            year of days, so the heading has the figure for either width. */}
+        <div className="section-head">
+          <h2 className="section-title" id="activity-title">
+            Activity
+          </h2>
+          <span className="meta">
+            <span className="activity__wide">
+              <strong className="num">{total(0)}</strong> reviews in the past year
+            </span>
+            <span className="activity__narrow">
+              <strong className="num">{total(WEEKS - NARROW_WEEKS)}</strong> reviews in{" "}
+              {NARROW_WEEKS} weeks
+            </span>
+            {busiest.count > 0 && ` · busiest ${dateLabel(busiest.day)} (${busiest.count})`}
           </span>
-        </header>
-        <div className="heatmap" role="img" aria-label="Answers per day">
-          <div className="heatmap__days" aria-hidden="true">
-            <span />
-            {WEEKDAYS.map((name, d) => (
-              <span key={d}>{name}</span>
-            ))}
-          </div>
-          {weeks.map((week, w) => (
-            <div
-              key={week[0].day}
-              className={
-                w < WEEKS - NARROW_WEEKS ? "heatmap__week heatmap__week--older" : "heatmap__week"
-              }
-            >
-              <span className="heatmap__month">{months[w]}</span>
-              {week.map(({ day, count }) =>
-                count < 0 ? (
-                  <i key={day} data-future="" />
-                ) : (
-                  <i
-                    key={day}
-                    data-level={shade.level(count)}
-                    // A day number is a calendar date; read back through UTC it
-                    // is that date, whatever zone the day was counted in.
-                    title={`${new Date(day * DAY_MS).toISOString().slice(0, 10)} · ${reviews(count)}`}
-                  />
-                ),
-              )}
+        </div>
+        <div className="heatmap">
+          <div className="heatmap__inner" role="img" aria-label="Answers per day">
+            <div className="heatmap__months" aria-hidden="true">
+              {months.map((month, w) => (
+                <span key={w} className={older(w)}>
+                  {month}
+                </span>
+              ))}
             </div>
-          ))}
+            <div className="heatmap__days" aria-hidden="true">
+              {WEEKDAYS.map((name, d) => (
+                <span key={d}>{name}</span>
+              ))}
+            </div>
+            <div className="heatmap__grid">
+              {weeks.map((week, w) => (
+                <div key={week[0].day} className={`heatmap__week ${older(w)}`.trim()}>
+                  {week.map(({ day, count }) =>
+                    count < 0 ? (
+                      <i key={day} data-future="" />
+                    ) : (
+                      <i
+                        key={day}
+                        data-level={shade.level(count)}
+                        title={`${dateLabel(day)} · ${reviews(count)}`}
+                      />
+                    ),
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
         <div className="heatmap-legend" aria-hidden="true">
-          <span>Less</span>
           {shade.ranges.map((range, level) => (
-            <i key={level} data-level={level} title={range} />
+            <span key={level}>
+              <i data-level={level} />
+              {range}
+            </span>
           ))}
-          <span>More</span>
         </div>
       </section>
 
-      <section className="section-block" aria-labelledby="deck-progress-title">
-        <header className="section-heading section-heading--progress">
-          <div>
-            <h2 id="deck-progress-title">By deck</h2>
+      <section className="panel" aria-labelledby="deck-progress-title">
+        <div className="section-head">
+          <h2 className="section-title" id="deck-progress-title">
+            By deck
+          </h2>
+        </div>
+        <div className="table t-progress">
+          <div className="table__inner">
+            <div className="table__head" aria-hidden="true">
+              <span className="cell-name">Deck</span>
+              <span className="c-bar">Learned</span>
+              <span className="cell-num">Cards</span>
+              <span className="cell-num">%</span>
+              <span className="cell-num">Recall</span>
+            </div>
+            <div className="table__body">
+              {/* Weakest first — the page's answer to "what should I work on". */}
+              {p.decks.map((deck) => {
+                const { counts } = deck;
+                return (
+                  <Link key={deck.id} href={`/decks/${deck.id}`} className="table__row">
+                    <span className="cell-name">
+                      <StatusMark status={counts.status} />
+                      <span>
+                        <strong className="row-name">{deck.name}</strong>
+                        <small className="row-sub">
+                          <RowNote counts={counts} at={at} />
+                        </small>
+                      </span>
+                    </span>
+                    <span
+                      className="bar c-bar"
+                      role="img"
+                      aria-label={`${counts.learned} of ${counts.cards} learned`}
+                    >
+                      {counts.learned > 0 && (
+                        <i className="seg-young" style={{ flexGrow: counts.learned }} />
+                      )}
+                      {counts.cards > counts.learned && (
+                        <i style={{ flexGrow: counts.cards - counts.learned }} />
+                      )}
+                    </span>
+                    <span className="cell-num cell-num--quiet">
+                      {counts.learned} / {counts.cards}
+                    </span>
+                    <span className="cell-num c-pct">{counts.percent}%</span>
+                    <span
+                      className={
+                        counts.status === "struggling" ? "cell-num cell-num--flag" : "cell-num"
+                      }
+                    >
+                      {counts.recall === null ? "—" : `${counts.recall}%`}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
-          <div className="progress-column-labels">
-            <span>Learned</span>
-            <span>Recall</span>
-          </div>
-        </header>
-        <div className="progress-list">
-          {p.decks.map((deck) => (
-            <Link key={deck.id} href={`/decks/${deck.id}`}>
-              <span className="deck-identity">
-                <StatusMark status={deck.counts.status} />
-                <strong>{deck.name}</strong>
-              </span>
-              <span>
-                {deck.counts.learned} of {deck.counts.cards}
-              </span>
-              <strong>
-                {deck.counts.percent}%<span className="sr-only"> learned</span>
-              </strong>
-              <strong>
-                {deck.counts.recall === null ? "—" : `${deck.counts.recall}%`}
-                <span className="sr-only"> recall. {statusLabel(deck.counts.status)}.</span>
-              </strong>
-            </Link>
-          ))}
         </div>
       </section>
-    </section>
+    </>
   );
+}
+
+/**
+ * The streak, said as information rather than drawn as a prize: a flame, the
+ * count, and this week so far — a dot per day, filled for each you studied,
+ * ringed for today.
+ */
+function StreakBadge({
+  streak,
+  monday,
+  today,
+  heatmap,
+}: {
+  streak: number;
+  monday: number;
+  today: number;
+  heatmap: Record<number, number>;
+}) {
+  const days = DAY_NAMES.map((name, i) => {
+    const day = monday + i;
+    const done = (heatmap[day] ?? 0) > 0;
+    return { name, day, done, isToday: day === today };
+  });
+  const studied = days.filter((d) => d.done).map((d) => (d.isToday ? "today" : d.name));
+  const label = `${streak}-day streak.${
+    studied.length > 0 ? ` Studied this week: ${studied.join(", ")}.` : ""
+  }`;
+
+  return (
+    <div className="streak-badge" role="img" aria-label={label}>
+      <span className="streak-badge__flame" aria-hidden="true">
+        <Icon name="flame" />
+      </span>
+      <span className="streak-badge__count" aria-hidden="true">
+        <strong>{streak}</strong>
+        <small>day streak</small>
+      </span>
+      <i className="streak-badge__rule" aria-hidden="true" />
+      <span className="streak-badge__week" aria-hidden="true">
+        {days.map((d) => (
+          <i
+            key={d.day}
+            title={`${d.name}${d.isToday ? " · today" : ""}${d.done ? " · studied" : ""}`}
+            className={[d.done ? "is-done" : "", d.isToday ? "is-today" : ""].join(" ").trim() || undefined}
+          />
+        ))}
+      </span>
+    </div>
+  );
+}
+
+function older(w: number): string {
+  return w < WEEKS - NARROW_WEEKS ? "heatmap__week--older" : "";
+}
+
+/** A day number is a calendar date; read back through UTC it is that date,
+ * whatever zone the day was counted in. */
+function dateLabel(day: number): string {
+  const date = new Date(day * DAY_MS);
+  return `${date.getUTCDate()} ${MONTHS[date.getUTCMonth()]}`;
 }
 
 function reviews(n: number): string {
@@ -257,12 +340,10 @@ function shades(counts: number[]): {
     bounds[at] = { min: bounds[at]?.min ?? n, max: n };
   }
   const ranges = [0, 1, 2, 3, 4].map((at) => {
-    if (at === 0) return "No reviews";
+    if (at === 0) return "0";
     const range = bounds[at];
-    if (!range) return "No days at this shade yet";
-    return range.min === range.max
-      ? reviews(range.max)
-      : `${range.min}–${reviews(range.max)}`;
+    if (!range) return "—";
+    return range.min === range.max ? String(range.max) : `${range.min}–${range.max}`;
   });
   return { level, ranges };
 }

@@ -78,15 +78,19 @@ Grading goes through a **route handler** (`/api/review`) rather than a Server
 Action, so answering a card doesn't trigger an RSC refresh of the study route
 and discard the queue the client is holding.
 
+Each grade key shows how long that grade would put the card away. The intervals
+are ts-fsrs's own predictions, worked out on the server — for every card when
+the queue is built, and again in the review response for a card that comes back
+after an Again — so the scheduler never has to reach the browser.
+
 **Learned** means one thing everywhere it appears — a deck row, a topic row, the
 Progress page: the share of those cards FSRS has graduated out of learning
 (`state = 2`). One definition behind every percentage in the app.
 
 ## Learning status
 
-The coloured mark beside a deck on Library, the dot beside a topic inside a
-deck, and the mark beside a deck on Progress → By deck are the same
-measurement drawn three times: how the cards in that scope are actually going.
+The mark beside a deck on Library, beside a topic inside a deck, and beside a
+deck on Progress → By deck is the same measurement drawn three times: how the cards in that scope are actually going.
 Never an identity colour, and never keyed to a deck's id, name or position.
 
 `src/lib/status.ts` holds the one classifier, and its thresholds are named
@@ -95,15 +99,15 @@ components. In precedence order:
 
 | | |
 |---|---|
-| `new` — grey | nothing in scope has ever been answered |
-| `struggling` — amber | the recent answers keep coming back Again, or a third of what has been seen is relearning or repeatedly lapsed |
-| `strong` — green | predominantly mature, and not struggling |
-| `learning` — blue | everything else that has been started |
+| `new` — hollow ring | nothing in scope has ever been answered |
+| `struggling` — amber triangle | the recent answers keep coming back Again, or a third of what has been seen is relearning or repeatedly lapsed |
+| `strong` — emerald dot | predominantly mature, and not struggling |
+| `learning` — half-filled jade dot | everything else that has been started |
 
 Being **due** is deliberately not in that list: a due card is a healthy card
 whose turn has come round, and a deck does not turn amber for being scheduled
-today. Every mark is paired with a text description, because colour is never
-the only carrier of a fact.
+today. Every mark is a shape as well as a colour and is paired with a text
+description, and a struggling row says which of the two rules it tripped.
 
 `src/lib/queries.ts` produces the inputs once per topic and rolls them up to
 decks and to the library, so the three surfaces cannot disagree.
@@ -113,25 +117,29 @@ decks and to the library, so the three surfaces cannot disagree.
 Library (`/`) · Deck · Topic · Study · Import · Progress · Login. Six, plus the
 lock screen, and each one has a single job.
 
-The shell is a fixed rail on the left that becomes a five-column bottom bar
-under 900px, a top bar carrying only the wordmark, and a content column capped
-at `82rem` so a 4K display gets a readable measure rather than a stretched one.
+The shell is a white top bar — the name, Library, Progress and Import, then the
+streak, Theme and Lock — that becomes a five-item tab bar under 900px, over a
+12-column content column capped at 1240px so a 4K display gets a readable
+measure rather than a stretched one. A study session hides the bar and puts
+its own in its place: the way back, the session's progress, and the count.
 
-The rail holds Library, Progress and Import, then Theme and Lock. A deck, a
-topic and a card are not there: they are states you reach by going down through
-the library, and each carries its own way back up. Every screen builds its
-header from the same `.page-heading` block, so the title and the action button
-sit at identical coordinates and nothing slides when you change page.
+A deck, a topic and a card are not in the bar: they are states you reach by
+going down through the library, and each carries its own way back up. Every
+screen opens with the same heading panel (`.head`), so the title and its
+actions sit at identical coordinates and nothing slides when you change page.
 
 ## Styling
 
-`src/app/globals.css` is the whole visual system: tokens, then the classes the
-screens are built from, ported from the `danke-v3` mockup rather than
-approximated. Tailwind is imported for its reset (Preflight) and nothing else —
-no utility classes appear in the components, so there is one place a colour,
-a radius or a rhythm is decided.
+`src/app/globals.css` is the whole visual system, "Ledger": tokens, then the
+classes the screens are built from. One type scale, one spacing scale, one
+12px bar for every distribution in the app, warm graded colour with no reds,
+and text that only ever sits on a solid panel over a dotted page. Tailwind's
+reset (Preflight) is imported on its own and nothing else is — no utility
+classes exist to collide with, so there is one place a colour, a radius or a
+rhythm is decided. Geist and Geist Mono come through `next/font`, downloaded at
+build time and served by the app itself.
 
-Theme is `system` / `light` / `dark`, cycled by one button in the rail. The
+Theme is `system` / `light` / `dark`, cycled by one button in the top bar. The
 choice lives in a cookie so the server can stamp `data-theme` on `<html>` while
 it renders, which is what removes the flash; `system` is the absence of the
 attribute and falls through to `prefers-color-scheme`.

@@ -5,8 +5,6 @@ services:
       - "32323:32323"
     environment:
       - AUTH_PASSWORD=change-me
-      # AUTH_SESSION_TOKEN is generated automatically on first run.
-      # Set it explicitly only if you want to pin the value.
     volumes:
       - danke-data:/app/data
     restart: unless-stopped

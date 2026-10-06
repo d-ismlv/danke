@@ -29,6 +29,9 @@ export default async function StudyScreen({
     id: card.id,
     title: card.title,
     points: card.points,
+    topic: card.topic,
+    kind: card.kind,
+    intervals: card.intervals,
   }));
 
   const base = backHref === "/" ? "/study" : `${backHref}/study`;

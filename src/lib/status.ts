@@ -1,9 +1,9 @@
 /**
  * What the coloured marks mean.
  *
- * The bar beside a deck on Library, the dot beside a topic inside a deck, and
- * the bar beside a deck on Progress are the same measurement drawn three
- * times: how the cards in that scope are actually going. They are never an
+ * The mark beside a deck on Library, beside a topic inside a deck, and beside
+ * a deck on Progress is the same measurement drawn three times: how the cards
+ * in that scope are actually going. They are never an
  * identity colour — nothing here may be keyed to a deck's id, its name, its
  * position in a list, or anything else that does not come out of the review
  * history.
@@ -62,24 +62,35 @@ export type ScopeStats = {
  * has come round, and a deck does not turn amber for being scheduled today.
  */
 export function learningStatusForScope(stats: ScopeStats): LearningStatus {
-  const { cards, reviewed, unstable, mature, recentTotal, recentAgain } = stats;
+  const { cards, reviewed, mature } = stats;
 
   if (cards === 0 || reviewed === 0) return "new";
 
-  const failingRecently =
-    recentTotal >= STRUGGLING_MIN_ANSWERS &&
-    recentAgain / recentTotal > STRUGGLING_AGAIN_SHARE;
-  const notHolding = unstable / reviewed >= STRUGGLING_UNSTABLE_SHARE;
-  if (failingRecently || notHolding) return "struggling";
+  if (struggleReason(stats) !== null) return "struggling";
 
   if (mature / cards >= STRONG_MATURE_SHARE) return "strong";
 
   return "learning";
 }
 
-/** The class that paints the mark. `new` is the unadorned base. */
-export function statusClass(status: LearningStatus): string {
-  return status === "new" ? "" : `status--${status}`;
+/**
+ * Which of the two struggling rules a scope tripped, in words, or null when it
+ * tripped neither. The same two checks the classifier makes, so the reason a
+ * row gives can never disagree with the mark beside it.
+ */
+export function struggleReason(stats: ScopeStats): string | null {
+  const { reviewed, unstable, recentTotal, recentAgain } = stats;
+  if (reviewed === 0) return null;
+  if (
+    recentTotal >= STRUGGLING_MIN_ANSWERS &&
+    recentAgain / recentTotal > STRUGGLING_AGAIN_SHARE
+  ) {
+    return "recent answers keep coming back Again";
+  }
+  if (unstable / reviewed >= STRUGGLING_UNSTABLE_SHARE) {
+    return "a third of what you have seen is relearning";
+  }
+  return null;
 }
 
 /**
@@ -117,11 +128,6 @@ export function cardMark(
   const memory = memoryState(row);
   if (memory === "unseen") return "unseen";
   return row.due !== null && row.due <= at ? "due" : memory;
-}
-
-/** The CSS class for one mark. Unseen is the unadorned base. */
-export function markClass(mark: CardMark): string {
-  return mark === "unseen" ? "" : `state-${mark}`;
 }
 
 export const MARK_LABEL: Record<CardMark, string> = {
@@ -182,16 +188,7 @@ function proportionalSegments<T extends string>(
   return shares.flatMap((c) => Array<T>(c.n).fill(c.key));
 }
 
-const MEMORY_ORDER = ["mature", "young", "learning", "unseen"] as const;
 const MARK_ORDER = ["mature", "young", "learning", "due", "unseen"] as const;
-
-/** The memory distribution of a collection, as a row of at most `max` marks. */
-export function memorySegments(
-  memory: Record<MemoryState, number>,
-  max: number,
-): MemoryState[] {
-  return proportionalSegments(memory, MEMORY_ORDER, max);
-}
 
 /**
  * A topic's cards as a row of at most `max` marks. Under the cap it is one

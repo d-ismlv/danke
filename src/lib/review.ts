@@ -3,11 +3,14 @@ import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db } from "@/db";
 import { reviewState, reviewLogs } from "@/db/schema";
-import { fsrsCardToRow, rowToFsrsCard, grade, type Grade } from "@/lib/fsrs";
+import { fsrsCardToRow, rowToFsrsCard, grade, previewIntervals, type Grade } from "@/lib/fsrs";
 
 export type ReviewResult = {
   /** Card state after grading (0 New, 1 Learning, 2 Review, 3 Relearning). */
   state: number;
+  /** What each grade would schedule from here, for the card's next showing in
+   * this session — the old ones were worked out before it was answered. */
+  intervals: number[];
 };
 
 /**
@@ -40,5 +43,5 @@ export async function applyReview(cardId: string, rating: Grade): Promise<Review
       .run();
   });
 
-  return { state: next.state };
+  return { state: next.state, intervals: previewIntervals(next, at) };
 }
