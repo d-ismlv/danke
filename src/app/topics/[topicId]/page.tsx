@@ -115,6 +115,14 @@ export default async function TopicPage({
       </section>
 
       <footer className="page-footer-action">
+        {/* A plain link, not <Link>: it is a file, and the router would try
+            to render it as a page. */}
+        {counts.cards > 0 && (
+          <a href={`/topics/${topic.id}/download`} download className="ghost-action">
+            <Icon name="download" />
+            Download questions
+          </a>
+        )}
         {/* Only once there is something to start over: on a topic nobody has
             studied it would reset nothing. */}
         {counts.reviewed > 0 && <ResetTopic id={topic.id} name={topic.name} />}

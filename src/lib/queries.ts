@@ -3,7 +3,7 @@ import { asc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { decks, topics, cards, reviewState, reviewLogs } from "@/db/schema";
 import type { Card, Deck, Topic } from "@/db/schema";
-import { toList, type List } from "@/lib/parse";
+import { toList, type List, type ParsedCard } from "@/lib/parse";
 import { requireSession } from "@/lib/auth";
 import {
   learningStatusForScope,
@@ -354,6 +354,33 @@ export async function getTopicView(
      written before points could nest is a flat array of strings. */
   const read = rows.map((row) => ({ ...row, points: toList(row.points) }));
   return { topic: found.topic, deck: found.deck, cards: read, counts };
+}
+
+/**
+ * A topic's cards in the order its page lists them, and nothing about how
+ * they are going — what a download writes out. Not `getTopicView`, which
+ * counts the whole library to find this one topic's figures.
+ */
+export async function getTopicCards(
+  topicId: string,
+): Promise<{ name: string; cards: ParsedCard[] } | null> {
+  await requireSession();
+  const [topic] = await db
+    .select({ name: topics.name })
+    .from(topics)
+    .where(eq(topics.id, topicId))
+    .limit(1);
+  if (!topic) return null;
+
+  const rows = await db
+    .select({ title: cards.title, points: cards.points })
+    .from(cards)
+    .where(eq(cards.topicId, topicId))
+    .orderBy(asc(cards.position), asc(cards.createdAt));
+  return {
+    name: topic.name,
+    cards: rows.map((row) => ({ title: row.title, points: toList(row.points) })),
+  };
 }
 
 /* ==========================================================================

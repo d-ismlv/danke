@@ -1,15 +1,16 @@
 # Architecture
 
-One Next.js (App Router) process serves the UI and the single API route. SQLite
-— via [Drizzle](https://orm.drizzle.team) — is the only datastore and lives on a
-mounted volume, so the container stays disposable. Scheduling is
-[ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs).
+One Next.js (App Router) process serves the UI, the API route and a topic's
+download. SQLite — via [Drizzle](https://orm.drizzle.team) — is the only
+datastore and lives on a mounted volume, so the container stays disposable.
+Scheduling is [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs).
 
 ```
 Next.js (React)
  ├─ Server components            → reads, through src/lib/queries.ts
  ├─ Server actions               → writes, through src/lib/actions.ts
  ├─ /api/review (route handler)  → grading
+ ├─ /topics/:id/download         → a topic as Markdown, in the import format
  ├─ Drizzle ORM                  → SQLite (./data/danke.db)
  └─ ts-fsrs                      → scheduler
 ```
