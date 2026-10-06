@@ -653,13 +653,6 @@ code {
   color: var(--muted);
 }
 
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
 /* A title is also the way to rename it: click, type, Enter or away. Both
    states inherit the heading's font so nothing moves. */
 .rename {
@@ -801,11 +794,35 @@ code {
   letter-spacing: -0.015em;
 }
 
+/* A title and the control that orders what is under it, kept together. */
+.section-head__main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 24px;
+}
+
+/* The list's tools, at its right edge. Ghost buttons hang their padding out
+   past the edge so their words end on it; a confirmation has a surface of its
+   own and stays inside. */
 .section-tools {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 4px;
   margin-right: -12px;
+}
+
+.section-tools:has(.confirm) {
+  margin-right: 0;
+}
+
+/* Sets Delete apart from the tools that keep things. */
+.section-tools__rule {
+  width: 1px;
+  height: 24px;
+  margin: 0 8px;
+  background: var(--line);
 }
 
 /* ==========================================================================
@@ -2825,6 +2842,11 @@ ul.points .points > li::before,
 }
 
 @media (max-width: 760px) {
+  /* Tools that wrap under their title start on its edge, words first. */
+  .section-tools {
+    margin-left: -12px;
+  }
+
   .panel {
     padding: 20px;
     border-radius: 16px;
@@ -2843,10 +2865,6 @@ ul.points .points > li::before,
     margin-left: 0;
     align-items: flex-start;
     width: 100%;
-  }
-
-  .actions {
-    justify-content: flex-start;
   }
 
   .stats {

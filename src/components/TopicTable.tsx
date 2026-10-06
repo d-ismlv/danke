@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { StatusMark, MarkBar, MarkLegend } from "./Marks";
 import { DueCell, NumCell, plural } from "./Cells";
@@ -45,32 +45,35 @@ function byName(a: TopicRow, b: TopicRow) {
 }
 
 /**
- * The topics in a deck, and the one control on the page: which order to read
- * them in. Sorting is local — it reorders rows that are already here rather
- * than asking the server for the same rows again.
+ * The topics in a deck, the order to read them in, and the deck's own tools.
+ * Sorting is local — it reorders rows that are already here rather than
+ * asking the server for the same rows again.
  */
-export default function TopicTable({ topics }: { topics: TopicRow[] }) {
+export default function TopicTable({ topics, tools }: { topics: TopicRow[]; tools?: ReactNode }) {
   const [sort, setSort] = useState<SortKey>("latest");
   const ordered = useMemo(() => [...topics].sort(SORTS[sort].compare), [topics, sort]);
 
   return (
     <>
       <div className="section-head">
-        <h2 className="section-title" id="topics-title">
-          Topics
-        </h2>
-        <div className="segmented" role="group" aria-label="Sort topics">
-          {(Object.keys(SORTS) as SortKey[]).map((key) => (
-            <button
-              key={key}
-              type="button"
-              aria-pressed={sort === key}
-              onClick={() => setSort(key)}
-            >
-              {SORTS[key].label}
-            </button>
-          ))}
+        <div className="section-head__main">
+          <h2 className="section-title" id="topics-title">
+            Topics
+          </h2>
+          <div className="segmented" role="group" aria-label="Sort topics">
+            {(Object.keys(SORTS) as SortKey[]).map((key) => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={sort === key}
+                onClick={() => setSort(key)}
+              >
+                {SORTS[key].label}
+              </button>
+            ))}
+          </div>
         </div>
+        {tools && <div className="section-tools">{tools}</div>}
       </div>
 
       <div className="table t-topics">

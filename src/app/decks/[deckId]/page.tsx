@@ -4,7 +4,7 @@ import { getDeckLabel, getDeckView, now, studiedWhen } from "@/lib/queries";
 import { renameDeck, deleteDeck } from "@/lib/actions";
 import { cardMark } from "@/lib/status";
 import Icon from "@/components/Icon";
-import ConfirmButton from "@/components/ConfirmButton";
+import ConfirmDelete from "@/components/ConfirmDelete";
 import RenameField from "@/components/RenameField";
 import TopicTable, { type TopicRow } from "@/components/TopicTable";
 import { Figures } from "@/components/Figures";
@@ -47,6 +47,27 @@ export default async function DeckPage({ params }: { params: Promise<{ deckId: s
   }));
   const topicsWithDue = topics.filter((topic) => topic.counts.due > 0).length;
 
+  /* What changes the deck, beside the list it changes — and away from Study,
+     which keeps the heading to itself. */
+  const tools = (
+    <ConfirmDelete
+      label="Delete deck"
+      action={deleteDeck}
+      fields={{ id: deck.id }}
+      confirm={
+        <>
+          Delete <strong>{deck.name}</strong>
+          {counts.cards > 0 ? ` and its ${plural(counts.cards, "card")}?` : "?"}
+        </>
+      }
+    >
+      <Link href={`/import?deck=${deck.id}`} className="btn btn--ghost">
+        <Icon name="plus" />
+        Add cards
+      </Link>
+    </ConfirmDelete>
+  );
+
   return (
     <>
       <section className="panel" aria-labelledby="deck-title">
@@ -66,29 +87,12 @@ export default async function DeckPage({ params }: { params: Promise<{ deckId: s
             <p className="meta">
               {plural(topics.length, "topic")} · {plural(counts.cards, "card")}
             </p>
-            <form action={deleteDeck} className="actions">
-              <input type="hidden" name="id" value={deck.id} />
-              <ConfirmButton
-                label="Delete deck"
-                confirm={
-                  <>
-                    Delete <strong>{deck.name}</strong>
-                    {counts.cards > 0 ? ` and its ${plural(counts.cards, "card")}?` : "?"}
-                  </>
-                }
-              >
-                <Link href={`/import?deck=${deck.id}`} className="btn btn--secondary">
-                  <Icon name="plus" />
-                  Add cards
-                </Link>
-                {counts.cards > 0 && (
-                  <Link href={`/decks/${deck.id}/study`} className="btn btn--primary">
-                    <Icon name="play" className="icon--fill" />
-                    Study deck
-                  </Link>
-                )}
-              </ConfirmButton>
-            </form>
+            {counts.cards > 0 && (
+              <Link href={`/decks/${deck.id}/study`} className="btn btn--primary">
+                <Icon name="play" className="icon--fill" />
+                Study deck
+              </Link>
+            )}
           </div>
         </div>
 
@@ -123,6 +127,7 @@ export default async function DeckPage({ params }: { params: Promise<{ deckId: s
               <h2 className="section-title" id="topics-title">
                 Topics
               </h2>
+              <div className="section-tools">{tools}</div>
             </div>
             <div className="empty">
               <h2>No topics yet</h2>
@@ -134,7 +139,7 @@ export default async function DeckPage({ params }: { params: Promise<{ deckId: s
             </div>
           </>
         ) : (
-          <TopicTable topics={rows} />
+          <TopicTable topics={rows} tools={tools} />
         )}
       </section>
     </>

@@ -4,7 +4,7 @@ import { getTopicLabel, getTopicView, now, studiedWhen } from "@/lib/queries";
 import { renameTopic, deleteTopic } from "@/lib/actions";
 import { cardMark, MARK_LABEL, MATURE_DAYS } from "@/lib/status";
 import Icon from "@/components/Icon";
-import ConfirmButton from "@/components/ConfirmButton";
+import ConfirmDelete from "@/components/ConfirmDelete";
 import ResetTopic from "@/components/ResetTopic";
 import RenameField from "@/components/RenameField";
 import CardList from "@/components/CardList";
@@ -77,26 +77,12 @@ export default async function TopicPage({
             <p className="meta">
               {plural(counts.cards, "card")} · {studied}
             </p>
-            <form action={deleteTopic} className="actions">
-              <input type="hidden" name="id" value={topic.id} />
-              <input type="hidden" name="deckId" value={deck.id} />
-              <ConfirmButton
-                label="Delete topic"
-                confirm={
-                  <>
-                    Delete <strong>{topic.name}</strong>
-                    {counts.cards > 0 ? ` and its ${plural(counts.cards, "card")}?` : "?"}
-                  </>
-                }
-              >
-                {counts.cards > 0 && (
-                  <Link href={`/topics/${topic.id}/study`} className="btn btn--primary">
-                    <Icon name="play" className="icon--fill" />
-                    Study topic
-                  </Link>
-                )}
-              </ConfirmButton>
-            </form>
+            {counts.cards > 0 && (
+              <Link href={`/topics/${topic.id}/study`} className="btn btn--primary">
+                <Icon name="play" className="icon--fill" />
+                Study topic
+              </Link>
+            )}
           </div>
         </div>
 
@@ -154,27 +140,41 @@ export default async function TopicPage({
           <h2 className="section-title" id="cards-title">
             Questions
           </h2>
+          {/* What changes the topic, beside the list it changes — and away
+              from Study, which keeps the heading to itself. */}
           <div className="section-tools">
-            <Link href={`/import?deck=${deck.id}&topic=${topic.id}`} className="btn btn--ghost">
-              <Icon name="plus" />
-              Add cards
-            </Link>
-            {/* A plain link, not <Link>: it is a file, and the router would try
-                to render it as a page. */}
-            {counts.cards > 0 && (
-              <a
-                href={`/topics/${topic.id}/download`}
-                download
-                className="btn btn--ghost"
-                title="Save every card in this topic as one Markdown file"
-              >
-                <Icon name="export" />
-                Export as Markdown
-              </a>
-            )}
-            {/* Only once there is something to start over: on a topic nobody
-                has studied it would reset nothing. */}
-            {counts.reviewed > 0 && <ResetTopic id={topic.id} name={topic.name} />}
+            <ConfirmDelete
+              label="Delete topic"
+              action={deleteTopic}
+              fields={{ id: topic.id, deckId: deck.id }}
+              confirm={
+                <>
+                  Delete <strong>{topic.name}</strong>
+                  {counts.cards > 0 ? ` and its ${plural(counts.cards, "card")}?` : "?"}
+                </>
+              }
+            >
+              <Link href={`/import?deck=${deck.id}&topic=${topic.id}`} className="btn btn--ghost">
+                <Icon name="plus" />
+                Add cards
+              </Link>
+              {/* A plain link, not <Link>: it is a file, and the router would
+                  try to render it as a page. */}
+              {counts.cards > 0 && (
+                <a
+                  href={`/topics/${topic.id}/download`}
+                  download
+                  className="btn btn--ghost"
+                  title="Save every card in this topic as one Markdown file"
+                >
+                  <Icon name="export" />
+                  Export as Markdown
+                </a>
+              )}
+              {/* Only once there is something to start over: on a topic
+                  nobody has studied it would reset nothing. */}
+              {counts.reviewed > 0 && <ResetTopic id={topic.id} name={topic.name} />}
+            </ConfirmDelete>
           </div>
         </div>
 

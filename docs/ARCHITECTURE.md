@@ -125,8 +125,12 @@ its own in its place: the way back, the session's progress, and the count.
 
 A deck, a topic and a card are not in the bar: they are states you reach by
 going down through the library, and each carries its own way back up. Every
-screen opens with the same heading panel (`.head`), so the title and its
-actions sit at identical coordinates and nothing slides when you change page.
+screen opens with the same heading panel (`.head`), so the title sits at
+identical coordinates and nothing slides when you change page. Its right side
+holds Study and nothing else — Start review, Study deck and Study topic land
+on the same spot on every page. What changes a deck or topic (Add cards,
+Export, Reset, Delete) lives in the header of the list it changes, with Delete
+last and set apart, never beside Study.
 
 ## Styling
 
