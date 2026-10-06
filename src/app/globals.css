@@ -1068,6 +1068,48 @@ code {
   height: 16px;
 }
 
+/* ==========================================================================
+   Hit areas
+
+   The cursor is the pointer's account of what a click would do, so it must
+   not flicker on its way across a row of controls. Two things made it:
+
+   - Controls a few pixels apart left dead gaps between them, and a pointer
+     sweeping along a toolbar went hand, arrow, hand. Each reaches invisibly
+     across half the gap beside it, so a row has no dead pixels and nothing
+     looks any different.
+   - A button that lifts on hover moves out from under a pointer resting on
+     its bottom edge; the hover ends, it drops back, and the two chase each
+     other. While lifted, its hit area keeps the pixel it rose from.
+   ========================================================================== */
+
+.btn,
+.nav__item,
+.nav__tool,
+.segmented button,
+.grade {
+  position: relative;
+}
+
+.btn::after,
+.nav__item::after,
+.nav__tool::after,
+.segmented button::after,
+.grade::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+}
+
+.segmented button::after {
+  inset: -4px -1px;
+}
+
+.btn--primary:hover::after,
+.grade:hover::after {
+  bottom: -3px;
+}
+
 .btn:active {
   transform: translateY(0);
 }
@@ -1107,21 +1149,6 @@ code {
 .btn--secondary:hover {
   background: var(--hover);
   box-shadow: inset 0 0 0 1px var(--ring-strong);
-}
-
-.btn--icon {
-  width: 48px;
-  padding: 0;
-  color: var(--muted);
-}
-
-.btn--icon svg {
-  width: 18px;
-  height: 18px;
-}
-
-.btn--icon:hover {
-  color: var(--ink);
 }
 
 .btn--ghost {
