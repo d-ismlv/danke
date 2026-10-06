@@ -7,9 +7,14 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Progress" };
 
 const DAY_MS = 86_400_000;
-/** Half a year, which is what the six month labels across the top describe. */
-const WEEKS = 26;
+/** A year of weeks, which is as far back as the answers are counted. */
+const WEEKS = 52;
+/** What still draws a day at a size you can point at on a phone: the most
+ * recent half of the year. */
+const NARROW_WEEKS = 26;
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** Rows run Monday to Sunday; every other one is labelled, as on a calendar. */
+const WEEKDAYS = ["Mon", "", "Wed", "", "Fri", "", ""];
 
 const MEMORY: { key: MemoryState; label: string }[] = [
   { key: "mature", label: "Mature" },
@@ -17,15 +22,6 @@ const MEMORY: { key: MemoryState; label: string }[] = [
   { key: "learning", label: "Learning" },
   { key: "unseen", label: "Unseen" },
 ];
-
-/** Four bands of activity, so a quiet day and a long one are told apart at a
- * glance without the scale needing a legend. */
-function level(count: number): 0 | 1 | 2 | 3 {
-  if (count === 0) return 0;
-  if (count < 5) return 1;
-  if (count < 15) return 2;
-  return 3;
-}
 
 export default async function ProgressPage() {
   const p = await getProgress(now());
@@ -50,13 +46,21 @@ export default async function ProgressPage() {
     );
   }
 
-  const startDay = p.today - WEEKS * 7 + 1;
-  const cells = Array.from({ length: WEEKS * 7 }, (_, i) => {
-    const day = startDay + i;
-    return { day, count: day <= p.today ? (p.heatmap[day] ?? 0) : -1 };
-  });
+  /* Whole calendar weeks, Monday first, ending with this one — so a row is a
+     weekday and the days after today are left blank. Day 0 was a Thursday. */
+  const startDay = p.today - ((p.today + 3) % 7) - (WEEKS - 1) * 7;
+  const weeks = Array.from({ length: WEEKS }, (_, w) =>
+    Array.from({ length: 7 }, (_, d) => {
+      const day = startDay + w * 7 + d;
+      return { day, count: day <= p.today ? (p.heatmap[day] ?? 0) : -1 };
+    }),
+  );
+  const shade = shades(weeks.flat().map((cell) => cell.count));
   const months = monthLabels(startDay, WEEKS);
-  const windowTotal = cells.reduce((sum, cell) => sum + Math.max(0, cell.count), 0);
+  const total = (from: number) =>
+    weeks.slice(from).flat().reduce((sum, cell) => sum + Math.max(0, cell.count), 0);
+  const yearTotal = total(0);
+  const halfTotal = total(WEEKS - NARROW_WEEKS);
   const share = (n: number) => `${((n / totalCards) * 100).toFixed(2)}%`;
 
   return (
@@ -129,38 +133,58 @@ export default async function ProgressPage() {
       </section>
 
       <section className="activity" aria-labelledby="activity-title">
+        {/* The grid drops its older half when the panel is too narrow for a
+            year of days, so each heading has the figure for either width. */}
         <header className="section-heading">
           <div>
-            <p className="eyebrow">Past {WEEKS} weeks</p>
+            <p className="eyebrow">
+              <span className="activity__wide">Past year</span>
+              <span className="activity__narrow">Past {NARROW_WEEKS} weeks</span>
+            </p>
             <h2 id="activity-title">Activity</h2>
           </div>
           <span>
-            {windowTotal} review{windowTotal === 1 ? "" : "s"}
+            <span className="activity__wide">{reviews(yearTotal)}</span>
+            <span className="activity__narrow">{reviews(halfTotal)}</span>
           </span>
         </header>
-        <div
-          className="heatmap-months"
-          style={{ "--n": months.length } as React.CSSProperties}
-          aria-hidden="true"
-        >
-          {months.map((month, i) => (
-            <span key={i}>{month}</span>
+        <div className="heatmap" role="img" aria-label="Answers per day">
+          <div className="heatmap__days" aria-hidden="true">
+            <span />
+            {WEEKDAYS.map((name, d) => (
+              <span key={d}>{name}</span>
+            ))}
+          </div>
+          {weeks.map((week, w) => (
+            <div
+              key={week[0].day}
+              className={
+                w < WEEKS - NARROW_WEEKS ? "heatmap__week heatmap__week--older" : "heatmap__week"
+              }
+            >
+              <span className="heatmap__month">{months[w]}</span>
+              {week.map(({ day, count }) =>
+                count < 0 ? (
+                  <i key={day} data-future="" />
+                ) : (
+                  <i
+                    key={day}
+                    data-level={shade.level(count)}
+                    // A day number is a calendar date; read back through UTC it
+                    // is that date, whatever zone the day was counted in.
+                    title={`${new Date(day * DAY_MS).toISOString().slice(0, 10)} · ${reviews(count)}`}
+                  />
+                ),
+              )}
+            </div>
           ))}
         </div>
-        <div className="heatmap" aria-label={`Study activity for the last ${WEEKS} weeks`}>
-          {cells.map(({ day, count }) =>
-            count < 0 ? (
-              <i key={day} aria-hidden="true" />
-            ) : (
-              <i
-                key={day}
-                data-level={level(count)}
-                // A day number is a calendar date; read back through UTC it
-                // is that date, whatever zone the day was counted in.
-                title={`${new Date(day * DAY_MS).toISOString().slice(0, 10)} · ${count} review${count === 1 ? "" : "s"}`}
-              />
-            ),
-          )}
+        <div className="heatmap-legend" aria-hidden="true">
+          <span>Less</span>
+          {shade.ranges.map((range, level) => (
+            <i key={level} data-level={level} title={range} />
+          ))}
+          <span>More</span>
         </div>
       </section>
 
@@ -199,16 +223,65 @@ export default async function ProgressPage() {
   );
 }
 
+function reviews(n: number): string {
+  return `${n} review${n === 1 ? "" : "s"}`;
+}
+
 /**
- * One label per month the window touches, in order. A 26-week window spans six
- * or seven months; when it is seven, the first is a few days of a month that
- * has mostly scrolled off, so it is the one to drop.
+ * Which of five shades a day takes, and what each shade covers.
+ *
+ * Measured against your own days rather than fixed counts. Fixed bands were
+ * written for someone answering a handful of cards a day; anyone who studies
+ * more than that filled every square with the darkest one, and the grid said
+ * nothing about which days were the long ones.
+ *
+ * The four shades past the first split the counts your days have actually
+ * had into quarters, quietest to busiest — each different count once, however
+ * many days share it. Counting days instead put every day in one shade when
+ * most of them were alike, and a scale stretched to the busiest day let one
+ * marathon wash every other day out to the palest. Whatever you study, the
+ * light days and the long ones come out apart, and the busiest is the darkest.
+ */
+function shades(counts: number[]): {
+  level: (count: number) => number;
+  ranges: string[];
+} {
+  const values = [...new Set(counts.filter((n) => n > 0))].sort((a, b) => a - b);
+  const rank = new Map(values.map((n, i) => [n, i + 1]));
+  const level = (count: number) =>
+    count <= 0 ? 0 : Math.ceil((4 * (rank.get(count) ?? values.length)) / values.length);
+
+  const bounds: { min: number; max: number }[] = [];
+  for (const n of values) {
+    const at = level(n);
+    bounds[at] = { min: bounds[at]?.min ?? n, max: n };
+  }
+  const ranges = [0, 1, 2, 3, 4].map((at) => {
+    if (at === 0) return "No reviews";
+    const range = bounds[at];
+    if (!range) return "No days at this shade yet";
+    return range.min === range.max
+      ? reviews(range.max)
+      : `${range.min}–${reviews(range.max)}`;
+  });
+  return { level, ranges };
+}
+
+/**
+ * The month each week starts, on the week holding its 1st; the rest are
+ * blank. The first week is labelled too, unless the next month's label is
+ * close enough behind it to collide.
  */
 function monthLabels(startDay: number, weeks: number): string[] {
-  const seen: number[] = [];
-  for (let w = 0; w < weeks; w++) {
-    const month = new Date((startDay + w * 7) * DAY_MS).getUTCMonth();
-    if (seen[seen.length - 1] !== month) seen.push(month);
+  const labels = Array.from({ length: weeks }, (_, w) => {
+    for (let d = 0; d < 7; d++) {
+      const date = new Date((startDay + w * 7 + d) * DAY_MS);
+      if (date.getUTCDate() === 1) return MONTHS[date.getUTCMonth()];
+    }
+    return "";
+  });
+  if (!labels[0] && labels.slice(1, 3).every((label) => !label)) {
+    labels[0] = MONTHS[new Date(startDay * DAY_MS).getUTCMonth()];
   }
-  return seen.slice(-6).map((m) => MONTHS[m]);
+  return labels;
 }

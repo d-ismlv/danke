@@ -69,12 +69,12 @@
   --unseen-end: #e1e2e6;
   --editor-surface: #f8f8fa;
   --editor-ink: #303033;
-  --activity-1-start: #e5def7;
-  --activity-1-end: #d2c4ef;
-  --activity-2-start: #b399df;
-  --activity-2-end: #9270cf;
-  --activity-3-start: #7650c5;
-  --activity-3-end: #56339f;
+  /* One purple in four even steps of lightness, light to dark: on a light
+     surface more answers read darker. */
+  --activity-1: #dbd1f8;
+  --activity-2: #b59feb;
+  --activity-3: #8f6ad6;
+  --activity-4: #673dac;
   --button-ink: #ffffff;
   /* The brand mark's own two colours, and nothing else's. They are here so
      src/components/Logo.tsx renders exactly the mark it has always rendered —
@@ -155,12 +155,11 @@
   --unseen-end: #34343b;
   --editor-surface: #17171b;
   --editor-ink: #dedee3;
-  --activity-1-start: #4b3d70;
-  --activity-1-end: #5b4789;
-  --activity-2-start: #795ab6;
-  --activity-2-end: #9270cf;
-  --activity-3-start: #a784e6;
-  --activity-3-end: #7e57cb;
+  /* The other way round on a dark one: more answers read brighter. */
+  --activity-1: #473867;
+  --activity-2: #6f53a6;
+  --activity-3: #9877dd;
+  --activity-4: #c2acf9;
   --toast-surface: rgba(244, 244, 246, 0.94);
   --toast-ink: #1d1d1f;
   --accent: #a396f0;
@@ -224,12 +223,10 @@
     --unseen-end: #34343b;
     --editor-surface: #17171b;
     --editor-ink: #dedee3;
-    --activity-1-start: #4b3d70;
-    --activity-1-end: #5b4789;
-    --activity-2-start: #795ab6;
-    --activity-2-end: #9270cf;
-    --activity-3-start: #a784e6;
-    --activity-3-end: #7e57cb;
+    --activity-1: #473867;
+    --activity-2: #6f53a6;
+    --activity-3: #9877dd;
+    --activity-4: #c2acf9;
     --toast-surface: rgba(244, 244, 246, 0.94);
     --toast-ink: #1d1d1f;
     --accent: #a396f0;
@@ -1993,41 +1990,134 @@ ol.review-answer {
   font-variant-numeric: tabular-nums;
 }
 
-.heatmap-months {
+/* The grid's width decides how much of the year it shows, not the screen's:
+   a year of days in a phone-width panel is a grid of specks. */
+.activity {
+  container-type: inline-size;
+}
+
+.activity__narrow {
+  display: none;
+}
+
+/* A calendar: a column of labels, then one column per week, each a run of
+   seven square days. The weeks share the label column's rows through
+   subgrid, so a weekday's label sits on its row at any width. */
+.heatmap {
   display: grid;
-  grid-template-columns: repeat(var(--n, 6), 1fr);
-  margin-block-end: 0.45rem;
+  grid-auto-flow: column;
+  grid-template-columns: auto;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-template-rows: auto repeat(7, auto);
+  gap: 0.19rem;
+  color: var(--muted);
+  font-size: 0.66rem;
+  line-height: 1;
+}
+
+.heatmap__days,
+.heatmap__week {
+  display: grid;
+  grid-row: 1 / -1;
+  grid-template-rows: subgrid;
+}
+
+/* Exactly as wide as the week, or a month's name widens the column it heads
+   and stretches that week's squares past their neighbours. */
+.heatmap__week {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.heatmap__days {
+  padding-inline-end: 0.35rem;
+}
+
+/* No height of their own, so the squares alone set how tall a row is and a
+   label is centred on its row rather than stretching it. */
+.heatmap__days span:not(:first-child) {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  height: 0;
+}
+
+/* A month's name is wider than its week, and runs on over the next one. */
+.heatmap__month {
+  padding-block-end: 0.3rem;
+  white-space: nowrap;
+}
+
+.heatmap i,
+.heatmap-legend i {
+  aspect-ratio: 1;
+  border-radius: 0.2rem;
+  background: var(--surface-muted);
+}
+
+.heatmap i[data-future] {
+  background: none;
+}
+
+.heatmap i[data-level="1"],
+.heatmap-legend i[data-level="1"] {
+  background: var(--activity-1);
+}
+
+.heatmap i[data-level="2"],
+.heatmap-legend i[data-level="2"] {
+  background: var(--activity-2);
+}
+
+.heatmap i[data-level="3"],
+.heatmap-legend i[data-level="3"] {
+  background: var(--activity-3);
+}
+
+.heatmap i[data-level="4"],
+.heatmap-legend i[data-level="4"] {
+  background: var(--activity-4);
+}
+
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.19rem;
+  margin-block-start: 0.7rem;
   color: var(--muted);
   font-size: 0.68rem;
 }
 
-.heatmap-months span:last-child {
-  text-align: end;
+.heatmap-legend i {
+  width: 0.7rem;
 }
 
-.heatmap {
-  display: grid;
-  grid-auto-flow: column;
-  grid-template-rows: repeat(7, 0.72rem);
-  grid-auto-columns: minmax(0.4rem, 1fr);
-  gap: clamp(0.14rem, 0.22vw, 0.3rem);
+.heatmap-legend span:first-child {
+  margin-inline-end: 0.2rem;
 }
 
-.heatmap i {
-  border-radius: 0.16rem;
-  background: var(--surface-muted);
+.heatmap-legend span:last-child {
+  margin-inline-start: 0.2rem;
 }
 
-.heatmap i[data-level="1"] {
-  background: linear-gradient(135deg, var(--activity-1-start), var(--activity-1-end));
-}
+/* Too narrow for a year at a readable size: the most recent half of it. */
+@container (max-width: 40rem) {
+  .activity__wide,
+  .heatmap__week--older {
+    display: none;
+  }
 
-.heatmap i[data-level="2"] {
-  background: linear-gradient(135deg, var(--activity-2-start), var(--activity-2-end));
-}
+  .activity__narrow {
+    display: inline;
+  }
 
-.heatmap i[data-level="3"] {
-  background: linear-gradient(135deg, var(--activity-3-start), var(--activity-3-end));
+  .heatmap {
+    gap: 0.14rem;
+  }
+
+  .heatmap i {
+    border-radius: 0.14rem;
+  }
 }
 
 .progress-list > a {
@@ -3043,11 +3133,6 @@ textarea.text-field {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 0.6rem 1rem;
-  }
-
-  .heatmap {
-    grid-template-rows: repeat(7, 0.58rem);
-    gap: 0.13rem;
   }
 
   .progress-list > a {
