@@ -6,8 +6,8 @@ import Icon from "./Icon";
 /**
  * The last of a list's tools — Delete — and the question it asks first.
  *
- * It lives in the list's header with the other tools that change the list,
- * set apart from them by a rule, and never beside a Study button: the action
+ * It lives under the list with the other tools that change the list, pushed
+ * to the far end of their row, and never beside a Study button: the action
  * you take every day and the one you cannot take back do not share an edge.
  *
  * Pressed, the question takes the place of the whole tool row, in place: the
@@ -40,8 +40,7 @@ export default function ConfirmDelete({
     return (
       <>
         {children}
-        {children && <i className="section-tools__rule" aria-hidden="true" />}
-        <button type="button" onClick={() => setArmed(true)} className="btn btn--ghost">
+        <button type="button" onClick={() => setArmed(true)} className="btn btn--ghost list-foot__end">
           <Icon name="trash" />
           {label}
         </button>

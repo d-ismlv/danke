@@ -8,7 +8,6 @@ export default function Loading() {
     <div className="skeleton" aria-busy="true" aria-live="polite">
       <span className="sr-only">Loading</span>
       <i className="skeleton__head" />
-      <i className="skeleton__bar" />
       <i className="skeleton__list" />
     </div>
   );

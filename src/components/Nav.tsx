@@ -10,45 +10,46 @@ import type { Theme } from "@/lib/theme";
 
 /**
  * The top bar's navigation, and the tab bar it becomes when the window is
- * narrow. Five items, always the same five, in the same order.
+ * narrow: the three places the application navigates between, always the same
+ * three, in the same order.
  *
  * A deck is not one of them, and neither is a topic or a card: those are
  * states you reach by going down through the library, and they carry their own
- * way back up. What is here is the three places the application navigates
- * between, and the two controls that belong to no page.
+ * way back up. The streak and the two controls that belong to no page — Theme
+ * and Lock — stay at the right of the top bar at every width, small and
+ * quiet, rather than taking a tab of their own.
  */
 export default function Nav({ theme, streak }: { theme: Theme; streak: number }) {
   const pathname = usePathname();
   useFreshAfterStudy(pathname);
 
   return (
-    <nav className="nav" aria-label="Main">
-      <Item
-        href="/"
-        icon="library"
-        label="Library"
-        current={
-          pathname === "/" ||
-          pathname.startsWith("/decks/") ||
-          pathname.startsWith("/topics/") ||
-          pathname === "/study"
-        }
-      />
-      <Item href="/progress" icon="chart" label="Progress" current={pathname.startsWith("/progress")} />
-      <Item href="/import" icon="import" label="Import" current={pathname.startsWith("/import")} />
+    <>
+      <nav className="nav" aria-label="Main">
+        <Item
+          href="/"
+          icon="library"
+          label="Library"
+          current={
+            pathname === "/" ||
+            pathname.startsWith("/decks/") ||
+            pathname.startsWith("/topics/") ||
+            pathname === "/study"
+          }
+        />
+        <Item href="/progress" icon="chart" label="Progress" current={pathname.startsWith("/progress")} />
+        <Item href="/import" icon="import" label="Import" current={pathname.startsWith("/import")} />
+      </nav>
       <div className="nav__tools">
         <Streak days={streak} />
         <ThemeToggle initial={theme} />
         <form action={logout} className="nav__form">
           <button type="submit" className="nav__tool" aria-label="Lock danke" title="Lock">
             <Icon name="lock" />
-            <span className="nav__label" aria-hidden="true">
-              Lock
-            </span>
           </button>
         </form>
       </div>
-    </nav>
+    </>
   );
 }
 
@@ -69,10 +70,10 @@ function useFreshAfterStudy(pathname: string) {
 }
 
 /** Days in a row with at least one answer. Quiet: a fact, not a prize. */
-export function Streak({ days, className }: { days: number; className?: string }) {
+function Streak({ days }: { days: number }) {
   const label = `${days}-day streak`;
   return (
-    <span className={className ? `streak ${className}` : "streak"} aria-label={label} title={label}>
+    <span className="streak" aria-label={label} title={label}>
       <Icon name="flame" />
       <span>
         <strong>{days}</strong> {days === 1 ? "day" : "days"}

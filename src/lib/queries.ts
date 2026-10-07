@@ -263,49 +263,25 @@ export async function getLibrary(at = Date.now()): Promise<{
   };
 }
 
-/** One mark per card, keyed by topic — the fragmented state row on a deck. */
+/** What the scheduler knows about a card, as the topic screen reads it. */
 export type CardState = { state: number | null; stability: number | null; due: number | null };
 
-async function cardStatesByTopic(deckId: string): Promise<Map<string, CardState[]>> {
-  const rows = await db
-    .select({
-      topicId: cards.topicId,
-      state: reviewState.state,
-      stability: reviewState.stability,
-      due: reviewState.due,
-    })
-    .from(cards)
-    .innerJoin(topics, eq(topics.id, cards.topicId))
-    .leftJoin(reviewState, eq(reviewState.cardId, cards.id))
-    .where(eq(topics.deckId, deckId))
-    .orderBy(asc(cards.position), asc(cards.createdAt));
-
-  const out = new Map<string, CardState[]>();
-  for (const row of rows) {
-    const list = out.get(row.topicId) ?? [];
-    list.push({ state: row.state, stability: row.stability, due: row.due });
-    out.set(row.topicId, list);
-  }
-  return out;
-}
-
-/** One deck, its topics, the counts for both, and each topic's card states. */
+/** One deck, its topics, and the counts for both. */
 export async function getDeckView(
   deckId: string,
   at = Date.now(),
-): Promise<{ deck: Deck; topics: TopicSummary[]; marks: Map<string, CardState[]>; counts: Counts } | null> {
+): Promise<{ deck: Deck; topics: TopicSummary[]; counts: Counts } | null> {
   await requireSession();
   const [deck] = await db.select().from(decks).where(eq(decks.id, deckId)).limit(1);
   if (!deck) return null;
 
-  const [scoped, all, marks] = await Promise.all([
+  const [scoped, all] = await Promise.all([
     scopedCounts(at),
     db
       .select()
       .from(topics)
       .where(eq(topics.deckId, deckId))
       .orderBy(asc(sql`${topics.name} COLLATE NOCASE`)),
-    cardStatesByTopic(deckId),
   ]);
 
   const counted = new Map(scoped.map((s) => [s.row.topicId, s.counts]));
@@ -316,7 +292,7 @@ export async function getDeckView(
     return { ...topic, counts: own };
   });
 
-  return { deck, topics: summaries, marks, counts: sealed(counts) };
+  return { deck, topics: summaries, counts: sealed(counts) };
 }
 
 export type CardRow = Card & CardState;

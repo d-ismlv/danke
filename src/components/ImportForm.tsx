@@ -282,7 +282,7 @@ export default function ImportForm({
           <div className="workpanel__body preview">
             {empty ? (
               <p className="preview__hint">
-                Paste your cards on the left to see exactly what will be imported.
+                Paste your cards into the Markdown box to see exactly what will be imported.
               </p>
             ) : issues.length > 0 ? (
               <Problems issues={issues} error={state.error} />

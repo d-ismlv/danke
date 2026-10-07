@@ -241,10 +241,10 @@ export default function StudySession({
             {answered} card{answered === 1 ? "" : "s"} answered in {what}.
           </h1>
           <div className="stats">
-            <Figure dot="recall" label="Answered" value={answered} />
-            <Figure dot="young" label="Clean" value={answered - shaky} />
-            <Figure dot="learning" label="Not clean" value={shaky} />
-            <Figure dot="unseen" label="Still waiting" value={remaining} />
+            <Figure label="Answered" value={answered} />
+            <Figure label="Clean" value={answered - shaky} />
+            <Figure label="Not clean" value={shaky} />
+            <Figure label="Still waiting" value={remaining} />
           </div>
           <p className="done__summary">
             {shaky > 0
@@ -273,9 +273,12 @@ export default function StudySession({
       {bar}
       <div className="study">
         <article className="study-card">
+          {/* Where the card is from, said quietly: the question is the
+              thing to look at. */}
           <p className="study-card__meta no-copy">
             <span className="study-card__topic">{current.topic}</span>
-            <span className={`study-card__kind--${current.kind}`}>{KIND_LABEL[current.kind]}</span>
+            <span aria-hidden="true">·</span>
+            <span>{KIND_LABEL[current.kind]}</span>
           </p>
           <h1 className="study-card__question">
             <Inline>{current.title}</Inline>

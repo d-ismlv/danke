@@ -6,7 +6,7 @@ import "./globals.css";
 import { isAuthed } from "@/lib/auth";
 import { getStreak, now } from "@/lib/queries";
 import Logo from "@/components/Logo";
-import Nav, { Streak } from "@/components/Nav";
+import Nav from "@/components/Nav";
 import CopyFilter from "@/components/CopyFilter";
 import { asTheme, THEME_COOKIE, type Theme } from "@/lib/theme";
 
@@ -62,9 +62,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   <span>danke</span>
                 </Link>
                 <Nav theme={theme} streak={streak} />
-                {/* On a narrow window the tab bar holds the navigation, and the
-                    streak moves up here beside the name. */}
-                <Streak days={streak} className="topbar__streak" />
               </div>
             </header>
 

@@ -86,9 +86,6 @@ export default function ThemeToggle({ initial }: { initial: Theme }) {
       aria-label={`Theme: ${NAME[theme]}. Activate to use ${NAME[next]}.`}
     >
       <Icon name={ICON[theme]} />
-      <span className="nav__label" aria-hidden="true">
-        Theme
-      </span>
     </button>
   );
 }

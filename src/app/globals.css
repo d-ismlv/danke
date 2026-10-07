@@ -12,12 +12,19 @@
    Colour is information, not decoration, and every family is graded rather
    than flat — a lit top and a deeper base — so a bar reads as a thing:
 
-     violet          action, navigation, and a card whose turn has come (due)
+     violet          the one action on a screen, and a card whose turn has
+                     come (due) — nothing else is violet
      marigold → jade → emerald
                      memory, from fragile to settled: learning, young, mature
      amber           needs attention
      apricot         the streak, and the Again grade
      deep purple     the activity heatmap
+
+   Colour is spent where the eye should go. The screens you study from —
+   Library, a deck, a topic — carry the accent on Study and on what is due,
+   amber on a row that needs attention, and one jade bar for what is learned;
+   the memory ramp and the heatmap belong to Progress. Navigation, captions
+   and tools are ink and grey, so they recede.
 
    There is no red anywhere. Deleting is neutral and asks first; a problem is
    amber. This app is about structure, and nothing in it is an emergency.
@@ -454,13 +461,14 @@ code {
   color: var(--ink);
 }
 
+/* Where you are, in ink on a quiet ground: the accent is kept for Study. */
 .nav__item[aria-current="page"] {
-  background: var(--accent-soft);
-  color: var(--accent-ink);
+  background: var(--subtle);
+  color: var(--ink);
 }
 
 .nav__item[aria-current="page"]:hover {
-  background: var(--accent-soft-hover);
+  background: var(--hover);
 }
 
 .nav__tools {
@@ -468,7 +476,7 @@ code {
   margin-right: -10px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 0;
 }
 
 .nav__form {
@@ -500,21 +508,15 @@ code {
   color: var(--ink);
 }
 
-.nav__tool .nav__label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-}
-
+/* A fact in the corner, not a prize: the flame keeps its warmth only on
+   Progress. */
 .streak {
   height: 40px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   padding: 0 12px;
-  color: var(--muted);
+  color: var(--quiet);
   font-size: 13px;
   line-height: 20px;
   white-space: nowrap;
@@ -523,18 +525,12 @@ code {
 .streak svg {
   width: 16px;
   height: 16px;
-  color: var(--streak);
 }
 
 .streak strong {
-  color: var(--ink);
+  color: var(--ink-2);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-}
-
-.topbar__streak {
-  display: none;
-  margin-left: auto;
 }
 
 .main {
@@ -606,12 +602,31 @@ code {
   gap: 8px;
 }
 
+/* What is waiting, said once beside the button that studies it: the due
+   count is the only coloured word in the heading. */
+.waiting {
+  margin: 0;
+  font-size: 15px;
+  line-height: 24px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.waiting__due {
+  font-weight: 600;
+  color: var(--accent-ink);
+}
+
+.waiting__sep {
+  color: var(--faint);
+}
+
 .eyebrow,
 .crumbs {
   margin: 0;
   font-size: 13px;
   line-height: 20px;
-  color: var(--muted);
+  color: var(--quiet);
 }
 
 .eyebrow:empty {
@@ -619,7 +634,7 @@ code {
 }
 
 .crumbs a {
-  color: var(--muted);
+  color: var(--quiet);
   text-decoration: none;
   transition: color 160ms ease;
 }
@@ -703,11 +718,12 @@ code {
   gap: 24px;
 }
 
+.stats--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .stat__label {
   margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
   font-size: 13px;
   line-height: 20px;
   color: var(--muted);
@@ -725,10 +741,6 @@ code {
   font-variant-numeric: tabular-nums;
 }
 
-.stat__figure--due {
-  color: var(--accent-ink);
-}
-
 .stat__unit {
   font-size: 20px;
   line-height: 1;
@@ -740,7 +752,7 @@ code {
   margin: 4px 0 0;
   font-size: 13px;
   line-height: 20px;
-  color: var(--muted);
+  color: var(--quiet);
 }
 
 /* The small round key beside a label. */
@@ -755,19 +767,13 @@ code {
 
 .dot--mature,
 .dot--young,
-.dot--learning,
-.dot--due,
-.dot--recall,
-.dot--streak {
+.dot--learning {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), inset 0 -1px 0 rgba(0, 0, 0, 0.1);
 }
 
 .dot--mature { background: linear-gradient(180deg, var(--mature-top), var(--mature)); }
 .dot--young { background: linear-gradient(180deg, var(--young-top), var(--young)); }
 .dot--learning { background: linear-gradient(180deg, var(--learning-top), var(--learning)); }
-.dot--due { background: linear-gradient(180deg, var(--due-top), var(--due)); }
-.dot--recall { background: var(--accent-light); }
-.dot--streak { background: linear-gradient(180deg, var(--streak-top), var(--streak)); }
 
 /* ==========================================================================
    Sections
@@ -786,51 +792,100 @@ code {
   margin-top: 16px;
 }
 
+/* A section's name is a label over its list, not a second heading: it steps
+   back so the page title and the rows lead. */
 .section-title {
   margin: 0;
-  font-size: 20px;
-  line-height: 28px;
+  font-size: 15px;
+  line-height: 24px;
   font-weight: 600;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.005em;
+  color: var(--ink-2);
 }
 
-/* A title and the control that orders what is under it, kept together. */
-.section-head__main {
-  display: flex;
-  flex-wrap: wrap;
+/* The order of a list, as one quiet word with a chevron: a native select, so
+   a phone opens its own picker. Its words end on the content edge. */
+.sort {
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  gap: 8px 24px;
+  margin-right: -12px;
+  border-radius: 10px;
+  color: var(--muted);
+  transition: background-color 160ms ease, color 160ms ease;
 }
 
-/* The list's tools, at its right edge. Ghost buttons hang their padding out
-   past the edge so their words end on it; a confirmation has a surface of its
-   own and stays inside. */
-.section-tools {
+.sort:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.sort select {
+  height: 40px;
+  padding: 0 34px 0 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.sort select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+  border-radius: 10px;
+}
+
+.sort svg {
+  position: absolute;
+  right: 12px;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+}
+
+/* What changes a list waits under it, in grey: Add cards and the keepers on
+   the left, Delete alone at the far end. Ghost buttons hang their padding
+   out past both edges so their words sit on the content's; a confirmation
+   has a surface of its own and stays inside. */
+.list-foot {
+  margin: 16px -12px 0;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
-  margin-right: -12px;
 }
 
-.section-tools:has(.confirm) {
-  margin-right: 0;
+/* Asked where Delete was pressed: at the far end, under the pointer. */
+.list-foot:has(.confirm) {
+  margin-inline: 0;
+  justify-content: flex-end;
 }
 
-/* Sets Delete apart from the tools that keep things. */
-.section-tools__rule {
-  width: 1px;
-  height: 24px;
-  margin: 0 8px;
-  background: var(--line);
+.list-foot .btn--ghost {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.list-foot .btn--ghost:hover {
+  color: var(--ink);
+}
+
+/* Delete keeps the far end, on whichever line it lands. */
+.list-foot__end {
+  margin-left: auto;
 }
 
 /* ==========================================================================
    The bar
 
-   One bar in the whole app — memory, deck rows, a topic's cards, mastery,
-   learned-by-deck, a session's progress — so it is recognised wherever it
-   turns up: 12px, 3px gaps, rounded lit segments in a recessed track.
+   One bar in the whole app — memory, what is learned in a row, a session's
+   progress — so it is recognised wherever it turns up: 12px, 3px gaps,
+   rounded lit segments in a recessed track.
    ========================================================================== */
 
 .bar {
@@ -859,6 +914,12 @@ code {
 .bar > .seg-young { background: linear-gradient(180deg, var(--young-top), var(--young)); }
 .bar > .seg-learning { background: linear-gradient(180deg, var(--learning-top), var(--learning)); }
 .bar > .seg-due { background: linear-gradient(180deg, var(--due-top), var(--due)); }
+
+/* In a list row the learned bar is a second reading, so it is drawn lighter
+   than the memory bar on Progress: same shape, softer fill. */
+.bar--learned > .seg-young {
+  opacity: 0.75;
+}
 
 /* Labels that sit under the segment they name, at its left edge. */
 .bar-labels {
@@ -898,124 +959,6 @@ code {
   padding-left: 16px;
   font-size: 12px;
   line-height: 16px;
-  color: var(--quiet);
-}
-
-/* ==========================================================================
-   Marks
-   ========================================================================== */
-
-/* How a deck or topic is going: a shape and a colour, never colour alone.
-   ● strong · ◐ learning · ▲ needs attention · ○ not started */
-.status {
-  width: 12px;
-  height: 12px;
-  flex: none;
-  display: inline-block;
-  border-radius: 50%;
-  box-shadow: inset 0 0 0 1.5px var(--ring-strong);
-}
-
-.status--strong {
-  background: linear-gradient(180deg, var(--mature-top), var(--mature));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
-}
-
-.status--learning {
-  background: linear-gradient(90deg, var(--young) 50%, transparent 50%);
-  box-shadow: inset 0 0 0 1.5px var(--young);
-}
-
-/* Drawn as an SVG triangle with round joins, so its corners are as soft as
-   the circles beside it. */
-.status--struggling {
-  border-radius: 0;
-  box-shadow: none;
-  fill: var(--attention);
-  stroke: var(--attention);
-  stroke-width: 1.6;
-  stroke-linejoin: round;
-  overflow: visible;
-}
-
-.pill {
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  line-height: 16px;
-  font-weight: 500;
-  white-space: nowrap;
-  background: var(--pill-unseen);
-  color: var(--pill-unseen-ink);
-}
-
-.pill--mature { background: var(--pill-mature); color: var(--pill-mature-ink); }
-.pill--young { background: var(--pill-young); color: var(--pill-young-ink); }
-.pill--learning { background: var(--pill-learning); color: var(--pill-learning-ink); }
-.pill--due { background: var(--pill-due); color: var(--pill-due-ink); }
-
-/* The small key that teaches the colours, kept quiet: it is there to be found,
-   not read every time. */
-.legend {
-  margin-top: 16px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 24px;
-  font-size: 12px;
-  line-height: 16px;
-  color: var(--quiet);
-}
-
-.legend > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.legend .status,
-.legend .dot {
-  opacity: 0.55;
-}
-
-.legend .status {
-  width: 10px;
-  height: 10px;
-}
-
-/* A topic's cards, one labelled segment each, while there are few enough to
-   name. */
-.mastery {
-  display: flex;
-  gap: 3px;
-}
-
-.mastery__card {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-.mastery__card .bar > i {
-  min-width: 0;
-}
-
-.mastery__label {
-  margin-top: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  line-height: 20px;
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-.mastery__index {
-  font-family: var(--font-mono);
-  font-size: 12px;
   color: var(--quiet);
 }
 
@@ -1086,7 +1029,6 @@ code {
 .btn,
 .nav__item,
 .nav__tool,
-.segmented button,
 .grade {
   position: relative;
 }
@@ -1094,15 +1036,10 @@ code {
 .btn::after,
 .nav__item::after,
 .nav__tool::after,
-.segmented button::after,
 .grade::after {
   content: "";
   position: absolute;
   inset: -2px;
-}
-
-.segmented button::after {
-  inset: -4px -1px;
 }
 
 .btn--primary:hover::after,
@@ -1190,10 +1127,6 @@ code {
   margin-left: -12px;
 }
 
-.flush-end {
-  margin-right: -12px;
-}
-
 kbd {
   font-family: var(--font-mono);
 }
@@ -1207,6 +1140,13 @@ kbd {
   background: rgba(255, 255, 255, 0.16);
   font-size: 12px;
   line-height: 1;
+}
+
+/* A key to press means nothing on a phone. */
+@media (hover: none) {
+  .kbd-chip {
+    display: none;
+  }
 }
 
 /* Deleting asks first, in place: the thing stays in view behind the question. */
@@ -1314,25 +1254,30 @@ kbd {
   opacity: 0;
 }
 
+/* A row's name and the line under it, each held to one line: a name that
+   does not fit ends in an ellipsis rather than pushing the row to twice the
+   height of its neighbours. */
 .cell-name {
   grid-column: 1 / span 4;
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
   min-width: 0;
 }
 
-.table__head .cell-name {
-  padding-left: 24px;
+.row-name,
+.row-sub {
+  display: block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .row-name {
-  display: block;
   font-size: 16px;
   line-height: 24px;
   font-weight: 600;
   transition: color 160ms ease;
-  overflow-wrap: anywhere;
 }
 
 .table__row:hover .row-name {
@@ -1340,10 +1285,9 @@ kbd {
 }
 
 .row-sub {
-  display: block;
   font-size: 13px;
   line-height: 20px;
-  color: var(--muted);
+  color: var(--quiet);
 }
 
 .row-sub__flag {
@@ -1363,69 +1307,31 @@ kbd {
   color: var(--attention-ink);
 }
 
-.cell-none {
-  text-align: right;
-  color: var(--faint);
+.c-pct {
+  color: var(--muted);
 }
 
+/* "9 due", in the accent — or nothing, so the rows with work stand out. */
 .cell-due {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  font-weight: 600;
+  text-align: right;
   color: var(--accent-ink);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-.cell-when {
-  text-align: right;
-  font-size: 13px;
-  line-height: 20px;
-  color: var(--muted);
+.cell-due strong {
+  font-weight: 600;
 }
 
-/* Library: deck · memory · learned · due · unseen · topics · cards */
-.t-decks .c-bar { grid-column: 5 / span 3; }
-/* Deck: topic · its cards · due · unseen · last studied */
-.t-topics .c-bar { grid-column: 5 / span 4; }
-.t-topics .c-when { grid-column: 11 / span 2; }
+/* Library and a deck: name · learned bar · % · due, on the same columns, so
+   going down a level changes the words and nothing else. */
+.t-rows .table__inner { min-width: 640px; }
+.t-rows .cell-name { grid-column: 1 / span 6; }
+.t-rows .c-bar { grid-column: 7 / span 4; }
+.t-rows .c-pct { grid-column: 11; }
+.t-rows .c-due { grid-column: 12; }
 /* Progress: deck · learned bar · cards · % · recall */
 .t-progress .c-bar { grid-column: 5 / span 5; }
-
-/* The sort, as a segmented control: four orders, one pressed. */
-.segmented {
-  height: 40px;
-  box-sizing: border-box;
-  display: inline-flex;
-  gap: 2px;
-  padding: 4px;
-  border-radius: 999px;
-  background: var(--subtle);
-}
-
-.segmented button {
-  padding: 0 14px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 160ms ease, color 160ms ease;
-}
-
-.segmented button:hover {
-  color: var(--ink);
-}
-
-.segmented button[aria-pressed="true"] {
-  background: var(--surface);
-  color: var(--ink);
-  box-shadow: 0 1px 2px rgba(28, 26, 22, 0.12);
-}
 
 /* ==========================================================================
    Questions — a topic's cards, closed until opened
@@ -1489,18 +1395,10 @@ kbd {
   background: transparent;
 }
 
-.question__index {
-  flex: 0 0 40px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 16px;
-  color: var(--quiet);
-}
-
 .question__title {
   flex: 1 1 auto;
   min-width: 0;
-  padding: 24px 24px 24px 0;
+  padding: 20px 24px 20px 0;
   font-size: 16px;
   line-height: 24px;
   font-weight: 500;
@@ -1515,16 +1413,24 @@ kbd {
   font-weight: 600;
 }
 
+/* Where a card stands, in one word after it: grey, unless its turn has come. */
 .question__state {
-  flex: 0 0 112px;
-  display: flex;
-  justify-content: flex-end;
+  flex: none;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--quiet);
+  white-space: nowrap;
+}
+
+.question__state--due {
+  color: var(--accent-ink);
+  font-weight: 500;
 }
 
 .question__chevron {
-  width: 18px;
-  height: 18px;
-  margin-left: 16px;
+  width: 16px;
+  height: 16px;
+  margin-left: 12px;
   color: var(--faint);
   transition: transform 160ms ease;
 }
@@ -1534,7 +1440,7 @@ kbd {
 }
 
 .question__body {
-  padding: 0 0 24px 40px;
+  padding: 0 0 24px;
 }
 
 .tools {
@@ -1731,7 +1637,7 @@ ul.points .points > li::before,
   display: grid;
   gap: 16px;
   max-width: 800px;
-  padding: 0 0 24px 40px;
+  padding: 0 0 24px;
 }
 
 .editor__fields {
@@ -1885,11 +1791,7 @@ ul.points .points > li::before,
 }
 
 .skeleton__head {
-  height: 248px;
-}
-
-.skeleton__bar {
-  height: 152px;
+  height: 144px;
 }
 
 .skeleton__list {
@@ -1979,30 +1881,25 @@ ul.points .points > li::before,
   box-shadow: var(--shadow-card);
 }
 
+/* Where the card is from, in grey above it: the question is what to read. */
 .study-card__meta {
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  min-width: 0;
   font-size: 13px;
   line-height: 20px;
-  color: var(--muted);
+  color: var(--quiet);
+  white-space: nowrap;
 }
 
 .study-card__topic {
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 10px;
-  margin-left: -10px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent-ink);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--muted);
   font-weight: 500;
-}
-
-.study-card__kind--due {
-  color: var(--accent-ink);
 }
 
 .study-card__question {
@@ -2746,11 +2643,8 @@ ul.points .points > li::before,
     gap: 16px;
   }
 
-  .topbar__streak {
-    display: flex;
-    margin-right: -12px;
-  }
-
+  /* The three places go to the bottom, where a thumb is; the streak, Theme
+     and Lock stay up here at the right, as on a wide window. */
   .nav {
     position: fixed;
     left: 0;
@@ -2761,22 +2655,13 @@ ul.points .points > li::before,
     box-sizing: border-box;
     padding: 6px 8px env(safe-area-inset-bottom);
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0;
     background: var(--surface);
     box-shadow: 0 -1px 0 var(--line);
   }
 
-  .nav__tools {
-    display: contents;
-  }
-
-  .nav .streak {
-    display: none;
-  }
-
-  .nav__item,
-  .nav__tool {
+  .nav__item {
     width: auto;
     height: auto;
     display: flex;
@@ -2787,6 +2672,7 @@ ul.points .points > li::before,
     padding: 0;
     border-radius: 12px;
     background: transparent;
+    color: var(--quiet);
     font-size: 11px;
     line-height: 16px;
     font-weight: 500;
@@ -2797,31 +2683,21 @@ ul.points .points > li::before,
   }
 
   .nav__item:hover,
-  .nav__tool:hover,
   .nav__item[aria-current="page"],
   .nav__item[aria-current="page"]:hover {
     background: transparent;
   }
 
+  .nav__item[aria-current="page"] {
+    color: var(--ink);
+  }
+
   .nav__item[aria-current="page"] svg {
     box-sizing: content-box;
-    padding: 4px 14px;
+    padding: 4px 16px;
     margin: -4px 0;
     border-radius: 999px;
-    background: var(--accent-soft);
-  }
-
-  .nav__tool svg {
-    width: 20px;
-    height: 20px;
-  }
-
-  .nav__tool .nav__label {
-    position: static;
-    width: auto;
-    height: auto;
-    overflow: visible;
-    clip: auto;
+    background: var(--subtle);
   }
 
   .main {
@@ -2839,6 +2715,10 @@ ul.points .points > li::before,
 
   .stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stats--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .workspace {
@@ -2869,29 +2749,49 @@ ul.points .points > li::before,
 }
 
 @media (max-width: 760px) {
-  /* Tools that wrap under their title start on its edge, words first. */
-  .section-tools {
-    margin-left: -12px;
+  /* A phone has no room for boxes inside boxes. The page goes flat and plain
+     — no dots, no cards — and each panel becomes a section of it, set apart
+     by space alone, with the whole width of the screen less one gutter. */
+  body {
+    background-image: none;
   }
 
   .panel {
-    padding: 20px;
-    border-radius: 16px;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
   }
 
   .panel + .panel {
-    margin-top: 16px;
+    margin-top: 40px;
+  }
+
+  .question.is-open {
+    background: var(--surface);
   }
 
   .title {
-    font-size: 32px;
-    line-height: 40px;
+    font-size: 28px;
+    line-height: 36px;
+    letter-spacing: -0.03em;
+  }
+
+  /* The heading folds to the title, what is waiting, and Study across the
+     whole width — the one thing on the screen to press. */
+  .head {
+    gap: 16px;
   }
 
   .head__side {
     margin-left: 0;
     align-items: flex-start;
     width: 100%;
+  }
+
+  .head__side .btn--primary {
+    align-self: stretch;
+    height: 52px;
   }
 
   .stats {
@@ -2909,7 +2809,14 @@ ul.points .points > li::before,
     font-size: 16px;
   }
 
-  /* A table row folds to its name and what is waiting, with its bar under. */
+  /* A row folds to its name, the line under it, and what is due — one line
+     each. The learned bar is a wide window's second reading; Progress keeps
+     it at every width. */
+  .table,
+  .t-rows .table__inner {
+    min-width: 0;
+  }
+
   .table__inner {
     min-width: 0;
   }
@@ -2924,20 +2831,23 @@ ul.points .points > li::before,
 
   .table__row {
     grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 16px;
     row-gap: 8px;
-    min-height: 0;
-    padding-top: 12px;
-    padding-bottom: 12px;
+    min-height: 64px;
+    padding-top: 10px;
+    padding-bottom: 10px;
   }
 
   .table__row > * {
     display: none;
   }
 
-  .table__row > .cell-name,
-  .table__row > .c-bar,
-  .table__row > .c-due {
+  .table__row > .cell-name {
     display: flex;
+  }
+
+  .table__row > .c-due {
+    display: block;
   }
 
   .table__row > .cell-name {
@@ -2949,10 +2859,10 @@ ul.points .points > li::before,
     grid-row: 1;
   }
 
-  .table__row > .c-bar {
+  .t-progress .table__row > .c-bar {
+    display: flex;
     grid-column: 1 / -1;
     grid-row: 2;
-    margin-left: 24px;
   }
 
   .t-progress .table__row > .c-pct {
@@ -2961,18 +2871,15 @@ ul.points .points > li::before,
     grid-row: 1;
   }
 
-  .question__state {
-    flex-basis: auto;
-    margin-left: 8px;
+  /* The question has the width; its state stays a word at the end and the
+     chevron goes — the whole row is the button. */
+  .question__title {
+    padding: 16px 16px 16px 0;
+    font-size: 15px;
   }
 
-  .question__index {
-    flex-basis: 32px;
-  }
-
-  .question__body,
-  .editor {
-    padding-left: 0;
+  .question__chevron {
+    display: none;
   }
 
   .destination {
@@ -2990,10 +2897,6 @@ ul.points .points > li::before,
 
   .bar-labels .bar-label {
     flex: none !important;
-  }
-
-  .mastery__label {
-    display: none;
   }
 
   .confirm {
@@ -3069,6 +2972,7 @@ ul.points .points > li::before,
   .done .stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
 
   .streak-badge__rule,
   .streak-badge__week {

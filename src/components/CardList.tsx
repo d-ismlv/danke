@@ -4,11 +4,10 @@ import { useActionState, useId, useState } from "react";
 import { saveCard, deleteCard, type CardState } from "@/lib/actions";
 import { formatCard, formatPoints } from "@/lib/parse";
 import type { CardRow } from "@/lib/queries";
-import { cardMark } from "@/lib/status";
+import { cardMark, MARK_LABEL } from "@/lib/status";
 import Inline from "./Inline";
 import Points from "./Points";
 import Icon from "./Icon";
-import { MarkPill } from "./Marks";
 import { useToast } from "./Toast";
 import { useIndent } from "@/lib/indent";
 
@@ -18,7 +17,9 @@ import { useIndent } from "@/lib/indent";
  *
  * Correcting a card lives inside the opened answer rather than on the row, so
  * a closed row is exactly the row it looks like — a question and how it is
- * going, with nothing hovering over it waiting to be clicked.
+ * going, with nothing hovering over it waiting to be clicked. The question
+ * has the row's width to itself; how it is going is one quiet word after it,
+ * in the accent only when its turn has come.
  */
 export default function CardList({
   cards,
@@ -49,6 +50,7 @@ export default function CardList({
     <div className="questions">
       {cards.map((card, index) => {
         const isOpen = open === card.id;
+        const mark = cardMark(card, at);
         const answerId = `${prefix}-answer-${index}`;
         return (
           <article className={isOpen ? "question is-open" : "question"} key={card.id}>
@@ -62,14 +64,13 @@ export default function CardList({
                 setEditing(null);
               }}
             >
-              <span className="question__index no-copy">{String(index + 1).padStart(2, "0")}</span>
               <span className="question__title">
                 {/* The whole row is the toggle; a link in the question is
                     followed from the study card instead. */}
                 <Inline links={false}>{card.title}</Inline>
               </span>
-              <span className="question__state no-copy">
-                <MarkPill mark={cardMark(card, at)} />
+              <span className={`question__state question__state--${mark} no-copy`}>
+                {MARK_LABEL[mark]}
               </span>
               <Icon name="chevron" className="question__chevron no-copy" />
             </button>

@@ -89,9 +89,10 @@ Progress page: the share of those cards FSRS has graduated out of learning
 
 ## Learning status
 
-The mark beside a deck on Library, beside a topic inside a deck, and beside a
-deck on Progress → By deck is the same measurement drawn three times: how the cards in that scope are actually going.
-Never an identity colour, and never keyed to a deck's id, name or position.
+How the cards in a deck or topic are actually going — one measurement, read
+by a deck row on Library, a topic row inside a deck, and a deck row on
+Progress → By deck. Never an identity colour, and never keyed to a deck's id,
+name or position.
 
 `src/lib/status.ts` holds the one classifier, and its thresholds are named
 constants so they can be argued with in one place rather than in three
@@ -99,15 +100,19 @@ components. In precedence order:
 
 | | |
 |---|---|
-| `new` — hollow ring | nothing in scope has ever been answered |
-| `struggling` — amber triangle | the recent answers keep coming back Again, or a third of what has been seen is relearning or repeatedly lapsed |
-| `strong` — emerald dot | predominantly mature, and not struggling |
-| `learning` — half-filled jade dot | everything else that has been started |
+| `new` | nothing in scope has ever been answered |
+| `struggling` | the recent answers keep coming back Again, or a third of what has been seen is relearning or repeatedly lapsed |
+| `strong` | predominantly mature, and not struggling |
+| `learning` | everything else that has been started |
+
+Only `struggling` is said out loud on a row: "Needs attention", in amber, in
+place of the row's usual line. The other three stay quiet, so the one row that
+wants you stands out instead of being one coloured mark among many. Progress →
+By deck adds which of the two rules it tripped.
 
 Being **due** is deliberately not in that list: a due card is a healthy card
 whose turn has come round, and a deck does not turn amber for being scheduled
-today. Every mark is a shape as well as a colour and is paired with a text
-description, and a struggling row says which of the two rules it tripped.
+today.
 
 `src/lib/queries.ts` produces the inputs once per topic and rolls them up to
 decks and to the library, so the three surfaces cannot disagree.
@@ -118,26 +123,36 @@ Library (`/`) · Deck · Topic · Study · Import · Progress · Login. Six, plu
 lock screen, and each one has a single job.
 
 The shell is a white top bar — the name, Library, Progress and Import, then the
-streak, Theme and Lock — that becomes a five-item tab bar under 900px, over a
-12-column content column capped at 1240px so a 4K display gets a readable
-measure rather than a stretched one. A study session hides the bar and puts
+streak, Theme and Lock — over a 12-column content column capped at 1240px so a
+4K display gets a readable measure rather than a stretched one. Under 900px the
+three places move to a tab bar at the bottom and the streak, Theme and Lock
+stay at the top right; under 760px the panels fold into plain sections of one
+flat page, because a phone has no room for boxes inside boxes. A study session hides the bar and puts
 its own in its place: the way back, the session's progress, and the count.
 
 A deck, a topic and a card are not in the bar: they are states you reach by
 going down through the library, and each carries its own way back up. Every
 screen opens with the same heading panel (`.head`), so the title sits at
 identical coordinates and nothing slides when you change page. Its right side
-holds Study and nothing else — Start review, Study deck and Study topic land
-on the same spot on every page. What changes a deck or topic (Add cards,
-Export, Reset, Delete) lives in the header of the list it changes, with Delete
-last and set apart, never beside Study.
+holds what is waiting — "9 due · 7 new" — and Study, and nothing else: Start
+review, Study deck and Study topic land on the same spot on every page, full
+width on a phone.
+
+Library, a deck and a topic are screens you study from, so each is that heading
+and one list, and nothing more. The figures, the memory bar and the activity
+calendar are Progress's. What changes a deck or topic (Add cards, Export,
+Reset, Delete) waits in grey under the list it changes, with Delete alone at
+the far end, never beside Study.
 
 ## Styling
 
 `src/app/globals.css` is the whole visual system, "Ledger": tokens, then the
 classes the screens are built from. One type scale, one spacing scale, one
 12px bar for every distribution in the app, warm graded colour with no reds,
-and text that only ever sits on a solid panel over a dotted page. Tailwind's
+and text that only ever sits on a solid panel over a dotted page. Colour is
+spent where the eye should go: violet only on Study and on what is due, amber
+only on a row that needs attention; navigation, captions and tools are ink and
+grey. Tailwind's
 reset (Preflight) is imported on its own and nothing else is — no utility
 classes exist to collide with, so there is one place a colour, a radius or a
 rhythm is decided. Geist and Geist Mono come through `next/font`, downloaded at

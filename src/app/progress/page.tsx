@@ -2,8 +2,8 @@ import Link from "next/link";
 import { getProgress, now } from "@/lib/queries";
 import Icon from "@/components/Icon";
 import { Figure } from "@/components/Figures";
-import { MemoryBar, MemoryLabels, StatusMark } from "@/components/Marks";
-import { plural } from "@/components/Cells";
+import { MemoryBar, MemoryLabels } from "@/components/Marks";
+import { LearnedBar, plural } from "@/components/Cells";
 import RowNote from "@/components/RowNote";
 
 export const dynamic = "force-dynamic";
@@ -85,28 +85,22 @@ export default async function ProgressPage() {
           </div>
         </div>
 
-        <section className="stats" aria-label="Progress summary">
+        {/* The streak is the badge beside the title, so it is not a figure
+            here as well. */}
+        <section className="stats stats--3" aria-label="Progress summary">
           <Figure
-            dot="young"
             label="Learned"
             value={p.percent}
             unit="%"
-            caption={`${learned} of ${totalCards} graduated`}
+            caption={`${learned} of ${totalCards} cards`}
           />
           <Figure
-            dot="streak"
-            label="Streak"
-            value={p.streak}
-            caption={p.streak === 1 ? "day in a row" : "days in a row"}
-          />
-          <Figure
-            dot="recall"
             label="Recall"
             value={p.recall === null ? "—" : p.recall}
             unit={p.recall === null ? undefined : "%"}
-            caption="answers not Again, last 30 days"
+            caption="last 30 days"
           />
-          <Figure dot="learning" label="Today" value={p.reviewsToday} caption="cards answered" />
+          <Figure label="Today" value={p.reviewsToday} caption="answered" />
         </section>
       </section>
 
@@ -204,26 +198,12 @@ export default async function ProgressPage() {
                 return (
                   <Link key={deck.id} href={`/decks/${deck.id}`} className="table__row">
                     <span className="cell-name">
-                      <StatusMark status={counts.status} />
-                      <span>
-                        <strong className="row-name">{deck.name}</strong>
-                        <small className="row-sub">
-                          <RowNote counts={counts} at={at} />
-                        </small>
-                      </span>
+                      <strong className="row-name">{deck.name}</strong>
+                      <small className="row-sub">
+                        <RowNote counts={counts} at={at} detailed />
+                      </small>
                     </span>
-                    <span
-                      className="bar c-bar"
-                      role="img"
-                      aria-label={`${counts.learned} of ${counts.cards} learned`}
-                    >
-                      {counts.learned > 0 && (
-                        <i className="seg-young" style={{ flexGrow: counts.learned }} />
-                      )}
-                      {counts.cards > counts.learned && (
-                        <i style={{ flexGrow: counts.cards - counts.learned }} />
-                      )}
-                    </span>
+                    <LearnedBar learned={counts.learned} cards={counts.cards} className="c-bar" />
                     <span className="cell-num cell-num--quiet">
                       {counts.learned} / {counts.cards}
                     </span>

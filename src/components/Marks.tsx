@@ -1,42 +1,15 @@
-import {
-  markSegments,
-  statusLabel,
-  MARK_LABEL,
-  MATURE_DAYS,
-  type CardMark,
-  type LearningStatus,
-  type MemoryState,
-} from "@/lib/status";
+import { MARK_LABEL, MATURE_DAYS, type MemoryState } from "@/lib/status";
 
 /**
- * The coloured marks, in one file, so the reading of a colour cannot drift
- * between the screens that draw them.
+ * The memory bar and its key, in one file, so the reading of a colour cannot
+ * drift between the screens that draw them. The memory colours appear on
+ * Progress and nowhere else: the screens you study from stay in one accent.
  */
 
 const MEMORY_ORDER: MemoryState[] = ["mature", "young", "learning", "unseen"];
 
-/** How a deck or topic is going: a shape and a colour, never colour alone. */
-export function StatusMark({ status }: { status: LearningStatus }) {
-  const label = statusLabel(status);
-  if (status === "struggling") {
-    // A triangle, drawn rather than clipped, so its corners are as soft as
-    // every other shape in the app.
-    return (
-      <svg viewBox="0 0 12 12" className="status status--struggling" role="img" aria-label={label}>
-        <title>{label}</title>
-        <path d="M6 2 10.4 10H1.6Z" />
-      </svg>
-    );
-  }
-  return (
-    <i className={status === "new" ? "status" : `status status--${status}`} title={label}>
-      <span className="sr-only">{label}</span>
-    </i>
-  );
-}
-
 /** The class that paints one segment of the bar. Unseen is the bare track. */
-function segClass(mark: CardMark): string | undefined {
+function segClass(mark: MemoryState): string | undefined {
   return mark === "unseen" ? undefined : `seg-${mark}`;
 }
 
@@ -109,85 +82,11 @@ export function MemoryLabels({
   );
 }
 
-/**
- * A topic's cards, one segment each, in their order — until there are more
- * than fit, when a segment stands for a share of them instead.
- */
-export function MarkBar({
-  marks,
-  max = 40,
-  className,
-}: {
-  marks: CardMark[];
-  max?: number;
-  className?: string;
-}) {
-  const shown = markSegments(marks, max);
-  return (
-    // The label counts the cards, not the segments: over the limit a segment
-    // stands for several, and it is the real tally that should be read out.
-    <span className={className ? `bar ${className}` : "bar"} role="img" aria-label={describe(marks)}>
-      {shown.length === 0 ? <i /> : shown.map((mark, i) => <i key={i} className={segClass(mark)} />)}
-    </span>
-  );
-}
-
-/** "Eight mature, thirteen young and five unseen" — the marks, said out loud. */
-export function describe(marks: CardMark[]): string {
-  const tally: Partial<Record<CardMark, number>> = {};
-  for (const mark of marks) tally[mark] = (tally[mark] ?? 0) + 1;
-  return sentence(tally);
-}
-
 function describeMemory(memory: Record<MemoryState, number>): string {
-  return sentence(memory);
-}
-
-function sentence(tally: Partial<Record<CardMark, number>>): string {
-  const order: CardMark[] = ["mature", "young", "learning", "due", "unseen"];
-  const parts = order
-    .filter((mark) => (tally[mark] ?? 0) > 0)
-    .map((mark) => `${tally[mark]} ${MARK_LABEL[mark].toLowerCase()}`);
+  const parts = MEMORY_ORDER.filter((state) => memory[state] > 0).map(
+    (state) => `${memory[state]} ${MARK_LABEL[state].toLowerCase()}`,
+  );
   if (parts.length === 0) return "No cards";
   if (parts.length === 1) return parts[0];
   return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
-}
-
-/** The small key that teaches the status shapes, under the list that uses them. */
-export function StatusLegend() {
-  const all: LearningStatus[] = ["strong", "learning", "struggling", "new"];
-  return (
-    <div className="legend" aria-hidden="true">
-      {all.map((status) => (
-        <span key={status}>
-          <StatusMark status={status} />
-          {statusLabel(status)}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-/** The small key that teaches the segment colours. */
-export function MarkLegend({ marks }: { marks: CardMark[] }) {
-  return (
-    <div className="legend" aria-hidden="true">
-      {marks.map((mark) => (
-        <span key={mark}>
-          <i className={`dot dot--${mark}`} />
-          {MARK_LABEL[mark]}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-/** A card's state as a pill: the word, with its colour beside it. */
-export function MarkPill({ mark }: { mark: CardMark }) {
-  return (
-    <span className={`pill pill--${mark}`}>
-      <i className={`dot dot--${mark}`} />
-      {MARK_LABEL[mark]}
-    </span>
-  );
 }

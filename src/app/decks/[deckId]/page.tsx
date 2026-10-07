@@ -2,14 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDeckLabel, getDeckView, now, studiedWhen } from "@/lib/queries";
 import { renameDeck, deleteDeck } from "@/lib/actions";
-import { cardMark } from "@/lib/status";
 import Icon from "@/components/Icon";
 import ConfirmDelete from "@/components/ConfirmDelete";
 import RenameField from "@/components/RenameField";
 import TopicTable, { type TopicRow } from "@/components/TopicTable";
-import { Figures } from "@/components/Figures";
-import { MemoryBar, MemoryLabels } from "@/components/Marks";
-import { plural } from "@/components/Cells";
+import { Waiting, plural } from "@/components/Cells";
 
 export const dynamic = "force-dynamic";
 
@@ -25,29 +22,32 @@ export async function generateMetadata({ params }: { params: Promise<{ deckId: s
 }
 
 /** A deck is its topics. Studying the whole deck is one button at the top;
- * studying one topic is one click into it. */
+ * studying one topic is one click into it. How the deck's memory is spread is
+ * Progress's to show, not this screen's. */
 export default async function DeckPage({ params }: { params: Promise<{ deckId: string }> }) {
   const { deckId } = await params;
   const at = now();
   const view = await getDeckView(deckId, at);
   if (!view) notFound();
-  const { deck, topics, marks, counts } = view;
+  const { deck, topics, counts } = view;
 
   const rows: TopicRow[] = topics.map((topic) => ({
     id: topic.id,
     name: topic.name,
     cards: topic.counts.cards,
     due: topic.counts.due,
-    unseen: topic.counts.memory.unseen,
+    learned: topic.counts.learned,
+    percent: topic.counts.percent,
     status: topic.counts.status,
     reason: topic.counts.reason,
-    marks: (marks.get(topic.id) ?? []).map((card) => cardMark(card, at)),
     lastStudied: topic.counts.lastStudied,
-    when: topic.counts.lastStudied === null ? "Never" : capitalise(studiedWhen(topic.counts.lastStudied, at)),
+    when:
+      topic.counts.lastStudied === null
+        ? "not started"
+        : `studied ${studiedWhen(topic.counts.lastStudied, at)}`,
   }));
-  const topicsWithDue = topics.filter((topic) => topic.counts.due > 0).length;
 
-  /* What changes the deck, beside the list it changes — and away from Study,
+  /* What changes the deck, under the list it changes — and away from Study,
      which keeps the heading to itself. */
   const tools = (
     <ConfirmDelete
@@ -83,42 +83,17 @@ export default async function DeckPage({ params }: { params: Promise<{ deckId: s
               <RenameField action={renameDeck} id={deck.id} name={deck.name} />
             </h1>
           </div>
-          <div className="head__side">
-            <p className="meta">
-              {plural(topics.length, "topic")} · {plural(counts.cards, "card")}
-            </p>
-            {counts.cards > 0 && (
+          {counts.cards > 0 && (
+            <div className="head__side">
+              <Waiting due={counts.due} unseen={counts.memory.unseen} />
               <Link href={`/decks/${deck.id}/study`} className="btn btn--primary">
                 <Icon name="play" className="icon--fill" />
                 Study deck
               </Link>
-            )}
-          </div>
+            </div>
+          )}
         </div>
-
-        {counts.cards > 0 && (
-          <Figures
-            label={`${deck.name} overview`}
-            counts={counts}
-            dueCaption={
-              counts.due === 0 ? "nothing waiting" : `across ${plural(topicsWithDue, "topic")}`
-            }
-          />
-        )}
       </section>
-
-      {counts.cards > 0 && (
-        <section className="panel" aria-labelledby="memory-title">
-          <div className="section-head">
-            <h2 className="section-title" id="memory-title">
-              Memory
-            </h2>
-            <span className="meta">{plural(counts.cards, "card")}</span>
-          </div>
-          <MemoryBar memory={counts.memory} />
-          <MemoryLabels memory={counts.memory} />
-        </section>
-      )}
 
       <section className="panel" aria-labelledby="topics-title">
         {rows.length === 0 ? (
@@ -127,7 +102,6 @@ export default async function DeckPage({ params }: { params: Promise<{ deckId: s
               <h2 className="section-title" id="topics-title">
                 Topics
               </h2>
-              <div className="section-tools">{tools}</div>
             </div>
             <div className="empty">
               <h2>No topics yet</h2>
@@ -137,6 +111,7 @@ export default async function DeckPage({ params }: { params: Promise<{ deckId: s
                 Add cards
               </Link>
             </div>
+            <div className="list-foot">{tools}</div>
           </>
         ) : (
           <TopicTable topics={rows} tools={tools} />
@@ -144,8 +119,4 @@ export default async function DeckPage({ params }: { params: Promise<{ deckId: s
       </section>
     </>
   );
-}
-
-function capitalise(text: string): string {
-  return text.charAt(0).toUpperCase() + text.slice(1);
 }
