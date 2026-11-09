@@ -1443,6 +1443,11 @@ kbd {
   padding: 0 0 24px;
 }
 
+/* Topic answers fill the row, including any nested lists. */
+.question__body .points {
+  max-width: none;
+}
+
 .tools {
   margin: 16px 0 0 -12px;
   display: flex;
